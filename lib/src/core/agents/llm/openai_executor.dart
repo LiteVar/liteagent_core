@@ -175,26 +175,29 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
         return OpenAIFunctionProperty.boolean(
           name: name,
           description: description??(schema.description),
-          isRequired: required
+          isRequired: required,
+          enumValues: schema.enum_?.whereType<bool>().toList(),
         );
       case DataType.INTEGER:
         return OpenAIFunctionProperty.integer(
           name: name,
           description: description??(schema.description),
-          isRequired: required
+          isRequired: required,
+          enumValues: schema.enum_?.whereType<int>().toList(),
         );
       case DataType.NUMBER:
         return OpenAIFunctionProperty.number(
           name: name,
           description: description??(schema.description),
-          isRequired: required
+          isRequired: required,
+          enumValues: schema.enum_?.whereType<double>().toList(),
         );
       case DataType.STRING:
         return OpenAIFunctionProperty.string(
           name: name,
           description: description??(schema.description),
           isRequired: required,
-          enumValues: schema.enum_
+          enumValues: schema.enum_?.whereType<String>().toList(),
         );
       case DataType.ARRAY:
         {
