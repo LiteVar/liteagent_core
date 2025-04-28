@@ -26,6 +26,7 @@ class SessionNameDto extends SessionDto {
     if(name != null && !regex.hasMatch(name)) {
       throw AgentNameException(agentName: name);
     }
+    this.name = name;
   }
 
   factory SessionNameDto.fromJson(Map<String, dynamic> json) => _$SessionNameDtoFromJson(json);
