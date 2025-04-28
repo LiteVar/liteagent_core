@@ -294,10 +294,10 @@ class ApiKeyDto {
 class UserTaskDto {
   @JsonKey(includeIfNull: false)
   String? taskId;
-  List<ContentDto> contentList;
+  List<ContentDto> content;
   bool? stream;
 
-  UserTaskDto({this.taskId, required this.contentList, this.stream});
+  UserTaskDto({this.taskId, required this.content, this.stream});
 
   factory UserTaskDto.fromJson(Map<String, dynamic> json) {
     if(json["taskId"] != null && (json["taskId"] as String).length > 36) {

@@ -27,7 +27,7 @@ Future<void> main() async {
 
   SessionDto sessionDto = await agentService.initSession(capabilityDto, listen);
 
-  UserTaskDto userTaskDto = UserTaskDto(contentList: [ContentDto(type: ContentType.TEXT, message: prompt)]);
+  UserTaskDto userTaskDto = UserTaskDto(content: [ContentDto(type: ContentType.TEXT, message: prompt)]);
   await agentService.startSession(sessionDto.sessionId, userTaskDto);
 
   await sleep(20);

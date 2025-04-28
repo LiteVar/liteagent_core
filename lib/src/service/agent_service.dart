@@ -46,7 +46,7 @@ class AgentService {
   Future<AgentMessageDto> startSimple(String sessionId, UserTaskDto userTaskDto) async {
     SimpleAgent? simpleAgent = simpleAgents[sessionId];
     if(simpleAgent == null) throw SessionAgentNotFoundException(sessionId: sessionId);
-    List<Content> userMessageList = userTaskDto.contentList
+    List<Content> userMessageList = userTaskDto.content
       .map((userMessageDto) => _convertToContent(userMessageDto))
       .toList();
     AgentMessage agentMessage = await simpleAgent.userToAgent(contentList: userMessageList, taskId: userTaskDto.taskId);
@@ -116,7 +116,7 @@ class AgentService {
   Future<void> startSession(String sessionId, UserTaskDto userTaskDto) async {
     SessionAgent? sessionAgent = sessionAgents[sessionId];
     if(sessionAgent == null) throw SessionAgentNotFoundException(sessionId: sessionId);
-    List<Content> userMessageList = userTaskDto.contentList
+    List<Content> userMessageList = userTaskDto.content
       .map((contentDto) => _convertToContent(contentDto))
       .toList();
     await sessionAgent.userToAgent(taskId: userTaskDto.taskId, contentList: userMessageList, stream: userTaskDto.stream);
