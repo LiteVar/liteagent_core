@@ -25,25 +25,19 @@ Future<void> main() async {
 
   try {
     String prompt1 = "Help me set store a text 'hello1'.";
-    String taskId1 = uniqueId();
-    print("taskId1: $taskId1");
-    await toolAgent.userToAgent(taskId: taskId1, contentList: [Content(type: ContentType.TEXT, message: prompt1)]);
+    await toolAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt1)]);
   } on TaskRejectException catch (e) {
     print(e);
   }
   try {
     String prompt2 = "Help me set store a text 'hello22'.";
-    String taskId2 = uniqueId();
-    print("taskId2: $taskId2");
-    await toolAgent.userToAgent(taskId: taskId2, contentList: [Content(type: ContentType.TEXT, message: prompt2)]);
+    await toolAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt2)]);
   } on TaskRejectException catch (e) {
     print(e);
   }
   try {
     String prompt3 = "Help me set store a text 'hello333'.";
-    String taskId3 = uniqueId();
-    print("taskId3: $taskId3");
-    await toolAgent.userToAgent(taskId: taskId3, contentList: [Content(type: ContentType.TEXT, message: prompt3)]);
+    await toolAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt3)]);
   } on TaskRejectException catch (e) {
     print(e);
   }

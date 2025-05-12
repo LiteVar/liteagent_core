@@ -187,10 +187,10 @@ Map<String, dynamic> _$ApiKeyDtoToJson(ApiKeyDto instance) => <String, dynamic>{
 const _$ApiKeyTypeEnumMap = {
   ApiKeyType.basic: 'basic',
   ApiKeyType.bearer: 'bearer',
+  ApiKeyType.original: 'original',
 };
 
 UserTaskDto _$UserTaskDtoFromJson(Map<String, dynamic> json) => UserTaskDto(
-      taskId: json['taskId'] as String?,
       content: (json['content'] as List<dynamic>)
           .map((e) => ContentDto.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -199,7 +199,6 @@ UserTaskDto _$UserTaskDtoFromJson(Map<String, dynamic> json) => UserTaskDto(
 
 Map<String, dynamic> _$UserTaskDtoToJson(UserTaskDto instance) =>
     <String, dynamic>{
-      if (instance.taskId case final value?) 'taskId': value,
       'content': instance.content,
       'stream': instance.stream,
     };

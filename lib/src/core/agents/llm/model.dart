@@ -14,6 +14,7 @@ class AgentRoleType {
   static const String SYSTEM = "developer"; // system prompt
   static const String USER = "user"; // user
   static const String AGENT = "agent"; // agent
+  static const String SUBAGENT = "subAgent"; // subAgent
   static const String LLM = "assistant"; // llm
   static const String TOOL = "tool"; // external tools
   static const String CLIENT = "client"; // external caller

@@ -26,9 +26,9 @@ abstract class SessionAgent {
   }) :  pipeline = PipelineAsync(taskPipelineStrategy),
         timeout = Timeout(timeoutSeconds);
 
-  Future<void> userToAgent({required List<Content> contentList, String? taskId, bool? stream}) async {
+  Future<void> userToAgent({required List<Content> contentList, bool? stream}) async {
     this.agentSession.isStream = stream??false;
-    if(taskId == null) taskId = uniqueId();
+    String taskId = uniqueId();
     dispatcherMap.create(taskId);
 
     pipeline.addJob(ContentsTask(taskId: taskId, contentList: contentList));

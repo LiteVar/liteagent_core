@@ -1,3 +1,9 @@
+## 0.9.0
+
+- remove client taskId
+- follow dependencies
+- add SubAgent Role
+
 ## 0.8.0
 
 - add MCP stdio tools support

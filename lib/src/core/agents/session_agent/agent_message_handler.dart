@@ -4,8 +4,8 @@ import 'dispatcher.dart';
 class AgentMessageHandlerManager {
   final Map<String, AgentMessageHandler> _strategies = {};
 
-  void registerHandler({required String from, required AgentMessageHandler handler}) {
-    _strategies[from] = handler;
+  void registerHandler({required String role, required AgentMessageHandler handler}) {
+    _strategies[role] = handler;
   }
 
   Command? handleMessage(AgentMessage agentMessage) {

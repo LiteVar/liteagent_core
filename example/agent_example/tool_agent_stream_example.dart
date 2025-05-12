@@ -23,8 +23,7 @@ Future<void> main() async {
     toolDriverList: await _buildToolDriverList(),
     systemPrompt: _buildSystemPrompt()
   );
-  String taskId = uniqueId();
-  await toolAgent.userToAgent(taskId: taskId, contentList: [Content(type: ContentType.TEXT, message: prompt)], stream: true);
+  await toolAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt)], stream: true);
 
   toolAgent.agentSession.taskDoneAgentMessageList.forEach((AgentMessage agentMessage) {
     print(AgentMessageDto.fromModel(agentMessage).toJson());

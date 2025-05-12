@@ -27,27 +27,21 @@ Future<void> main() async {
 
   try {
     String prompt1 = "你是谁？";
-    String taskId1 = uniqueId();
-    print("taskId1: $taskId1, prompt1: $prompt1");
-    UserTaskDto userTaskDto = UserTaskDto(taskId: taskId1, content: [ContentDto(type: ContentType.TEXT, message: prompt1)]);
+    UserTaskDto userTaskDto = UserTaskDto(content: [ContentDto(type: ContentType.TEXT, message: prompt1)]);
     await agentService.startSession(sessionDto.sessionId, userTaskDto);
   } on TaskRejectException catch (e) {
     print(e);
   }
   try {
     String prompt2 = "你从哪里来？";
-    String taskId2 = uniqueId();
-    print("taskId2: $taskId2, prompt1: $prompt2");
-    UserTaskDto userTaskDto = UserTaskDto(taskId: taskId2, content: [ContentDto(type: ContentType.TEXT, message: prompt2)]);
+    UserTaskDto userTaskDto = UserTaskDto(content: [ContentDto(type: ContentType.TEXT, message: prompt2)]);
     await agentService.startSession(sessionDto.sessionId, userTaskDto);
   } on TaskRejectException catch (e) {
     print(e);
   }
   try {
     String prompt3 = "你要到哪里去？";
-    String taskId3 = uniqueId();
-    print("taskId3: $taskId3, prompt1: $prompt3");
-    UserTaskDto userTaskDto = UserTaskDto(taskId: taskId3, content: [ContentDto(type: ContentType.TEXT, message: prompt3)]);
+    UserTaskDto userTaskDto = UserTaskDto(content: [ContentDto(type: ContentType.TEXT, message: prompt3)]);
     await agentService.startSession(sessionDto.sessionId, userTaskDto);
   } on TaskRejectException catch (e) {
     print(e);

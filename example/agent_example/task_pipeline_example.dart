@@ -18,25 +18,19 @@ Future<void> main() async {
   );
   try {
     String prompt1 = "Who are you?";
-    String taskId1 = uniqueId();
-    print("taskId1: $taskId1");
-    await textAgent.userToAgent(taskId: taskId1, contentList: [Content(type: ContentType.TEXT, message: prompt1)]);
+    await textAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt1)]);
   } on TaskRejectException catch (e) {
     print(e);
   }
   try {
     String prompt2 = "Where are you from?";
-    String taskId2 = uniqueId();
-    print("taskId2: $taskId2");
-    await textAgent.userToAgent(taskId: taskId2, contentList: [Content(type: ContentType.TEXT, message: prompt2)]);
+    await textAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt2)]);
   } on TaskRejectException catch (e) {
     print(e);
   }
   try {
     String prompt3 = "What do you want to do?";
-    String taskId3 = uniqueId();
-    print("taskId3: $taskId3");
-    await textAgent.userToAgent(taskId: taskId3, contentList: [Content(type: ContentType.TEXT, message: prompt3)]);
+    await textAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt3)]);
   } on TaskRejectException catch (e) {
     print(e);
   }

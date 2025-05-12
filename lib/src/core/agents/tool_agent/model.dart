@@ -7,6 +7,7 @@ class ToolRoleType {
   static const String DEVELOPER = TextRoleType.DEVELOPER; // system prompt
   static const String USER = TextRoleType.USER; // user
   static const String AGENT = TextRoleType.AGENT; // agent
+  static const String SUBAGENT = AgentRoleType.SUBAGENT; // subagent
   static const String ASSISTANT = TextRoleType.ASSISTANT; // llm
   static const String TOOL = AgentRoleType.TOOL; // external tools
   static const String CLIENT = TextRoleType.CLIENT; // external caller
@@ -40,11 +41,18 @@ class ToolStatusDescription {
   };
 }
 
+class FunctionCallType {
+  static const String TOOL = "tool";
+  static const String SUBAGENT = "subAgent";
+}
+
 class FunctionCallParam {
   String sessionId;
   String taskId;
+  String type;
+  int index;
   FunctionCall functionCall;
-  FunctionCallParam({required this.sessionId, required this.taskId, required this.functionCall});
+  FunctionCallParam({required this.sessionId, required this.taskId, required this.type, required this.index, required this.functionCall});
 }
 
 class ClientOpenTool {

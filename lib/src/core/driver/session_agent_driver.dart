@@ -3,7 +3,6 @@ import 'package:opentool_dart/opentool_dart.dart';
 import '../agents/llm/model.dart';
 import '../agents/model.dart';
 import '../agents/session_agent/model.dart';
-import '../util/unique_id_generator.dart';
 import 'model.dart';
 import 'agent_driver.dart';
 
@@ -40,21 +39,19 @@ class SessionAgentDriver extends AgentDriver {
   @override
   Future<ToolReturn> call(FunctionCall functionCall) async {
     try {
-      String prompt = functionCall.parameters[promptKey];
+      String prompt = functionCall.arguments[promptKey];
       NamedSessionAgent namedSessionAgent = namedSessionAgents.where((agentModel) => agentModel.name == functionCall.name).first;
       Content content = Content(type: ContentType.TEXT, message: prompt);
 
-      String taskId = uniqueId();
-
       Completer<AgentMessage> completer = Completer();
       void Function(AgentMessage) listen = (agentMessage) {
-        if(agentMessage.taskId == taskId && agentMessage.role == AgentRoleType.AGENT && agentMessage.to == AgentRoleType.USER && agentMessage.type == AgentMessageType.TEXT) {
+        if(agentMessage.role == AgentRoleType.AGENT && agentMessage.to == AgentRoleType.USER) {
           completer.complete(agentMessage);
         }
       };
       namedSessionAgent.agent.agentSession.addAgentMessageListener(listen);
 
-      await namedSessionAgent.agent.userToAgent(contentList: [content], taskId: taskId);
+      await namedSessionAgent.agent.userToAgent(contentList: [content]);
 
       AgentMessage agentMessage = await completer.future;
       String result = agentMessage.content as String;

@@ -36,9 +36,9 @@ class TextAgent extends SessionAgent {
       reflectionManager.addReflector(agentReflector);
     });
 
-    manager.registerHandler(from: TextRoleType.USER, handler: UserMessageHandler(reflectionManager, toLLM));
-    manager.registerHandler(from: TextRoleType.ASSISTANT, handler: LLMMessageHandler(reflectionManager, toReflection, toUser));
-    manager.registerHandler(from: TextRoleType.REFLECTION, handler: TextReflectionMessageHandler(reflectionManager, toLLM, toUser, onTextRetry: onReflectionRetry));
+    manager.registerHandler(role: TextRoleType.USER, handler: UserMessageHandler(reflectionManager, toLLM));
+    manager.registerHandler(role: TextRoleType.ASSISTANT, handler: LLMMessageHandler(reflectionManager, toReflection, toUser));
+    manager.registerHandler(role: TextRoleType.REFLECTION, handler: TextReflectionMessageHandler(reflectionManager, toLLM, toUser, onTextRetry: onReflectionRetry));
   }
 
   void subscribeCompletions(Completions? completions) {

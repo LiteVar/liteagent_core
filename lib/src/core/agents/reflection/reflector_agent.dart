@@ -79,7 +79,7 @@ class ReflectorAgent {
       List<FunctionCall> functionCallList = llmMessage.content as List<FunctionCall>;
       FunctionCall functionCall = functionCallList.first;
       try {
-        ReflectScore reflectScore = ReflectScore.fromJson(functionCall.parameters);
+        ReflectScore reflectScore = ReflectScore.fromJson(functionCall.arguments);
         return reflectScore;
       } catch(e) {
         return ReflectScore(score: 0, description: e.toString());

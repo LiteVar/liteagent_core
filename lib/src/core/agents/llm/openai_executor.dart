@@ -26,7 +26,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
     List<OpenAIChatCompletionChoiceMessageModel> requestMessageList = [];
 
     for(AgentMessage agentMessage in agentMessageList) {
-      if (agentMessage.role == AgentRoleType.TOOL && agentMessage.type == AgentMessageType.TASK_STATUS) {
+      if ((agentMessage.role == AgentRoleType.TOOL || agentMessage.role == AgentRoleType.SUBAGENT) && agentMessage.type == AgentMessageType.TASK_STATUS) {
         // If tool return status, skip
         continue;
       } else {
@@ -57,7 +57,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
     List<OpenAIChatCompletionChoiceMessageModel> requestMessageList = [];
 
     for(AgentMessage agentMessage in agentMessageList) {
-      if (agentMessage.role == AgentRoleType.TOOL && agentMessage.type == AgentMessageType.TASK_STATUS) {
+      if ((agentMessage.role == AgentRoleType.TOOL || agentMessage.role == AgentRoleType.SUBAGENT) && agentMessage.type == AgentMessageType.TASK_STATUS) {
         // If tool return status, skip
         continue;
       } else {
@@ -278,8 +278,8 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
       );
     }
 
-    //AGENT return TOOL result
-    if (agentMessage.role == AgentRoleType.TOOL && agentMessage.type == AgentMessageType.TOOL_RETURN) {
+    //AGENT return TOOL or SUBAGENT result
+    if ((agentMessage.role == AgentRoleType.TOOL || agentMessage.role == AgentRoleType.SUBAGENT) && agentMessage.type == AgentMessageType.TOOL_RETURN) {
       ToolReturn toolReturn = agentMessage.content as ToolReturn;
       return OpenAIChatCompletionChoiceMessageModel(
         role: OpenAIChatMessageRole.tool,
@@ -322,7 +322,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
       "type": "function",
       "function": {
         "name": functionCall.name,
-        "arguments": jsonEncode(functionCall.parameters)
+        "arguments": jsonEncode(functionCall.arguments)
       }
     });
   }
@@ -350,9 +350,8 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
     List<FunctionCall> functionCallList = toolCalls.map((OpenAIResponseToolCall openAIResponseToolCall) {
       String id = openAIResponseToolCall.id!;
       String name = openAIResponseToolCall.function.name!;
-      print(openAIResponseToolCall.function.arguments);
-      Map<String, dynamic> parameters = jsonDecode(openAIResponseToolCall.function.arguments);
-      return FunctionCall(id: id, name: name, parameters: parameters);
+      Map<String, dynamic> arguments = jsonDecode(openAIResponseToolCall.function.arguments);
+      return FunctionCall(id: id, name: name, arguments: arguments);
     }).toList();
     return AgentMessage(
       sessionId: _sessionId,
@@ -455,7 +454,7 @@ class FunctionCallAccumulation extends DeltaAccumulation<List<FunctionCall>> {
 
   void _buildFunctionCall() {
     if(currentName.isNotEmpty && currentParameters.isNotEmpty) {
-      accumulation.add(FunctionCall(id: currentId, name: currentName, parameters: jsonDecode(currentParameters)));
+      accumulation.add(FunctionCall(id: currentId, name: currentName, arguments: jsonDecode(currentParameters)));
       currentId = ""; currentName = ""; currentParameters = "";
     }
   }

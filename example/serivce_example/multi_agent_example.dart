@@ -19,13 +19,16 @@ Future<void> main() async {
   String prompt = "Find the text with ID 0 and translate it into Chinese.";
 
   SessionDto sessionDto1 = await _buildTextAgent();
+  print("[session1] ${sessionDto1.sessionId}");
   SessionDto sessionDto2 = await _buildToolAgent();
+  print("[session2] ${sessionDto2.sessionId}");
 
   CapabilityDto capabilityDto = CapabilityDto(llmConfig: llmConfig, systemPrompt: systemPrompt,
-    sessionList: [SessionNameDto(sessionId: sessionDto1.sessionId, name: ""), SessionNameDto(sessionId: sessionDto2.sessionId)]
+    sessionList: [SessionNameDto(sessionId: sessionDto1.sessionId, name: "translator"), SessionNameDto(sessionId: sessionDto2.sessionId, name: "CRUDTools")]
   );
 
-  SessionDto sessionDto = await agentService.initSession(capabilityDto, listen);
+  SessionDto sessionDto = await agentService.initSession(capabilityDto, listen, listenChunk: listenChunk);
+  print("[session] ${sessionDto.sessionId}");
 
   UserTaskDto userTaskDto = UserTaskDto(content: [ContentDto(type: ContentType.TEXT, message: prompt)]);
   await agentService.startSession(sessionDto.sessionId, userTaskDto);

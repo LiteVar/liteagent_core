@@ -21,8 +21,7 @@ Future<void> main() async {
       toolDriverList: await _buildToolDriverList(),
       systemPrompt: _buildSystemPrompt()
   );
-  String taskId = uniqueId();
-  await toolAgent.userToAgent(taskId: taskId, contentList: [Content(type: ContentType.TEXT, message: prompt)]);
+  await toolAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt)]);
 }
 
 LLMConfig _buildLLMConfig() {
