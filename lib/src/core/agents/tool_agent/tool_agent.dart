@@ -82,7 +82,7 @@ class ToolAgent extends TextAgent {
   Future<void> toLLM(AgentMessage agentMessage) async {
     agentSession.addListenAgentMessage(agentMessage);
 
-    List<AgentMessage> agentLLMMessageList = prepareAgentLLMMessageList(agentMessage);
+    await Future.wait(toolDriverList.map((driver) => driver.init()));
     List<FunctionModel> functionModelList = await _buildFunctionModelList();
     if(this.clientOpenTool != null && this.clientOpenTool!.fetchClientDriver != null) {
       ClientDriver clientDriver = await _buildClientDriver(agentMessage);
@@ -91,9 +91,8 @@ class ToolAgent extends TextAgent {
       functionModelList.addAll(clientDriver.parse());
     }
 
-    toolDriverList.forEach((driver)=>driver.init());
-
     try {
+      List<AgentMessage> agentLLMMessageList = prepareAgentLLMMessageList(agentMessage);
       if(super.agentSession.isStream) {
         Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(llmConfig).requestByStream(agentMessageList: agentLLMMessageList, functionModelList: functionModelList, listenChunk: listenChunk);
         agentMessageStream.listen((newAgentMessage) {

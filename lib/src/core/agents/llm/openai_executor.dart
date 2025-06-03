@@ -322,7 +322,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
       "type": "function",
       "function": {
         "name": functionCall.name,
-        "arguments": jsonEncode(functionCall.parameters)
+        "arguments": jsonEncode(functionCall.arguments)
       }
     });
   }
@@ -352,7 +352,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
       String name = openAIResponseToolCall.function.name!;
       print(openAIResponseToolCall.function.arguments);
       Map<String, dynamic> parameters = jsonDecode(openAIResponseToolCall.function.arguments);
-      return FunctionCall(id: id, name: name, parameters: parameters);
+      return FunctionCall(id: id, name: name, arguments: parameters);
     }).toList();
     return AgentMessage(
       sessionId: _sessionId,
@@ -455,7 +455,7 @@ class FunctionCallAccumulation extends DeltaAccumulation<List<FunctionCall>> {
 
   void _buildFunctionCall() {
     if(currentName.isNotEmpty && currentParameters.isNotEmpty) {
-      accumulation.add(FunctionCall(id: currentId, name: currentName, parameters: jsonDecode(currentParameters)));
+      accumulation.add(FunctionCall(id: currentId, name: currentName, arguments: jsonDecode(currentParameters)));
       currentId = ""; currentName = ""; currentParameters = "";
     }
   }

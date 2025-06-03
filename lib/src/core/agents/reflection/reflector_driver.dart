@@ -30,7 +30,7 @@ class ReflectorDriver extends ToolDriver {
   @override
   Future<ToolReturn> call(FunctionCall functionCall) async {
     if(functionCall.name == reflectFunction) {
-      return ToolReturn(id: functionCall.id, result: functionCall.parameters);
+      return ToolReturn(id: functionCall.id, result: functionCall.arguments);
     } else {
       return ToolReturn(id: functionCall.id, result: FunctionNotSupportedException(functionName: functionCall.name).toJson());
     }

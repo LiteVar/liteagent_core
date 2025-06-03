@@ -40,7 +40,7 @@ class SessionAgentDriver extends AgentDriver {
   @override
   Future<ToolReturn> call(FunctionCall functionCall) async {
     try {
-      String prompt = functionCall.parameters[promptKey];
+      String prompt = functionCall.arguments[promptKey];
       NamedSessionAgent namedSessionAgent = namedSessionAgents.where((agentModel) => agentModel.name == functionCall.name).first;
       Content content = Content(type: ContentType.TEXT, message: prompt);
 

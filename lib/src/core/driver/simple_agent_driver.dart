@@ -38,7 +38,7 @@ class SimpleAgentDriver extends AgentDriver {
   @override
   Future<ToolReturn> call(FunctionCall functionCall) async {
     try {
-      String prompt = functionCall.parameters[promptKey];
+      String prompt = functionCall.arguments[promptKey];
       NamedSimpleAgent agentModel = namedSimpleAgents.where((agentModel) => agentModel.name == functionCall.name).first;
       Content content = Content(type: ContentType.TEXT, message: prompt);
 
