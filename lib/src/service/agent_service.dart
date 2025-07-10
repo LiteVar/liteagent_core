@@ -79,7 +79,7 @@ class AgentService {
 
     List<AgentDriver>? agentDriverList = await _buildAgentDriverList(capabilityDto.sessionList, sessionId, listen);
 
-    if(toolDriverList.isEmpty && agentDriverList == null && capabilityDto.clientOpenTool == null) {
+    if(toolDriverList.isEmpty && agentDriverList == null && capabilityDto.clientOpenTool == null) { // TextAgent
       SessionAgent textAgent = TextAgent(
           sessionId: sessionId,
           llmConfig: llmConfig,
@@ -90,7 +90,7 @@ class AgentService {
           taskPipelineStrategy: capabilityDto.taskPipelineStrategy
       );
       sessionAgents[sessionId] = textAgent;
-    } else {
+    } else if(agentDriverList == null) {  // ToolAgent
       ClientOpenTool? clientOpenTool = null;
       if(capabilityDto.clientOpenTool != null) clientOpenTool = ClientOpenTool(opentool: capabilityDto.clientOpenTool!.opentool, timeout: capabilityDto.clientOpenTool!.timeout, fetchClientDriver: this.fetchClientDriver);
       SessionAgent toolAgent = ToolAgent(
@@ -98,7 +98,23 @@ class AgentService {
           llmConfig: llmConfig,
           agentSession: _buildSession(sessionId, listen, listenChunk: listenChunk),
           toolDriverList: toolDriverList,
-          agentDriverList: agentDriverList,
+          clientOpenTool: clientOpenTool,
+          systemPrompt: systemPrompt,
+          toolReflectPromptList: reflectPromptList??[],
+          timeoutSeconds: capabilityDto.timeoutSeconds,
+          taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
+          toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL
+      );
+      sessionAgents[sessionId] = toolAgent;
+    } else {  // MultiAgent
+      ClientOpenTool? clientOpenTool = null;
+      if(capabilityDto.clientOpenTool != null) clientOpenTool = ClientOpenTool(opentool: capabilityDto.clientOpenTool!.opentool, timeout: capabilityDto.clientOpenTool!.timeout, fetchClientDriver: this.fetchClientDriver);
+      SessionAgent toolAgent = MultiAgent(
+          sessionId: sessionId,
+          llmConfig: llmConfig,
+          agentSession: _buildSession(sessionId, listen, listenChunk: listenChunk),
+          toolDriverList: toolDriverList,
+          subAgentDriverList: agentDriverList,
           clientOpenTool: clientOpenTool,
           systemPrompt: systemPrompt,
           toolReflectPromptList: reflectPromptList??[],

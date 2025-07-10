@@ -14,13 +14,13 @@ class LLMFunctionCallingMessageHandler extends AgentMessageHandler {
   final Future<void> Function(AgentMessage) toReflection;
   final Future<void> Function(AgentMessage) toUser;
   final Future<void> Function(AgentMessage) toTool;
-  String chunkAccumulation = "";
+  // String chunkAccumulation = "";
 
   LLMFunctionCallingMessageHandler(this.reflectionManager, this.toReflection, this.toUser, this.toTool);
 
   @override
   Command? handle(AgentMessage agentMessage) {
-    if (agentMessage.type == ToolMessageType.FUNCTION_CALL_LIST) {
+    if (agentMessage.type == ToolMessageType.TOOL_CALLS) {
       List<FunctionCall> functionCallList = agentMessage.content as List<FunctionCall>;
       if(reflectionManager.shouldReflect) {
         AgentMessage reflectionMessage = AgentMessage(
@@ -28,7 +28,7 @@ class LLMFunctionCallingMessageHandler extends AgentMessageHandler {
             taskId: agentMessage.taskId,
             role: ToolRoleType.AGENT,
             to: ToolRoleType.REFLECTION,
-            type: ToolMessageType.FUNCTION_CALL_LIST,
+            type: ToolMessageType.TOOL_CALLS,
             content: functionCallList
         );
         return Command(toReflection, reflectionMessage); // If LLM return function call, and should reflect, forward to REFLECTION.
@@ -38,7 +38,7 @@ class LLMFunctionCallingMessageHandler extends AgentMessageHandler {
             taskId: agentMessage.taskId,
             role: ToolRoleType.AGENT,
             to: ToolRoleType.TOOL,
-            type: ToolMessageType.FUNCTION_CALL_LIST,
+            type: ToolMessageType.TOOL_CALLS,
             content: agentMessage.content
           );
           return Command(toTool, agentToolMessage); // If LLM call function, forward to TOOL.
@@ -58,12 +58,10 @@ class LLMFunctionCallingMessageHandler extends AgentMessageHandler {
 }
 
 class ToolMessageHandler extends AgentMessageHandler {
-
-  final ReflectorManager reflectionManager;
   final Future<void> Function(AgentMessage) toLLM;
   final void Function(AgentMessage)? onToolReturn;
 
-  ToolMessageHandler(this.reflectionManager, this.toLLM, {this.onToolReturn});
+  ToolMessageHandler(this.toLLM, {this.onToolReturn});
 
   @override
   Command? handle(AgentMessage agentMessage) {
@@ -120,7 +118,7 @@ class ToolReflectionMessageHandler extends AgentMessageHandler {
           taskId: agentMessage.taskId,
           role: ToolRoleType.AGENT,
           to: ToolRoleType.TOOL,
-          type: ToolMessageType.FUNCTION_CALL_LIST,
+          type: ToolMessageType.TOOL_CALLS,
           content: functionCallList
       );
       return Command(toTool, agentUserMessage); // If Reflection pass or maxCount, forward to TOOL.
@@ -136,7 +134,7 @@ class ToolReflectionMessageHandler extends AgentMessageHandler {
       );
       if(toolReflectionManager.shouldReflect) {
         if(onToolRetry != null) onToolRetry!(agentMessage);
-        toolReflectionManager.retry();
+        toolReflectionManager.retryIncrease();
       }
       return Command(toLLM, newAgentMessage); // Reset User messages request to LLM.
     }

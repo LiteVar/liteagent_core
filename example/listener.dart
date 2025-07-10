@@ -19,7 +19,7 @@ void listen(String sessionId, AgentMessageDto agentMessageDto) {
     message = agentMessageDto.content as String;
   if (agentMessageDto.type == ToolMessageType.IMAGE_URL)
     message = agentMessageDto.content as String;
-  if (agentMessageDto.type == ToolMessageType.FUNCTION_CALL_LIST) {
+  if (agentMessageDto.type == ToolMessageType.TOOL_CALLS) {
     List<FunctionCall> functionCallList = agentMessageDto.content as List<FunctionCall>;
     message = jsonEncode(functionCallList);
   }
@@ -47,7 +47,7 @@ void listen(String sessionId, AgentMessageDto agentMessageDto) {
   }
   if (agentMessageDto.role == ToolRoleType.USER)  role = user;
   if (agentMessageDto.role == ToolRoleType.AGENT)  role = agent;
-  if (agentMessageDto.role == ToolRoleType.SUBAGENT)  role = subAgent;
+  if (agentMessageDto.role == MultiAgentRoleType.SUBAGENT)  role = subAgent;
   if (agentMessageDto.role == ToolRoleType.ASSISTANT)  role = llm;
   if (agentMessageDto.role == ToolRoleType.TOOL)  role = tool;
   if (agentMessageDto.role == ToolRoleType.CLIENT)  role = client;
@@ -57,14 +57,14 @@ void listen(String sessionId, AgentMessageDto agentMessageDto) {
   if (agentMessageDto.to == ToolRoleType.DEVELOPER) to = system;
   if (agentMessageDto.to == ToolRoleType.USER) to = user;
   if (agentMessageDto.to == ToolRoleType.AGENT) to = agent;
-  if (agentMessageDto.to == ToolRoleType.SUBAGENT) to = subAgent;
+  if (agentMessageDto.to == MultiAgentRoleType.SUBAGENT) to = subAgent;
   if (agentMessageDto.to == ToolRoleType.ASSISTANT) to = llm;
   if (agentMessageDto.to == ToolRoleType.TOOL) to = tool;
   if (agentMessageDto.to == ToolRoleType.CLIENT) to = client;
   if (agentMessageDto.to == ToolRoleType.REFLECTION) to = reflection;
 
   if (role.isNotEmpty && to.isNotEmpty) {
-    print("#${sessionId}::${agentMessageDto.sessionId}::${agentMessageDto.taskId}# $role -> $to: [${agentMessageDto.type}] $message");
+    print("#oriSid:${sessionId};sid:${agentMessageDto.sessionId};taskId:${agentMessageDto.taskId}# $role -> $to: [${agentMessageDto.type}] ${message.replaceAll("\n", "\\n")}");
   }
 }
 
@@ -92,11 +92,11 @@ void listenChunk(String sessionId, AgentMessageChunkDto agentMessageChunkDto) {
   if (agentMessageChunkDto.to == ToolRoleType.CLIENT)  to = client;
 
   if(hasFirst == false && agentMessageChunkDto.type == TextMessageType.TEXT) {
-    stdout.write(("#${sessionId}::${agentMessageChunkDto.sessionId}::${agentMessageChunkDto.taskId}# $role -> $to: [${agentMessageChunkDto.type}] $part"));
+    stdout.write(("#oriSid:${sessionId};sid:${agentMessageChunkDto.sessionId};taskId:${agentMessageChunkDto.taskId}# $role -> $to: [${agentMessageChunkDto.type}] $part"));
     hasFirst = true;
   } else if(agentMessageChunkDto.type == TextMessageType.TASK_STATUS) {
     stdout.write("\n");
-    print(("#$sessionId::${agentMessageChunkDto.sessionId}::${agentMessageChunkDto.taskId}# $role -> $to: [${agentMessageChunkDto.type}] $part"));
+    print(("#oriSid:${sessionId};sid:${agentMessageChunkDto.sessionId};taskId:${agentMessageChunkDto.taskId}# $role -> $to: [${agentMessageChunkDto.type}] $part"));
     hasFirst = false;
   } else {
     stdout.write(agentMessageChunkDto.part);

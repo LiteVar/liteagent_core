@@ -7,7 +7,6 @@ class ToolRoleType {
   static const String DEVELOPER = TextRoleType.DEVELOPER; // system prompt
   static const String USER = TextRoleType.USER; // user
   static const String AGENT = TextRoleType.AGENT; // agent
-  static const String SUBAGENT = AgentRoleType.SUBAGENT; // subagent
   static const String ASSISTANT = TextRoleType.ASSISTANT; // llm
   static const String TOOL = AgentRoleType.TOOL; // external tools
   static const String CLIENT = TextRoleType.CLIENT; // external caller
@@ -18,7 +17,7 @@ class ToolMessageType {
   static String TEXT = TextMessageType.TEXT; //String
   static String IMAGE_URL = TextMessageType.IMAGE_URL; //String
   static String CONTENT_LIST = TextMessageType.CONTENT_LIST; //List<Content>
-  static String FUNCTION_CALL_LIST = AgentMessageType.TOOL_CALLS; //List<FunctionCall>
+  static String TOOL_CALLS = AgentMessageType.TOOL_CALLS; //List<FunctionCall>
   static String TOOL_RETURN = AgentMessageType.TOOL_RETURN; //ToolReturn
   static String TASK_STATUS = TextMessageType.TASK_STATUS; //TaskStatus
   static String FUNCTION_CALL = AgentMessageType.FUNCTION_CALL; //FunctionCall
@@ -49,10 +48,10 @@ class FunctionCallType {
 class FunctionCallParam {
   String sessionId;
   String taskId;
-  String type;
+  String? type;
   int index;
   FunctionCall functionCall;
-  FunctionCallParam({required this.sessionId, required this.taskId, required this.type, required this.index, required this.functionCall});
+  FunctionCallParam({required this.sessionId, required this.taskId, this.type, required this.index, required this.functionCall});
 }
 
 class ClientOpenTool {

@@ -24,12 +24,11 @@ class UserMessageHandler extends AgentMessageHandler {
       content: userContentList
     );
     if(textReflectionManager.shouldReflect) { // if Reflection, reset reflectionManager
-      textReflectionManager.retry();
+      textReflectionManager.retryIncrease();
       textReflectionManager.userContentList = userContentList;
     }
     return Command(toLLM, newAgentMessage); // Forward USER messages request to LLM.
   }
-
 }
 
 class LLMMessageHandler extends AgentMessageHandler {
@@ -135,7 +134,7 @@ class TextReflectionMessageHandler extends AgentMessageHandler {
       );
       if(reflectionManager.shouldReflect) {
         if(onTextRetry != null) onTextRetry!(agentMessage);
-        reflectionManager.retry();
+        reflectionManager.retryIncrease();
       }
       return Command(toLLM, newAgentMessage); // Reset User messages request to LLM.
     }

@@ -18,7 +18,7 @@ class ReflectorManager {
     shouldReflect = reflectorList.length > 0;
   }
 
-  void retry() {
+  void retryIncrease() {
     currCount = currCount + 1;
   }
 

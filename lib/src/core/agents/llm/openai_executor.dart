@@ -236,7 +236,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
   }
 
   OpenAIChatCompletionChoiceMessageModel _buildOpenAIMessage(AgentMessage agentMessage) {
-    //System Prompt
+    /// System Prompt
     if (agentMessage.role == AgentRoleType.SYSTEM && agentMessage.type == AgentMessageType.TEXT) {
       return OpenAIChatCompletionChoiceMessageModel(
         role: OpenAIChatMessageRole.system,
@@ -245,7 +245,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
         ]);
     }
 
-    //LLM return text
+    /// LLM return text
     if (agentMessage.role == AgentRoleType.LLM && agentMessage.type == AgentMessageType.TEXT) {
       return OpenAIChatCompletionChoiceMessageModel(
         role: OpenAIChatMessageRole.assistant,
@@ -254,7 +254,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
         ]);
     }
 
-    //LLM return image
+    /// LLM return image
     if (agentMessage.role == AgentRoleType.LLM && agentMessage.type == AgentMessageType.IMAGE_URL) {
       return OpenAIChatCompletionChoiceMessageModel(
         role: OpenAIChatMessageRole.assistant,
@@ -262,7 +262,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
         ]);
     }
 
-    //LLM return function calling
+    /// LLM return function calling
     if (agentMessage.role == AgentRoleType.LLM && agentMessage.type == AgentMessageType.TOOL_CALLS) {
       List<FunctionCall> functionCallList =
       agentMessage.content as List<FunctionCall>;
@@ -278,7 +278,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
       );
     }
 
-    //AGENT return TOOL or SUBAGENT result
+    /// AGENT return TOOL or SUBAGENT result
     if ((agentMessage.role == AgentRoleType.TOOL || agentMessage.role == AgentRoleType.SUBAGENT) && agentMessage.type == AgentMessageType.TOOL_RETURN) {
       ToolReturn toolReturn = agentMessage.content as ToolReturn;
       return OpenAIChatCompletionChoiceMessageModel(
@@ -289,7 +289,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
       ).asRequestFunctionMessage(toolCallId: toolReturn.id);
     }
 
-    //AGENT forward USER messages
+    /// AGENT forward USER messages
     if (agentMessage.role == AgentRoleType.AGENT && agentMessage.type == AgentMessageType.CONTENT_LIST) {
       List<LLMContent> contentList = agentMessage.content as List<LLMContent>;
 
