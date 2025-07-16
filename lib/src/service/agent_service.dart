@@ -130,13 +130,13 @@ class AgentService {
     return sessionDto;
   }
 
-  Future<void> startSession(String sessionId, UserTaskDto userTaskDto) async {
+  Future<void> startSession(String sessionId, UserTaskDto userTaskDto, {String? taskId}) async {
     SessionAgent? sessionAgent = sessionAgents[sessionId];
     if(sessionAgent == null) throw SessionAgentNotFoundException(sessionId: sessionId);
     List<Content> userMessageList = userTaskDto.content
         .map((contentDto) => _convertToContent(contentDto))
         .toList();
-    await sessionAgent.userToAgent(contentList: userMessageList, stream: userTaskDto.stream);
+    await sessionAgent.userToAgent(contentList: userMessageList, taskId: taskId, stream: userTaskDto.stream);
   }
 
   Future<List<AgentMessageDto>?> getCacheHistory(String sessionId) async {
@@ -306,5 +306,71 @@ class AgentService {
       throw SessionAgentNotFoundException(sessionId: sessionId);
     }
     clientDriver.callback(toolReturn);
+  }
+
+  List<String> getSubSessionIds(String rootSessionId) {
+    try {
+      SessionAgent? rootAgent = sessionAgents[rootSessionId];
+      if (rootAgent == null) {
+        return [];
+      }
+      
+      Set<String> visitedSessionIds = {rootSessionId};
+      return _getSubSessionIdsRecursive(rootAgent, visitedSessionIds);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  List<String> _getSubSessionIdsRecursive(SessionAgent agent, Set<String> visitedSessionIds) {
+    List<String> allSubSessionIds = [];
+    
+    final (sessionAgentDriver, simpleAgentDriver) = _extractAgentDrivers(agent);
+    
+    if (sessionAgentDriver != null) {
+      for (var namedSessionAgent in sessionAgentDriver.namedSessionAgents) {
+        String subSessionId = namedSessionAgent.agent.sessionId;
+        
+        if (!visitedSessionIds.contains(subSessionId)) {
+          allSubSessionIds.add(subSessionId);
+          visitedSessionIds.add(subSessionId);
+          
+          allSubSessionIds.addAll(_getSubSessionIdsRecursive(namedSessionAgent.agent, visitedSessionIds));
+        }
+      }
+    }
+    
+    if (simpleAgentDriver != null) {
+      for (var namedSimpleAgent in simpleAgentDriver.namedSimpleAgents) {
+        String subSessionId = namedSimpleAgent.agent.sessionId;
+        
+        if (!visitedSessionIds.contains(subSessionId)) {
+          allSubSessionIds.add(subSessionId);
+          visitedSessionIds.add(subSessionId);
+        }
+      }
+    }
+    
+    return allSubSessionIds;
+  }
+
+  (SessionAgentDriver?, SimpleAgentDriver?) _extractAgentDrivers(SessionAgent rootAgent) {
+    if (rootAgent is! MultiAgent) {
+      return (null, null);
+    }
+
+    SessionAgentDriver? sessionAgentDriver;
+    SimpleAgentDriver? simpleAgentDriver;
+
+    for (var agentDriver in rootAgent.subAgentDriverList) {
+      if (agentDriver is SessionAgentDriver && sessionAgentDriver == null) {
+        sessionAgentDriver = agentDriver;
+      } else if (agentDriver is SimpleAgentDriver && simpleAgentDriver == null) {
+        simpleAgentDriver = agentDriver;
+      }
+      if (sessionAgentDriver != null && simpleAgentDriver != null) break;
+    }
+    
+    return (sessionAgentDriver, simpleAgentDriver);
   }
 }
