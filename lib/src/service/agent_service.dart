@@ -136,7 +136,7 @@ class AgentService {
     List<Content> userMessageList = userTaskDto.content
         .map((contentDto) => _convertToContent(contentDto))
         .toList();
-    await sessionAgent.userToAgent(contentList: userMessageList, taskId: taskId, stream: userTaskDto.stream);
+    await sessionAgent.userToAgent(contentList: userMessageList, stream: userTaskDto.stream);
   }
 
   Future<List<AgentMessageDto>?> getCacheHistory(String sessionId) async {
