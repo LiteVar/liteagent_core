@@ -11,6 +11,7 @@ import 'timeout.dart';
 
 abstract class SessionAgent {
   String sessionId;
+  String? parentTaskId;
   String? systemPrompt;
   AgentSession agentSession;
   DispatcherMap dispatcherMap = DispatcherMap();
@@ -26,9 +27,10 @@ abstract class SessionAgent {
   }) :  pipeline = PipelineAsync(taskPipelineStrategy),
         timeout = Timeout(timeoutSeconds);
 
-  Future<void> userToAgent({required List<Content> contentList, String? taskId, bool? stream}) async {
+  Future<void> userToAgent({required List<Content> contentList, bool? stream, String? parentTaskId}) async {
     this.agentSession.isStream = stream??false;
-    if(taskId == null) taskId = uniqueId();
+    this.parentTaskId = parentTaskId;
+    String taskId = uniqueId();
     dispatcherMap.create(taskId);
 
     pipeline.addJob(ContentsTask(taskId: taskId, contentList: contentList));
@@ -41,6 +43,7 @@ abstract class SessionAgent {
           toClient,
           AgentMessage(
             sessionId: sessionId,
+            parentTaskId: this.parentTaskId,
             taskId: taskId,
             role: SessionRoleType.AGENT,
             to: SessionRoleType.CLIENT,
@@ -59,6 +62,7 @@ abstract class SessionAgent {
       toClient,
       AgentMessage(
         sessionId: sessionId,
+        parentTaskId: this.parentTaskId,
         taskId: contentsTask.taskId,
         role: SessionRoleType.AGENT,
         to: SessionRoleType.CLIENT,
@@ -69,6 +73,7 @@ abstract class SessionAgent {
 
     AgentMessage contentMessage = AgentMessage(
       sessionId: sessionId,
+      parentTaskId: parentTaskId,
       taskId: contentsTask.taskId,
       role: SessionRoleType.USER,
       to: SessionRoleType.AGENT,
@@ -89,6 +94,7 @@ abstract class SessionAgent {
     if (systemPrompt != null && systemPrompt!.isNotEmpty) {
       AgentMessage systemMessage = AgentMessage(
         sessionId: sessionMessage.sessionId,
+        parentTaskId: this.parentTaskId,
         taskId: sessionMessage.taskId,
         role: SessionRoleType.SYSTEM,
         to: SessionRoleType.AGENT,
@@ -128,6 +134,7 @@ abstract class SessionAgent {
       toClient,
       AgentMessage(
         sessionId: sessionId,
+        parentTaskId: parentTaskId,
         taskId: taskId,
         role: SessionRoleType.AGENT,
         to: SessionRoleType.CLIENT,

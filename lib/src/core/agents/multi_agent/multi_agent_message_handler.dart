@@ -24,6 +24,7 @@ class MultiAgentFunctionCallingMessageHandler extends AgentMessageHandler {
       if(reflectionManager.shouldReflect) {
         AgentMessage reflectionMessage = AgentMessage(
           sessionId: agentMessage.sessionId,
+          parentTaskId: agentMessage.parentTaskId,
           taskId: agentMessage.taskId,
           role: MultiAgentRoleType.AGENT,
           to: MultiAgentRoleType.REFLECTION,
@@ -36,12 +37,13 @@ class MultiAgentFunctionCallingMessageHandler extends AgentMessageHandler {
       }
     } else if (agentMessage.type == MultiAgentMessageType.TEXT || agentMessage.type == MultiAgentMessageType.IMAGE_URL) {
       AgentMessage agentUserMessage = AgentMessage(
-          sessionId: agentMessage.sessionId,
-          taskId: agentMessage.taskId,
-          role: MultiAgentRoleType.AGENT,
-          to: MultiAgentRoleType.USER,
-          type: agentMessage.type,
-          content: agentMessage.content);
+        sessionId: agentMessage.sessionId,
+        parentTaskId: agentMessage.parentTaskId,
+        taskId: agentMessage.taskId,
+        role: MultiAgentRoleType.AGENT,
+        to: MultiAgentRoleType.USER,
+        type: agentMessage.type,
+        content: agentMessage.content);
       return Command(toUser, agentUserMessage); // If LLM return image, forward to USER.
     }
     return null;
@@ -57,24 +59,26 @@ class SubAgentMessageHandler extends AgentMessageHandler {
   Command? handle(AgentMessage agentMessage) {
     if (agentMessage.type == MultiAgentMessageType.TOOL_RETURN) {
       AgentMessage subAgentResultMessage = AgentMessage(
-          sessionId: agentMessage.sessionId,
-          taskId: agentMessage.taskId,
-          role: MultiAgentRoleType.AGENT,
-          to: MultiAgentRoleType.ASSISTANT,
-          type: MultiAgentMessageType.TOOL_RETURN,
-          content: agentMessage.content
+        sessionId: agentMessage.sessionId,
+        parentTaskId: agentMessage.parentTaskId,
+        taskId: agentMessage.taskId,
+        role: MultiAgentRoleType.AGENT,
+        to: MultiAgentRoleType.ASSISTANT,
+        type: MultiAgentMessageType.TOOL_RETURN,
+        content: agentMessage.content
       );
       onFunctionCallResult(MultiAgentRoleType.SUBAGENT, subAgentResultMessage);
     } else if (agentMessage.type == MultiAgentMessageType.TASK_STATUS) {
       TaskStatus taskStatus = agentMessage.content as TaskStatus;
       if (taskStatus.status == MultiAgentStatusType.DONE) {
         AgentMessage subAgentStatusMessage = AgentMessage(
-            sessionId: agentMessage.sessionId,
-            taskId: agentMessage.taskId,
-            role: MultiAgentRoleType.AGENT,
-            to: MultiAgentRoleType.CLIENT,
-            type: MultiAgentMessageType.TASK_STATUS,
-            content: agentMessage.content
+          sessionId: agentMessage.sessionId,
+          parentTaskId: agentMessage.parentTaskId,
+          taskId: agentMessage.taskId,
+          role: MultiAgentRoleType.AGENT,
+          to: MultiAgentRoleType.CLIENT,
+          type: MultiAgentMessageType.TASK_STATUS,
+          content: agentMessage.content
         );
         onFunctionCallResult(MultiAgentRoleType.SUBAGENT, subAgentStatusMessage);
       }
@@ -92,24 +96,26 @@ class MultiAgentToolMessageHandler extends AgentMessageHandler {
   Command? handle(AgentMessage agentMessage) {
     if (agentMessage.type == MultiAgentMessageType.TOOL_RETURN) {
       AgentMessage toolResultMessage = AgentMessage(
-          sessionId: agentMessage.sessionId,
-          taskId: agentMessage.taskId,
-          role: MultiAgentRoleType.AGENT,
-          to: MultiAgentRoleType.ASSISTANT,
-          type: MultiAgentMessageType.TOOL_RETURN,
-          content: agentMessage.content
+        sessionId: agentMessage.sessionId,
+        parentTaskId: agentMessage.parentTaskId,
+        taskId: agentMessage.taskId,
+        role: MultiAgentRoleType.AGENT,
+        to: MultiAgentRoleType.ASSISTANT,
+        type: MultiAgentMessageType.TOOL_RETURN,
+        content: agentMessage.content
       );
       onFunctionCallResult(MultiAgentRoleType.TOOL, toolResultMessage);
     } else if (agentMessage.type == MultiAgentMessageType.TASK_STATUS) {
       TaskStatus taskStatus = agentMessage.content as TaskStatus;
       if (taskStatus.status == ToolStatusType.DONE) {
         AgentMessage toolStatusMessage = AgentMessage(
-            sessionId: agentMessage.sessionId,
-            taskId: agentMessage.taskId,
-            role: MultiAgentRoleType.AGENT,
-            to: MultiAgentRoleType.CLIENT,
-            type: MultiAgentMessageType.TASK_STATUS,
-            content: agentMessage.content
+          sessionId: agentMessage.sessionId,
+          parentTaskId: agentMessage.parentTaskId,
+          taskId: agentMessage.taskId,
+          role: MultiAgentRoleType.AGENT,
+          to: MultiAgentRoleType.CLIENT,
+          type: MultiAgentMessageType.TASK_STATUS,
+          content: agentMessage.content
         );
         onFunctionCallResult(MultiAgentRoleType.TOOL, toolStatusMessage);
       }
@@ -135,23 +141,25 @@ class MultiAgentReflectionMessageHandler extends AgentMessageHandler {
       List<dynamic> jsonList = jsonDecode(reflection.messageScore.message);
       List<FunctionCall> functionCallList = jsonList.map((json)=>FunctionCall.fromJson(json)).toList();
       AgentMessage agentUserMessage = AgentMessage(
-          sessionId: agentMessage.sessionId,
-          taskId: agentMessage.taskId,
-          role: MultiAgentRoleType.AGENT,
-          to: MultiAgentRoleType.TOOL,
-          type: MultiAgentMessageType.TOOL_CALLS,
-          content: functionCallList
+        sessionId: agentMessage.sessionId,
+        parentTaskId: agentMessage.parentTaskId,
+        taskId: agentMessage.taskId,
+        role: MultiAgentRoleType.AGENT,
+        to: MultiAgentRoleType.TOOL,
+        type: MultiAgentMessageType.TOOL_CALLS,
+        content: functionCallList
       );
       partitionFunctionCallMessage(agentUserMessage);
     } else {
       List<Content> userContentList = toolReflectionManager.userContentList;
       AgentMessage retryUserContentMessage = AgentMessage(
-          sessionId: agentMessage.sessionId,
-          taskId: agentMessage.taskId,
-          role: MultiAgentRoleType.AGENT,
-          to: MultiAgentRoleType.ASSISTANT,
-          type: MultiAgentMessageType.CONTENT_LIST,
-          content: userContentList
+        sessionId: agentMessage.sessionId,
+        parentTaskId: agentMessage.parentTaskId,
+        taskId: agentMessage.taskId,
+        role: MultiAgentRoleType.AGENT,
+        to: MultiAgentRoleType.ASSISTANT,
+        type: MultiAgentMessageType.CONTENT_LIST,
+        content: userContentList
       );
       if(toolReflectionManager.shouldReflect) {
         if(onToolRetry != null) onToolRetry!(agentMessage);

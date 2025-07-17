@@ -24,17 +24,19 @@ class LLMFunctionCallingMessageHandler extends AgentMessageHandler {
       List<FunctionCall> functionCallList = agentMessage.content as List<FunctionCall>;
       if(reflectionManager.shouldReflect) {
         AgentMessage reflectionMessage = AgentMessage(
-            sessionId: agentMessage.sessionId,
-            taskId: agentMessage.taskId,
-            role: ToolRoleType.AGENT,
-            to: ToolRoleType.REFLECTION,
-            type: ToolMessageType.TOOL_CALLS,
-            content: functionCallList
+          sessionId: agentMessage.sessionId,
+          parentTaskId: agentMessage.parentTaskId,
+          taskId: agentMessage.taskId,
+          role: ToolRoleType.AGENT,
+          to: ToolRoleType.REFLECTION,
+          type: ToolMessageType.TOOL_CALLS,
+          content: functionCallList
         );
         return Command(toReflection, reflectionMessage); // If LLM return function call, and should reflect, forward to REFLECTION.
       } else {
           AgentMessage agentToolMessage = AgentMessage(
             sessionId: agentMessage.sessionId,
+            parentTaskId: agentMessage.parentTaskId,
             taskId: agentMessage.taskId,
             role: ToolRoleType.AGENT,
             to: ToolRoleType.TOOL,
@@ -45,12 +47,13 @@ class LLMFunctionCallingMessageHandler extends AgentMessageHandler {
       }
     } else if (agentMessage.type == ToolMessageType.TEXT || agentMessage.type == ToolMessageType.IMAGE_URL) {
       AgentMessage agentUserMessage = AgentMessage(
-          sessionId: agentMessage.sessionId,
-          taskId: agentMessage.taskId,
-          role: ToolRoleType.AGENT,
-          to: ToolRoleType.USER,
-          type: agentMessage.type,
-          content: agentMessage.content);
+        sessionId: agentMessage.sessionId,
+        parentTaskId: agentMessage.parentTaskId,
+        taskId: agentMessage.taskId,
+        role: ToolRoleType.AGENT,
+        to: ToolRoleType.USER,
+        type: agentMessage.type,
+        content: agentMessage.content);
       return Command(toUser, agentUserMessage); // If LLM return image, forward to USER.
     }
     return null;
@@ -69,6 +72,7 @@ class ToolMessageHandler extends AgentMessageHandler {
       // If TOOL return result, add the result message
       AgentMessage agentLLMMessage = AgentMessage(
         sessionId: agentMessage.sessionId,
+        parentTaskId: agentMessage.parentTaskId,
         taskId: agentMessage.taskId,
         role: ToolRoleType.AGENT,
         to: ToolRoleType.ASSISTANT,
@@ -84,6 +88,7 @@ class ToolMessageHandler extends AgentMessageHandler {
       if (taskStatus.status == ToolStatusType.DONE) {
         AgentMessage agentToolMessage = AgentMessage(
           sessionId: agentMessage.sessionId,
+          parentTaskId: agentMessage.parentTaskId,
           taskId: agentMessage.taskId,
           role: ToolRoleType.AGENT,
           to: ToolRoleType.CLIENT,
@@ -114,23 +119,25 @@ class ToolReflectionMessageHandler extends AgentMessageHandler {
       List<dynamic> jsonList = jsonDecode(reflection.messageScore.message);
       List<FunctionCall> functionCallList = jsonList.map((json)=>FunctionCall.fromJson(json)).toList();
       AgentMessage agentUserMessage = AgentMessage(
-          sessionId: agentMessage.sessionId,
-          taskId: agentMessage.taskId,
-          role: ToolRoleType.AGENT,
-          to: ToolRoleType.TOOL,
-          type: ToolMessageType.TOOL_CALLS,
-          content: functionCallList
+        sessionId: agentMessage.sessionId,
+        parentTaskId: agentMessage.parentTaskId,
+        taskId: agentMessage.taskId,
+        role: ToolRoleType.AGENT,
+        to: ToolRoleType.TOOL,
+        type: ToolMessageType.TOOL_CALLS,
+        content: functionCallList
       );
       return Command(toTool, agentUserMessage); // If Reflection pass or maxCount, forward to TOOL.
     } else {
       List<Content> userContentList = toolReflectionManager.userContentList;
       AgentMessage newAgentMessage = AgentMessage(
-          sessionId: agentMessage.sessionId,
-          taskId: agentMessage.taskId,
-          role: ToolRoleType.AGENT,
-          to: ToolRoleType.ASSISTANT,
-          type: ToolMessageType.CONTENT_LIST,
-          content: userContentList
+        sessionId: agentMessage.sessionId,
+        parentTaskId: agentMessage.parentTaskId,
+        taskId: agentMessage.taskId,
+        role: ToolRoleType.AGENT,
+        to: ToolRoleType.ASSISTANT,
+        type: ToolMessageType.CONTENT_LIST,
+        content: userContentList
       );
       if(toolReflectionManager.shouldReflect) {
         if(onToolRetry != null) onToolRetry!(agentMessage);

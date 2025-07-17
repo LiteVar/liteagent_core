@@ -11,18 +11,19 @@ class SimpleAgent {
   String? systemPrompt;
   ResponseFormat? responseFormat;
 
-  SimpleAgent({required this.llmConfig, this.systemPrompt, this.responseFormat, sessionId}){
-    this.sessionId = sessionId??uniqueId();
+  SimpleAgent({required this.llmConfig, this.systemPrompt, this.responseFormat}){
+    this.sessionId = uniqueId();
   }
 
-  Future<AgentMessage> userToAgent({required List<Content> contentList, String? taskId}) async {
-    if(taskId == null) taskId = uniqueId();
+  Future<AgentMessage> userToAgent({required List<Content> contentList, String? parentTaskId}) async {
+    String taskId = uniqueId();
 
     List<AgentMessage> agentLlmMessageList = [];
 
     if(systemPrompt != null && systemPrompt!.isNotEmpty) {
       AgentMessage systemMessage = AgentMessage(
         sessionId: sessionId,
+        parentTaskId: parentTaskId,
         taskId: taskId,
         role: TextRoleType.DEVELOPER,
         to: TextRoleType.AGENT,
@@ -34,6 +35,7 @@ class SimpleAgent {
 
     AgentMessage userMessage = AgentMessage(
       sessionId: sessionId,
+      parentTaskId: parentTaskId,
       taskId: taskId,
       role: TextRoleType.AGENT,
       to: TextRoleType.ASSISTANT,

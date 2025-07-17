@@ -14,12 +14,9 @@ class ReflectorAgent {
   LLMExecutor llmExecutor;
   String systemPrompt;
   late String sessionId;
-  late String taskId;
+  String? parentTaskId;
 
-  ReflectorAgent({required this.llmExecutor, required this.systemPrompt, sessionId, taskId}) {
-    this.sessionId = sessionId??uniqueId();
-    this.taskId = taskId??uniqueId();
-  }
+  ReflectorAgent({required this.llmExecutor, required this.systemPrompt, required this.sessionId, this.parentTaskId});
 
   Future<ReflectScore> evaluate(List<Content> contentList, String message, void Function(Completions? completions) subscribeCompletions) async {
 
@@ -48,25 +45,29 @@ class ReflectorAgent {
 
     List<AgentMessage> agentLLMMessageList = [];
 
+    String taskId = uniqueId();
+
     if(systemPrompt.isNotEmpty) {
       AgentMessage systemMessage = AgentMessage(
-          sessionId: sessionId,
-          taskId: taskId,
-          role: TextRoleType.DEVELOPER,
-          to: TextRoleType.AGENT,
-          type: TextMessageType.TEXT,
-          content: systemPrompt
+        sessionId: sessionId,
+        parentTaskId: parentTaskId,
+        taskId: taskId,
+        role: TextRoleType.DEVELOPER,
+        to: TextRoleType.AGENT,
+        type: TextMessageType.TEXT,
+        content: systemPrompt
       );
       agentLLMMessageList.add(systemMessage);
     }
 
     AgentMessage reflectMessage = AgentMessage(
-        sessionId: sessionId,
-        taskId: taskId,
-        role: TextRoleType.AGENT,
-        to: TextRoleType.ASSISTANT,
-        type: TextMessageType.CONTENT_LIST,
-        content: reflectContentList
+      sessionId: sessionId,
+      parentTaskId: parentTaskId,
+      taskId: taskId,
+      role: TextRoleType.AGENT,
+      to: TextRoleType.ASSISTANT,
+      type: TextMessageType.CONTENT_LIST,
+      content: reflectContentList
     );
 
     agentLLMMessageList.add(reflectMessage);

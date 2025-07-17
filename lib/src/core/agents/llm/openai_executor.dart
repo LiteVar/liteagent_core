@@ -12,6 +12,7 @@ import 'model.dart';
 
 class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
   late String _sessionId;
+  String? _parentTaskId;
   late String _taskId;
 
   OpenAIExecutor(super.llmConfig) {
@@ -22,6 +23,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
   Future<AgentMessage> request({required List<AgentMessage> agentMessageList, List<FunctionModel>? functionModelList, ResponseFormat? responseFormat}) async {
     AgentMessage agentMessage = agentMessageList.lastWhere((agentMessage)=> agentMessage.role == AgentRoleType.AGENT);
     _sessionId = agentMessage.sessionId;
+    _parentTaskId = agentMessage.parentTaskId;
     _taskId = agentMessage.taskId;
     List<OpenAIChatCompletionChoiceMessageModel> requestMessageList = [];
 
@@ -109,6 +111,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
       if( listenChunk != null) {
         AgentMessageChunk chunkDoneMessageChunk = AgentMessageChunk(
           sessionId: _sessionId,
+          parentTaskId: _parentTaskId,
           taskId: _taskId,
           role: AgentRoleType.LLM,
           to: AgentRoleType.AGENT,
@@ -120,6 +123,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
 
       AgentMessage agentMessage = AgentMessage(
         sessionId: _sessionId,
+        parentTaskId: _parentTaskId,
         taskId: _taskId,
         role: AgentRoleType.LLM,
         to: AgentRoleType.AGENT,
@@ -135,6 +139,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
     return FunctionCallAccumulation((functionCallList, Completions? completions) {
       AgentMessage agentMessage = AgentMessage(
         sessionId: _sessionId,
+        parentTaskId: _parentTaskId,
         taskId: _taskId,
         role: AgentRoleType.LLM,
         to: AgentRoleType.AGENT,
@@ -337,6 +342,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
     message = openAIChatCompletionChoiceMessageModel.content?.first.text;
     return AgentMessage(
       sessionId: _sessionId,
+      parentTaskId: _parentTaskId,
       taskId: _taskId,
       role: AgentRoleType.LLM,
       to: AgentRoleType.AGENT,
@@ -355,6 +361,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
     }).toList();
     return AgentMessage(
       sessionId: _sessionId,
+      parentTaskId: _parentTaskId,
       taskId: _taskId,
       role: AgentRoleType.LLM,
       to: AgentRoleType.AGENT,
@@ -369,6 +376,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
     if(text.isNotEmpty) {
       return AgentMessageChunk(
         sessionId: _sessionId,
+        parentTaskId: _parentTaskId,
         taskId: _taskId,
         role: AgentRoleType.LLM,
         to: AgentRoleType.AGENT,

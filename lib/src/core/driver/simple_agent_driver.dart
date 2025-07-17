@@ -42,7 +42,7 @@ class SimpleAgentDriver extends AgentDriver {
       NamedSimpleAgent agentModel = namedSimpleAgents.where((agentModel) => agentModel.name == functionCall.name).first;
       Content content = Content(type: ContentType.TEXT, message: prompt);
 
-      AgentMessage agentMessage = await agentModel.agent.userToAgent(contentList: [content]);
+      AgentMessage agentMessage = await agentModel.agent.userToAgent(contentList: [content], parentTaskId: super.parentTaskId);
 
       String result = agentMessage.content as String;
 

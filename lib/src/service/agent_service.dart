@@ -247,12 +247,13 @@ class AgentService {
             if(agentMessage.to == AgentRoleType.USER) to = AgentRoleType.AGENT;
 
             AgentMessage subAgentMessage = AgentMessage(
-                sessionId: agentMessage.sessionId,
-                taskId: agentMessage.taskId,
-                role: role,
-                to: to,
-                type: agentMessage.type,
-                content: agentMessage.content
+              sessionId: agentMessage.sessionId,
+              parentTaskId: agentMessage.parentTaskId,
+              taskId: agentMessage.taskId,
+              role: role,
+              to: to,
+              type: agentMessage.type,
+              content: agentMessage.content
             );
             if(role == AgentRoleType.SUBAGENT && agentMessage.type == AgentMessageType.TASK_STATUS) {
               if(agentMessage.content is TaskStatus) {
@@ -260,12 +261,13 @@ class AgentService {
                 if(taskStatus.status == TaskStatusType.START) {
                   taskStatus.description = {"subAgent": agentName};
                   subAgentMessage = AgentMessage(
-                      sessionId: agentMessage.sessionId,
-                      taskId: agentMessage.taskId,
-                      role: role,
-                      to: to,
-                      type: agentMessage.type,
-                      content: taskStatus
+                    sessionId: agentMessage.sessionId,
+                    parentTaskId: agentMessage.parentTaskId,
+                    taskId: agentMessage.taskId,
+                    role: role,
+                    to: to,
+                    type: agentMessage.type,
+                    content: taskStatus
                   );
                 }
               }

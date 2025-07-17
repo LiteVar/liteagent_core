@@ -37,7 +37,7 @@ class ToolAgent extends TextAgent {
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
   }) {
     toolReflectPromptList.forEach((reflectPrompt){
-      ReflectorAgent reflectorAgent = ReflectorAgent(llmExecutor: OpenAIExecutor(reflectPrompt.llmConfig), systemPrompt: reflectPrompt.prompt);
+      ReflectorAgent reflectorAgent = ReflectorAgent(llmExecutor: OpenAIExecutor(reflectPrompt.llmConfig), systemPrompt: reflectPrompt.prompt, sessionId: super.sessionId, parentTaskId: super.parentTaskId);
       AgentReflector agentReflector = AgentReflector(agent: reflectorAgent, subscribeCompletions: subscribeCompletions);
       toolReflectionManager.addReflector(agentReflector);
     });
@@ -122,6 +122,7 @@ class ToolAgent extends TextAgent {
       Reflection reflection = await toolReflectionManager.reflect(agentMessage.type, jsonEncode(functionCallJsonList));
       AgentMessage reflectionMessage = AgentMessage(
           sessionId: agentMessage.sessionId,
+          parentTaskId: agentMessage.parentTaskId,
           taskId: agentMessage.taskId,
           role: TextRoleType.REFLECTION,
           to: TextRoleType.AGENT,
@@ -149,6 +150,7 @@ class ToolAgent extends TextAgent {
     void Function(FunctionCall functionCall) listenClientFunctionCall = (FunctionCall functionCall) {
       AgentMessage clientMessage = AgentMessage(
           sessionId: agentMessage.sessionId,
+          parentTaskId: agentMessage.parentTaskId,
           taskId: agentMessage.taskId,
           role: ToolRoleType.AGENT,
           to: ToolRoleType.CLIENT,
@@ -175,12 +177,13 @@ class ToolAgent extends TextAgent {
 
     toolPipeLine.run(_requestTool, onComplete: () async {
       AgentMessage toolDoneMessage = AgentMessage(
-          sessionId: agentMessage.sessionId,
-          taskId: agentMessage.taskId,
-          role: ToolRoleType.TOOL,
-          to: ToolRoleType.AGENT,
-          type: ToolMessageType.TASK_STATUS,
-          content: TaskStatus(status: ToolStatusType.DONE, taskId: agentMessage.taskId, description: ToolStatusDescription(functionCallIdList: functionCallIdList).toJson())
+        sessionId: agentMessage.sessionId,
+        parentTaskId: agentMessage.parentTaskId,
+        taskId: agentMessage.taskId,
+        role: ToolRoleType.TOOL,
+        to: ToolRoleType.AGENT,
+        type: ToolMessageType.TASK_STATUS,
+        content: TaskStatus(status: ToolStatusType.DONE, taskId: agentMessage.taskId, description: ToolStatusDescription(functionCallIdList: functionCallIdList).toJson())
       );
       Command command = Command(toAgent, toolDoneMessage);
       dispatcherMap.dispatch(command);
@@ -194,6 +197,7 @@ class ToolAgent extends TextAgent {
         ToolReturn toolReturn = await toolDriver.call(functionCallParam.functionCall);
         AgentMessage toolMessage = AgentMessage(
             sessionId: functionCallParam.sessionId,
+            parentTaskId: super.parentTaskId,
             taskId: functionCallParam.taskId,
             role: ToolRoleType.TOOL,
             to: ToolRoleType.AGENT,
@@ -218,12 +222,13 @@ class ToolAgent extends TextAgent {
       Command clientCommand = Command(
           toClient,
           AgentMessage(
-              sessionId: agentMessage.sessionId,
-              taskId: agentMessage.taskId,
-              role: ToolRoleType.AGENT,
-              to: ToolRoleType.CLIENT,
-              type: ToolMessageType.TASK_STATUS,
-              content: TaskStatus(status:ToolStatusType.START, taskId: agentMessage.taskId, description: ToolStatusDescription(functionCallIdList: functionCallIdList).toJson())
+            sessionId: agentMessage.sessionId,
+            taskId: agentMessage.taskId,
+            parentTaskId: agentMessage.parentTaskId,
+            role: ToolRoleType.AGENT,
+            to: ToolRoleType.CLIENT,
+            type: ToolMessageType.TASK_STATUS,
+            content: TaskStatus(status:ToolStatusType.START, taskId: agentMessage.taskId, description: ToolStatusDescription(functionCallIdList: functionCallIdList).toJson())
           ));
       dispatcherMap.dispatch(clientCommand);
       requestTools(agentMessage);

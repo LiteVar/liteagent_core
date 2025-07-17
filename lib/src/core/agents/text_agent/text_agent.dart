@@ -31,7 +31,7 @@ class TextAgent extends SessionAgent {
     super.taskPipelineStrategy
   }) {
     textReflectPromptList.forEach((reflectPrompt){
-      ReflectorAgent reflectorAgent = ReflectorAgent(llmExecutor: OpenAIExecutor(reflectPrompt.llmConfig), systemPrompt: reflectPrompt.prompt);
+      ReflectorAgent reflectorAgent = ReflectorAgent(llmExecutor: OpenAIExecutor(reflectPrompt.llmConfig), systemPrompt: reflectPrompt.prompt, sessionId: super.sessionId, parentTaskId: super.parentTaskId);
       AgentReflector agentReflector = AgentReflector(agent: reflectorAgent, subscribeCompletions: subscribeCompletions);
       reflectionManager.addReflector(agentReflector);
     });
@@ -54,9 +54,9 @@ class TextAgent extends SessionAgent {
 
   Future<void> toReflection(AgentMessage agentMessage) async {
     Reflection reflection = await reflectionManager.reflect(agentMessage.type, agentMessage.content as String);
-    // reflection.completions = currAgentReflectorCompletions;
     AgentMessage reflectionMessage = AgentMessage(
         sessionId: agentMessage.sessionId,
+        parentTaskId: super.parentTaskId,
         taskId: agentMessage.taskId,
         role: TextRoleType.REFLECTION,
         to: TextRoleType.AGENT,
@@ -78,6 +78,7 @@ class TextAgent extends SessionAgent {
     pipeline.completeAsync(sessionMessage.taskId);
     AgentMessage clientMessage = AgentMessage(
         sessionId: sessionMessage.sessionId,
+        parentTaskId: super.parentTaskId,
         taskId: sessionMessage.taskId,
         role: TextRoleType.AGENT,
         to: TextRoleType.CLIENT,
@@ -137,6 +138,7 @@ class TextAgent extends SessionAgent {
     pipeline.completeAsync(taskId);
     AgentMessage agentMessage = AgentMessage(
         sessionId: sessionId,
+        parentTaskId: super.parentTaskId,
         taskId: taskId,
         role: TextRoleType.AGENT,
         to: TextRoleType.CLIENT,

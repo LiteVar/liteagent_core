@@ -4,7 +4,7 @@ import 'package:lite_agent_core_dart/lite_agent_core.dart';
 import 'package:lite_agent_core_dart/lite_agent_service.dart';
 import 'package:opentool_dart/opentool_dart.dart';
 
-void listen(String sessionId, AgentMessageDto agentMessageDto) {
+void listen(String originalSessionId, AgentMessageDto agentMessageDto) {
   String system = "🖥DEVEL ";
   String user = "👤USER  ";
   String agent = "🤖AGENT ";
@@ -64,7 +64,7 @@ void listen(String sessionId, AgentMessageDto agentMessageDto) {
   if (agentMessageDto.to == ToolRoleType.REFLECTION) to = reflection;
 
   if (role.isNotEmpty && to.isNotEmpty) {
-    print("#oriSid:${sessionId};sid:${agentMessageDto.sessionId};taskId:${agentMessageDto.taskId}# $role -> $to: [${agentMessageDto.type}] ${message.replaceAll("\n", "\\n")}");
+    print("#oriSid:${originalSessionId};parentTaskId:${agentMessageDto.parentTaskId};sid:${agentMessageDto.sessionId};taskId:${agentMessageDto.taskId}# $role -> $to: [${agentMessageDto.type}] ${message.replaceAll("\n", "\\n")}");
   }
 }
 
@@ -92,11 +92,11 @@ void listenChunk(String sessionId, AgentMessageChunkDto agentMessageChunkDto) {
   if (agentMessageChunkDto.to == ToolRoleType.CLIENT)  to = client;
 
   if(hasFirst == false && agentMessageChunkDto.type == TextMessageType.TEXT) {
-    stdout.write(("#oriSid:${sessionId};sid:${agentMessageChunkDto.sessionId};taskId:${agentMessageChunkDto.taskId}# $role -> $to: [${agentMessageChunkDto.type}] $part"));
+    stdout.write(("#oriSid:${sessionId};parentTaskId:${agentMessageChunkDto.parentTaskId};sid:${agentMessageChunkDto.sessionId};taskId:${agentMessageChunkDto.taskId}# $role -> $to: [${agentMessageChunkDto.type}] $part"));
     hasFirst = true;
   } else if(agentMessageChunkDto.type == TextMessageType.TASK_STATUS) {
     stdout.write("\n");
-    print(("#oriSid:${sessionId};sid:${agentMessageChunkDto.sessionId};taskId:${agentMessageChunkDto.taskId}# $role -> $to: [${agentMessageChunkDto.type}] $part"));
+    print(("#oriSid:${sessionId};parentTaskId:${agentMessageChunkDto.parentTaskId};sid:${agentMessageChunkDto.sessionId};taskId:${agentMessageChunkDto.taskId}# $role -> $to: [${agentMessageChunkDto.type}] $part"));
     hasFirst = false;
   } else {
     stdout.write(agentMessageChunkDto.part);

@@ -1,10 +1,15 @@
 import 'package:opentool_dart/opentool_dart.dart';
 
 abstract class AgentDriver extends ToolDriver {
+  String? parentTaskId;
   final String promptKey = "prompt";
   final String promptDescription = "A sentence described in natural language like a human. e.g. `Help me to do something.`";
   final String resultKey = "result";
   final int llmFunctionDescriptionMaxLength = 1024;
+
+  void setParentTaskId(String parentTaskId) {
+    this.parentTaskId = parentTaskId;
+  }
 
   String truncateWithEllipsis(String text, int maxLength) {
     if (text.length <= maxLength) return text;

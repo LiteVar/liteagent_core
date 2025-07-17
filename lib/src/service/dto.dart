@@ -143,6 +143,8 @@ class LLMConfigDto {
 @JsonSerializable(explicitToJson: true)
 class AgentMessageDto {
   String sessionId;
+  String? agentId;
+  String? parentTaskId;
   String taskId;
   String role;
   String to;
@@ -156,6 +158,8 @@ class AgentMessageDto {
 
   AgentMessageDto({
     required this.sessionId,
+    this.agentId,
+    this.parentTaskId,
     required this.taskId,
     required this.role,
     required this.to,
@@ -185,6 +189,8 @@ class AgentMessageDto {
 
     return AgentMessageDto(
       sessionId: agentMessage.sessionId,
+      agentId: agentMessage.agentId,
+      parentTaskId: agentMessage.parentTaskId,
       taskId: agentMessage.taskId,
       role: agentMessage.role,
       to: agentMessage.to,
@@ -452,6 +458,8 @@ class ReflectPromptDto {
 @JsonSerializable(explicitToJson: true)
 class AgentMessageChunkDto {
   String sessionId;
+  String? agentId;
+  String? parentTaskId;
   String taskId;
   String role;
   String to;
@@ -461,6 +469,8 @@ class AgentMessageChunkDto {
 
   AgentMessageChunkDto({
     required this.sessionId,
+    this.agentId,
+    this.parentTaskId,
     required this.taskId,
     required this.role,
     required this.to,
@@ -483,6 +493,8 @@ class AgentMessageChunkDto {
 
     return AgentMessageChunkDto(
       sessionId: agentMessageChunk.sessionId,
+      agentId: agentMessageChunk.agentId,
+      parentTaskId: agentMessageChunk.parentTaskId,
       taskId: agentMessageChunk.taskId,
       role: agentMessageChunk.role,
       to: agentMessageChunk.to,

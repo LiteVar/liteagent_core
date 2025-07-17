@@ -80,10 +80,10 @@ class MultiAgent extends ToolAgent {
           Command nextCommand = Command(toAgent, newAgentMessage);
           dispatcherMap.dispatch(nextCommand);
         },
-            onDone: () {},
-            onError: (e) {
-              pushException(agentMessage.sessionId, agentMessage.taskId, e.toString());
-            }
+          onDone: () {},
+          onError: (e) {
+            pushException(agentMessage.sessionId, agentMessage.taskId, e.toString());
+          }
         );
       } else {
         AgentMessage llmMessage = await OpenAIExecutor(llmConfig).request(agentMessageList: agentLLMMessageList, functionModelList: functionModelList);
@@ -121,6 +121,7 @@ class MultiAgent extends ToolAgent {
       if(_separatedFunctionCallList.toolFunctionCalls.isNotEmpty) {
         AgentMessage toolMessage = AgentMessage(
             sessionId: agentMessage.sessionId,
+            parentTaskId: agentMessage.parentTaskId,
             taskId: agentMessage.taskId,
             role: MultiAgentRoleType.AGENT,
             to: MultiAgentRoleType.TOOL,
@@ -134,6 +135,7 @@ class MultiAgent extends ToolAgent {
       if(_separatedFunctionCallList.subAgentFunctionCalls.isNotEmpty) {
         AgentMessage subAgentMessage = AgentMessage(
             sessionId: agentMessage.sessionId,
+            parentTaskId: agentMessage.parentTaskId,
             taskId: agentMessage.taskId,
             role: MultiAgentRoleType.AGENT,
             to: MultiAgentRoleType.SUBAGENT,
@@ -199,12 +201,13 @@ class MultiAgent extends ToolAgent {
 
     toolPipeLine.run(_requestSubAgent, onComplete: () async {
       AgentMessage subAgentDoneMessage = AgentMessage(
-          sessionId: agentMessage.sessionId,
-          taskId: agentMessage.taskId,
-          role: MultiAgentRoleType.SUBAGENT,
-          to: MultiAgentRoleType.AGENT,
-          type: MultiAgentMessageType.TASK_STATUS,
-          content: TaskStatus(status: MultiAgentStatusType.DONE, taskId: agentMessage.taskId, description: ToolStatusDescription(functionCallIdList: functionCallIdList).toJson())
+        sessionId: agentMessage.sessionId,
+        parentTaskId: agentMessage.parentTaskId,
+        taskId: agentMessage.taskId,
+        role: MultiAgentRoleType.SUBAGENT,
+        to: MultiAgentRoleType.AGENT,
+        type: MultiAgentMessageType.TASK_STATUS,
+        content: TaskStatus(status: MultiAgentStatusType.DONE, taskId: agentMessage.taskId, description: ToolStatusDescription(functionCallIdList: functionCallIdList).toJson())
       );
       Command command = Command(toAgent, subAgentDoneMessage);
       dispatcherMap.dispatch(command);
@@ -215,14 +218,16 @@ class MultiAgent extends ToolAgent {
     try {
       if(functionCallParam.type == null || functionCallParam.type == FunctionCallType.SUBAGENT) {
         AgentDriver agentDriver = subAgentDriverList[functionCallParam.index];
+        agentDriver.setParentTaskId(functionCallParam.taskId);
         ToolReturn toolReturn = await agentDriver.call(functionCallParam.functionCall);
         AgentMessage toolMessage = AgentMessage(
-            sessionId: functionCallParam.sessionId,
-            taskId: functionCallParam.taskId,
-            role: MultiAgentRoleType.SUBAGENT,
-            to: MultiAgentRoleType.AGENT,
-            type: MultiAgentMessageType.TOOL_RETURN,
-            content: toolReturn
+          sessionId: functionCallParam.sessionId,
+          parentTaskId: super.parentTaskId,
+          taskId: functionCallParam.taskId,
+          role: MultiAgentRoleType.SUBAGENT,
+          to: MultiAgentRoleType.AGENT,
+          type: MultiAgentMessageType.TOOL_RETURN,
+          content: toolReturn
         );
         Command command = Command(toAgent, toolMessage);
         dispatcherMap.dispatch(command);
@@ -240,15 +245,16 @@ class MultiAgent extends ToolAgent {
       List<String> functionCallIdList = functionCallList.map((functionCall) => functionCall.id).toList();
       agentSession.addListenAgentMessage(agentMessage);
       Command clientCommand = Command(
-          toClient,
-          AgentMessage(
-              sessionId: agentMessage.sessionId,
-              taskId: agentMessage.taskId,
-              role: MultiAgentRoleType.AGENT,
-              to: MultiAgentRoleType.CLIENT,
-              type: MultiAgentMessageType.TASK_STATUS,
-              content: TaskStatus(status:MultiAgentStatusType.START, taskId: agentMessage.taskId, description: ToolStatusDescription(functionCallIdList: functionCallIdList).toJson())
-          ));
+        toClient,
+        AgentMessage(
+          sessionId: agentMessage.sessionId,
+          parentTaskId: agentMessage.parentTaskId,
+          taskId: agentMessage.taskId,
+          role: MultiAgentRoleType.AGENT,
+          to: MultiAgentRoleType.CLIENT,
+          type: MultiAgentMessageType.TASK_STATUS,
+          content: TaskStatus(status:MultiAgentStatusType.START, taskId: agentMessage.taskId, description: ToolStatusDescription(functionCallIdList: functionCallIdList).toJson())
+        ));
       dispatcherMap.dispatch(clientCommand);
       requestSubAgents(agentMessage);
     }

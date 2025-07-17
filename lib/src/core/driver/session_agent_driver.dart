@@ -51,7 +51,7 @@ class SessionAgentDriver extends AgentDriver {
       };
       namedSessionAgent.agent.agentSession.addAgentMessageListener(listen);
 
-      await namedSessionAgent.agent.userToAgent(contentList: [content]);
+      await namedSessionAgent.agent.userToAgent(contentList: [content], parentTaskId: super.parentTaskId);
 
       AgentMessage agentMessage = await completer.future;
       String result = agentMessage.content as String;
