@@ -5,7 +5,7 @@ import 'exception.dart';
 
 part 'dto.g.dart';
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class SessionDto {
   String sessionId;
 
@@ -16,10 +16,10 @@ class SessionDto {
   Map<String, dynamic> toJson() => _$SessionDtoToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class SessionNameDto extends SessionDto {
-  @JsonKey(includeIfNull: false) String? name; // OpenAI: The name of the function to be called. Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.
-  @JsonKey(includeIfNull: false) String? description;
+  String? name; // OpenAI: The name of the function to be called. Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.
+  String? description;
 
   SessionNameDto({required super.sessionId, String? name, this.description}) {
     final regex = RegExp(r'^[a-zA-Z0-9_-]{1,64}$');
@@ -34,7 +34,7 @@ class SessionNameDto extends SessionDto {
   Map<String, dynamic> toJson() => _$SessionNameDtoToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class SimpleCapabilityDto {
   LLMConfigDto llmConfig;
   String systemPrompt;
@@ -49,15 +49,15 @@ class SimpleCapabilityDto {
   Map<String, dynamic> toJson() => _$SimpleCapabilityDtoToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class CapabilityDto extends SimpleCapabilityDto {
-  @JsonKey(includeIfNull: false) List<OpenSpecDto>? openSpecList;
-  @JsonKey(includeIfNull: false) ClientOpenToolDto? clientOpenTool;
-  @JsonKey(includeIfNull: false) List<SessionNameDto>? sessionList;
-  @JsonKey(includeIfNull: false) List<ReflectPromptDto>? reflectPromptList;
+  List<OpenSpecDto>? openSpecList;
+  ClientOpenToolDto? clientOpenTool;
+  List<SessionNameDto>? sessionList;
+  List<ReflectPromptDto>? reflectPromptList;
   int timeoutSeconds;
   String taskPipelineStrategy;
-  @JsonKey(includeIfNull: false) String? toolPipelineStrategy;
+  String? toolPipelineStrategy;
 
   CapabilityDto({
     required super.llmConfig,
@@ -85,12 +85,12 @@ class Protocol {
   static const String MCP_STDIO_TOOLS = "mcpStdioTools";
 }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class OpenSpecDto {
   String openSpec;
-  @JsonKey(includeIfNull: false) ApiKeyDto? apiKey;
+  ApiKeyDto? apiKey;
   String protocol;
-  @JsonKey(includeIfNull: false) String? openToolId; //When protocol is open tool, this is the tool id
+  String? openToolId; //When protocol is open tool, this is the tool id
 
   OpenSpecDto({required this.openSpec, this.apiKey, required this.protocol, this.openToolId});
 
@@ -99,7 +99,7 @@ class OpenSpecDto {
   Map<String, dynamic> toJson() => _$OpenSpecDtoToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class LLMConfigDto {
   String baseUrl;
   String apiKey;
@@ -140,7 +140,7 @@ class LLMConfigDto {
   );
 }
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class AgentMessageDto {
   String sessionId;
   String? agentId;
@@ -201,7 +201,7 @@ class AgentMessageDto {
   }
 }
 
-// @JsonSerializable()
+// @JsonSerializable(includeIfNull: false, explicitToJson: true)
 // class FunctionCallDto {
 //   late String id;
 //   late String name;
@@ -220,7 +220,7 @@ class AgentMessageDto {
 //   Map<String, dynamic> toJson() => _$FunctionCallDtoToJson(this);
 // }
 
-// @JsonSerializable()
+// @JsonSerializable(includeIfNull: false, explicitToJson: true)
 // class ToolReturnDto {
 //   late String id;
 //   late Map<String, dynamic> result;
@@ -239,7 +239,7 @@ class AgentMessageDto {
 //   Map<String, dynamic> toJson() => _$ToolReturnDtoToJson(this);
 // }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class CompletionsDto {
   TokenUsageDto usage;
 
@@ -262,7 +262,7 @@ class CompletionsDto {
   );
 }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class TokenUsageDto {
   final int promptTokens;
   final int completionTokens;
@@ -285,7 +285,7 @@ class TokenUsageDto {
   );
 }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class ApiKeyDto {
   ApiKeyType type;
   String apiKey;
@@ -297,7 +297,7 @@ class ApiKeyDto {
   Map<String, dynamic> toJson() => _$ApiKeyDtoToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class UserTaskDto {
   @JsonKey(includeIfNull: false)
   List<ContentDto> content;
@@ -312,7 +312,7 @@ class UserTaskDto {
 
 // enum UserMessageDtoType { text, imageUrl }
 
-// @JsonSerializable()
+// @JsonSerializable(includeIfNull: false, explicitToJson: true)
 // class UserMessageDto {
 //   UserMessageDtoType type;
 //   String message;
@@ -324,7 +324,7 @@ class UserTaskDto {
 //   Map<String, dynamic> toJson() => _$UserMessageDtoToJson(this);
 // }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class SessionTaskDto {
   String sessionId;
 
@@ -338,7 +338,7 @@ class SessionTaskDto {
   Map<String, dynamic> toJson() => _$SessionTaskDtoToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class ReflectScoreDto {
   int score;
 
@@ -356,7 +356,7 @@ class ReflectScoreDto {
   Map<String, dynamic> toJson() => _$ReflectScoreDtoToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class MessageScoreDto {
   List<ContentDto> contentList;
   String messageType; //Follow AgentMessage.type
@@ -376,7 +376,7 @@ class MessageScoreDto {
   Map<String, dynamic> toJson() => _$MessageScoreDtoToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class ReflectionDto {
   final bool isPass;
   final MessageScoreDto messageScore;
@@ -405,7 +405,7 @@ class ReflectionDto {
   Map<String, dynamic> toJson() => _$ReflectionDtoToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class TaskStatusDto {
   String status;
   String taskId;
@@ -426,7 +426,7 @@ class TaskStatusDto {
   Map<String, dynamic> toJson() => _$TaskStatusDtoToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class ContentDto {
   String type; /// ContentType.TEXT ContentType.IMAGE_URL
   String message;
@@ -443,7 +443,7 @@ class ContentDto {
   Map<String, dynamic> toJson() => _$ContentDtoToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class ReflectPromptDto {
   LLMConfigDto llmConfig;
   String prompt;
@@ -455,7 +455,7 @@ class ReflectPromptDto {
   Map<String, dynamic> toJson() => _$ReflectPromptDtoToJson(this);
 }
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class AgentMessageChunkDto {
   String sessionId;
   String? agentId;
@@ -505,7 +505,7 @@ class AgentMessageChunkDto {
   }
 }
 
-@JsonSerializable()
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class AgentIdDto {
   String agentId;
   AgentIdDto({required this.agentId});
@@ -515,7 +515,7 @@ class AgentIdDto {
   Map<String, dynamic> toJson() => _$AgentIdDtoToJson(this);
 }
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class AgentDto {
   String name;
   CapabilityDto capability;
@@ -526,7 +526,7 @@ class AgentDto {
   Map<String, dynamic> toJson() => _$AgentDtoToJson(this);
 }
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class AgentInfoDto extends AgentIdDto {
   String name;
   CapabilityDto capability;
@@ -537,19 +537,19 @@ class AgentInfoDto extends AgentIdDto {
   Map<String, dynamic> toJson() => _$AgentInfoDtoToJson(this);
 }
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class SessionAgentMessageDto {
   String sessionId;
-  String taskId;
+  // String taskId;
   AgentMessageDto agentMessageDto;
-  SessionAgentMessageDto({required this.sessionId, required this.taskId, required this.agentMessageDto});
+  SessionAgentMessageDto({required this.sessionId, required this.agentMessageDto});
 
   factory SessionAgentMessageDto.fromJson(Map<String, dynamic> json) => _$SessionAgentMessageDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$SessionAgentMessageDtoToJson(this);
 }
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class ClientOpenToolDto {
   String opentool;
   int? timeout;

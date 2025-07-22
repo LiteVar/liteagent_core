@@ -39,7 +39,7 @@ SimpleCapabilityDto _$SimpleCapabilityDtoFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$SimpleCapabilityDtoToJson(
         SimpleCapabilityDto instance) =>
     <String, dynamic>{
-      'llmConfig': instance.llmConfig,
+      'llmConfig': instance.llmConfig.toJson(),
       'systemPrompt': instance.systemPrompt,
     };
 
@@ -69,12 +69,18 @@ CapabilityDto _$CapabilityDtoFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
     <String, dynamic>{
-      'llmConfig': instance.llmConfig,
+      'llmConfig': instance.llmConfig.toJson(),
       'systemPrompt': instance.systemPrompt,
-      if (instance.openSpecList case final value?) 'openSpecList': value,
-      if (instance.clientOpenTool case final value?) 'clientOpenTool': value,
-      if (instance.sessionList case final value?) 'sessionList': value,
-      if (instance.reflectPromptList case final value?)
+      if (instance.openSpecList?.map((e) => e.toJson()).toList()
+          case final value?)
+        'openSpecList': value,
+      if (instance.clientOpenTool?.toJson() case final value?)
+        'clientOpenTool': value,
+      if (instance.sessionList?.map((e) => e.toJson()).toList()
+          case final value?)
+        'sessionList': value,
+      if (instance.reflectPromptList?.map((e) => e.toJson()).toList()
+          case final value?)
         'reflectPromptList': value,
       'timeoutSeconds': instance.timeoutSeconds,
       'taskPipelineStrategy': instance.taskPipelineStrategy,
@@ -94,7 +100,7 @@ OpenSpecDto _$OpenSpecDtoFromJson(Map<String, dynamic> json) => OpenSpecDto(
 Map<String, dynamic> _$OpenSpecDtoToJson(OpenSpecDto instance) =>
     <String, dynamic>{
       'openSpec': instance.openSpec,
-      if (instance.apiKey case final value?) 'apiKey': value,
+      if (instance.apiKey?.toJson() case final value?) 'apiKey': value,
       'protocol': instance.protocol,
       if (instance.openToolId case final value?) 'openToolId': value,
     };
@@ -138,13 +144,13 @@ AgentMessageDto _$AgentMessageDtoFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$AgentMessageDtoToJson(AgentMessageDto instance) =>
     <String, dynamic>{
       'sessionId': instance.sessionId,
-      'agentId': instance.agentId,
-      'parentTaskId': instance.parentTaskId,
+      if (instance.agentId case final value?) 'agentId': value,
+      if (instance.parentTaskId case final value?) 'parentTaskId': value,
       'taskId': instance.taskId,
       'role': instance.role,
       'to': instance.to,
       'type': instance.type,
-      'content': instance.content,
+      if (instance.content case final value?) 'content': value,
       if (instance.completions?.toJson() case final value?)
         'completions': value,
       'createTime': instance.createTime.toIso8601String(),
@@ -159,7 +165,7 @@ CompletionsDto _$CompletionsDtoFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$CompletionsDtoToJson(CompletionsDto instance) =>
     <String, dynamic>{
-      'usage': instance.usage,
+      'usage': instance.usage.toJson(),
       'id': instance.id,
       'model': instance.model,
     };
@@ -198,13 +204,13 @@ UserTaskDto _$UserTaskDtoFromJson(Map<String, dynamic> json) => UserTaskDto(
       content: (json['content'] as List<dynamic>)
           .map((e) => ContentDto.fromJson(e as Map<String, dynamic>))
           .toList(),
-      isChunk: json['stream'] as bool?,
+      isChunk: json['isChunk'] as bool?,
     );
 
 Map<String, dynamic> _$UserTaskDtoToJson(UserTaskDto instance) =>
     <String, dynamic>{
-      'content': instance.content,
-      'stream': instance.isChunk,
+      'content': instance.content.map((e) => e.toJson()).toList(),
+      if (instance.isChunk case final value?) 'isChunk': value,
     };
 
 SessionTaskDto _$SessionTaskDtoFromJson(Map<String, dynamic> json) =>
@@ -245,10 +251,11 @@ MessageScoreDto _$MessageScoreDtoFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$MessageScoreDtoToJson(MessageScoreDto instance) =>
     <String, dynamic>{
-      'contentList': instance.contentList,
+      'contentList': instance.contentList.map((e) => e.toJson()).toList(),
       'messageType': instance.messageType,
       'message': instance.message,
-      'reflectScoreList': instance.reflectScoreList,
+      'reflectScoreList':
+          instance.reflectScoreList.map((e) => e.toJson()).toList(),
     };
 
 ReflectionDto _$ReflectionDtoFromJson(Map<String, dynamic> json) =>
@@ -264,7 +271,7 @@ ReflectionDto _$ReflectionDtoFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$ReflectionDtoToJson(ReflectionDto instance) =>
     <String, dynamic>{
       'isPass': instance.isPass,
-      'messageScore': instance.messageScore,
+      'messageScore': instance.messageScore.toJson(),
       'passScore': instance.passScore,
       'count': instance.count,
       'maxCount': instance.maxCount,
@@ -304,7 +311,7 @@ ReflectPromptDto _$ReflectPromptDtoFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$ReflectPromptDtoToJson(ReflectPromptDto instance) =>
     <String, dynamic>{
-      'llmConfig': instance.llmConfig,
+      'llmConfig': instance.llmConfig.toJson(),
       'prompt': instance.prompt,
     };
 
@@ -326,13 +333,13 @@ Map<String, dynamic> _$AgentMessageChunkDtoToJson(
         AgentMessageChunkDto instance) =>
     <String, dynamic>{
       'sessionId': instance.sessionId,
-      'agentId': instance.agentId,
-      'parentTaskId': instance.parentTaskId,
+      if (instance.agentId case final value?) 'agentId': value,
+      if (instance.parentTaskId case final value?) 'parentTaskId': value,
       'taskId': instance.taskId,
       'role': instance.role,
       'to': instance.to,
       'type': instance.type,
-      'part': instance.part,
+      if (instance.part case final value?) 'part': value,
       'createTime': instance.createTime.toIso8601String(),
     };
 
@@ -374,7 +381,6 @@ SessionAgentMessageDto _$SessionAgentMessageDtoFromJson(
         Map<String, dynamic> json) =>
     SessionAgentMessageDto(
       sessionId: json['sessionId'] as String,
-      taskId: json['taskId'] as String,
       agentMessageDto: AgentMessageDto.fromJson(
           json['agentMessageDto'] as Map<String, dynamic>),
     );
@@ -383,7 +389,6 @@ Map<String, dynamic> _$SessionAgentMessageDtoToJson(
         SessionAgentMessageDto instance) =>
     <String, dynamic>{
       'sessionId': instance.sessionId,
-      'taskId': instance.taskId,
       'agentMessageDto': instance.agentMessageDto.toJson(),
     };
 
@@ -396,5 +401,5 @@ ClientOpenToolDto _$ClientOpenToolDtoFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$ClientOpenToolDtoToJson(ClientOpenToolDto instance) =>
     <String, dynamic>{
       'opentool': instance.opentool,
-      'timeout': instance.timeout,
+      if (instance.timeout case final value?) 'timeout': value,
     };

@@ -124,7 +124,13 @@ class AgentService {
     return sessionDto;
   }
 
-  Future<void> startSession(String sessionId, UserTaskDto userTaskDto, void Function(String sessionId, String taskId, AgentMessageDto agentMessageDto) listen, {void Function(String sessionId, String taskId, AgentMessageChunkDto agentMessageChunkDto)? listenChunk}) async {
+  Future<void> startSession(String sessionId, UserTaskDto userTaskDto,
+      void Function(String sessionId, String taskId, AgentMessageDto agentMessageDto) listen,
+      {
+        void Function(String sessionId, String taskId,
+        AgentMessageChunkDto agentMessageChunkDto)? listenChunk,
+        void Function(String taskId)? getTaskId
+      }) async {
     SessionAgent? sessionAgent = sessionAgents[sessionId];
     if(sessionAgent == null) throw SessionAgentNotFoundException(sessionId: sessionId);
     List<Content> userMessageList = userTaskDto.content
@@ -132,6 +138,7 @@ class AgentService {
         .toList();
 
     void Function(String taskId) fetchTaskId = (String taskId) {
+      if(getTaskId != null) getTaskId(taskId);
       if(sessionAgent is MultiAgent) {
         List<String> subSessionIds = getSubSessionIds(sessionId);
         if(subSessionIds.isNotEmpty) {
@@ -335,7 +342,7 @@ class AgentService {
   }
 
   void _recordAgentMessage(String sessionId, String taskId, AgentMessageDto agentMessageDto) {
-    SessionAgentMessageDto sessionAgentMessageDto = SessionAgentMessageDto(sessionId: sessionId, taskId: taskId, agentMessageDto: agentMessageDto);
+    SessionAgentMessageDto sessionAgentMessageDto = SessionAgentMessageDto(sessionId: sessionId, agentMessageDto: agentMessageDto);
     agentMessageManageServiceList.forEach((service) {
       service.addMessage(sessionAgentMessageDto);
     });
