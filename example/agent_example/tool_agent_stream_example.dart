@@ -23,7 +23,12 @@ Future<void> main() async {
     toolDriverList: await _buildToolDriverList(),
     systemPrompt: _buildSystemPrompt()
   );
-  await toolAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt)], stream: true);
+
+  void Function(String taskId) fetchTaskId = (String taskId) {
+    _updateSession(toolAgent.agentSession, taskId);
+  };
+
+  await toolAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt)], stream: true, fetchTaskId: fetchTaskId);
 
   toolAgent.agentSession.taskDoneAgentMessageList.forEach((AgentMessage agentMessage) {
     print(AgentMessageDto.fromModel(agentMessage).toJson());
@@ -80,14 +85,17 @@ Future<List<ToolDriver>> _buildToolDriverList() async {
 // }
 
 AgentSession _buildSession(String sessionId) {
-  AgentSession session = AgentSession();
-  session.addAgentMessageListener((AgentMessage agentMessage) {
-    listen(sessionId, AgentMessageDto.fromModel(agentMessage));
-  });
-  session.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
-    listenChunk(sessionId, AgentMessageChunkDto.fromModel(agentMessageChunk));
-  });
+  AgentSession session = AgentSession(sessionId: sessionId);
   return session;
+}
+
+void _updateSession(AgentSession agentSession, String taskId) {
+  agentSession.addAgentMessageListener((AgentMessage agentMessage) {
+    listen(agentSession.sessionId, taskId, AgentMessageDto.fromModel(agentMessage));
+  });
+  agentSession.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
+    listenChunk(agentSession.sessionId, taskId,  AgentMessageChunkDto.fromModel(agentMessageChunk));
+  });
 }
 
 /// Use Prompt engineering to design SystemPrompt

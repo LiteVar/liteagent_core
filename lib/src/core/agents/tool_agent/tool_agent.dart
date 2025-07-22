@@ -37,7 +37,7 @@ class ToolAgent extends TextAgent {
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
   }) {
     toolReflectPromptList.forEach((reflectPrompt){
-      ReflectorAgent reflectorAgent = ReflectorAgent(llmExecutor: OpenAIExecutor(reflectPrompt.llmConfig), systemPrompt: reflectPrompt.prompt, sessionId: super.sessionId, parentTaskId: super.parentTaskId);
+      ReflectorAgent reflectorAgent = ReflectorAgent(llmExecutor: OpenAIExecutor(reflectPrompt.llmConfig), systemPrompt: reflectPrompt.prompt, sessionId: this.sessionId, parentTaskId: this.parentTaskId);
       AgentReflector agentReflector = AgentReflector(agent: reflectorAgent, subscribeCompletions: subscribeCompletions);
       toolReflectionManager.addReflector(agentReflector);
     });

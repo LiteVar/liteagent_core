@@ -23,21 +23,25 @@ Future<void> main() async {
     toolPipelineStrategy: PipelineStrategyType.SERIAL /// Can change to PARALLEL or REJECT to test
   );
 
+  void Function(String taskId) fetchTaskId = (String taskId) {
+    _updateSession(toolAgent.agentSession, taskId);
+  };
+
   try {
     String prompt1 = "Help me set store a text 'hello1'.";
-    await toolAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt1)]);
+    await toolAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt1)], fetchTaskId: fetchTaskId);
   } on TaskRejectException catch (e) {
     print(e);
   }
   try {
     String prompt2 = "Help me set store a text 'hello22'.";
-    await toolAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt2)]);
+    await toolAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt2)], fetchTaskId: fetchTaskId);
   } on TaskRejectException catch (e) {
     print(e);
   }
   try {
     String prompt3 = "Help me set store a text 'hello333'.";
-    await toolAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt3)]);
+    await toolAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt3)], fetchTaskId: fetchTaskId);
   } on TaskRejectException catch (e) {
     print(e);
   }
@@ -70,11 +74,14 @@ Future<List<ToolDriver>> _buildToolDriverList() async {
 }
 
 AgentSession _buildSession(String sessionId) {
-  AgentSession session = AgentSession();
-  session.addAgentMessageListener((AgentMessage agentMessage) {
-    listen(sessionId, AgentMessageDto.fromModel(agentMessage));
-  });
+  AgentSession session = AgentSession(sessionId: sessionId);
   return session;
+}
+
+void _updateSession(AgentSession agentSession, String taskId) {
+  agentSession.addAgentMessageListener((AgentMessage agentMessage) {
+    listen(agentSession.sessionId, taskId, AgentMessageDto.fromModel(agentMessage));
+  });
 }
 
 /// Use Prompt engineering to design SystemPrompt

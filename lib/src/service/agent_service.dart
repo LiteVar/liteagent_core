@@ -53,13 +53,7 @@ class AgentService {
     return AgentMessageDto.fromModel(agentMessage);
   }
 
-  Future<SessionDto> initSession(
-      CapabilityDto capabilityDto,
-      void Function(String sessionId, AgentMessageDto agentMessageDto) listen, {
-        Map<String, OpenToolDriver>? opentoolDriverMap,
-        List<ToolDriver>? customToolDriverList,
-        void Function(String sessionId, AgentMessageChunkDto agentMessageChunkDto)? listenChunk
-      }) async {
+  Future<SessionDto> initSession(CapabilityDto capabilityDto, {Map<String, OpenToolDriver>? opentoolDriverMap, List<ToolDriver>? customToolDriverList}) async {
     String sessionId = uniqueId();
     String systemPrompt = capabilityDto.systemPrompt;
     LLMConfig llmConfig = capabilityDto.llmConfig.toModel();
@@ -77,33 +71,33 @@ class AgentService {
     toolDriverList.addAll(await _buildToolDriverList(capabilityDto.openSpecList));
     if(customToolDriverList != null) toolDriverList.addAll(customToolDriverList);
 
-    List<AgentDriver>? agentDriverList = await _buildAgentDriverList(capabilityDto.sessionList, sessionId, listen);
+    List<AgentDriver>? agentDriverList = await _buildAgentDriverList(capabilityDto.sessionList, sessionId);
 
     if(toolDriverList.isEmpty && agentDriverList == null && capabilityDto.clientOpenTool == null) { // TextAgent
       SessionAgent textAgent = TextAgent(
-          sessionId: sessionId,
-          llmConfig: llmConfig,
-          agentSession: _buildSession(sessionId, listen, listenChunk: listenChunk),
-          systemPrompt: systemPrompt,
-          textReflectPromptList: reflectPromptList??[],
-          timeoutSeconds: capabilityDto.timeoutSeconds,
-          taskPipelineStrategy: capabilityDto.taskPipelineStrategy
+        sessionId: sessionId,
+        llmConfig: llmConfig,
+        agentSession: _buildSession(sessionId),
+        systemPrompt: systemPrompt,
+        textReflectPromptList: reflectPromptList??[],
+        timeoutSeconds: capabilityDto.timeoutSeconds,
+        taskPipelineStrategy: capabilityDto.taskPipelineStrategy
       );
       sessionAgents[sessionId] = textAgent;
     } else if(agentDriverList == null) {  // ToolAgent
       ClientOpenTool? clientOpenTool = null;
       if(capabilityDto.clientOpenTool != null) clientOpenTool = ClientOpenTool(opentool: capabilityDto.clientOpenTool!.opentool, timeout: capabilityDto.clientOpenTool!.timeout, fetchClientDriver: this.fetchClientDriver);
       SessionAgent toolAgent = ToolAgent(
-          sessionId: sessionId,
-          llmConfig: llmConfig,
-          agentSession: _buildSession(sessionId, listen, listenChunk: listenChunk),
-          toolDriverList: toolDriverList,
-          clientOpenTool: clientOpenTool,
-          systemPrompt: systemPrompt,
-          toolReflectPromptList: reflectPromptList??[],
-          timeoutSeconds: capabilityDto.timeoutSeconds,
-          taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
-          toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL
+        sessionId: sessionId,
+        llmConfig: llmConfig,
+        agentSession: _buildSession(sessionId),
+        toolDriverList: toolDriverList,
+        clientOpenTool: clientOpenTool,
+        systemPrompt: systemPrompt,
+        toolReflectPromptList: reflectPromptList??[],
+        timeoutSeconds: capabilityDto.timeoutSeconds,
+        taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
+        toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL
       );
       sessionAgents[sessionId] = toolAgent;
     } else {  // MultiAgent
@@ -112,7 +106,7 @@ class AgentService {
       SessionAgent toolAgent = MultiAgent(
           sessionId: sessionId,
           llmConfig: llmConfig,
-          agentSession: _buildSession(sessionId, listen, listenChunk: listenChunk),
+          agentSession: _buildSession(sessionId),
           toolDriverList: toolDriverList,
           subAgentDriverList: agentDriverList,
           clientOpenTool: clientOpenTool,
@@ -130,13 +124,27 @@ class AgentService {
     return sessionDto;
   }
 
-  Future<void> startSession(String sessionId, UserTaskDto userTaskDto, {String? taskId}) async {
+  Future<void> startSession(String sessionId, UserTaskDto userTaskDto, void Function(String sessionId, String taskId, AgentMessageDto agentMessageDto) listen, {void Function(String sessionId, String taskId, AgentMessageChunkDto agentMessageChunkDto)? listenChunk}) async {
     SessionAgent? sessionAgent = sessionAgents[sessionId];
     if(sessionAgent == null) throw SessionAgentNotFoundException(sessionId: sessionId);
     List<Content> userMessageList = userTaskDto.content
         .map((contentDto) => _convertToContent(contentDto))
         .toList();
-    await sessionAgent.userToAgent(contentList: userMessageList, stream: userTaskDto.stream);
+
+    void Function(String taskId) fetchTaskId = (String taskId) {
+      if(sessionAgent is MultiAgent) {
+        List<String> subSessionIds = getSubSessionIds(sessionId);
+        if(subSessionIds.isNotEmpty) {
+          _updateSession(sessionAgent.agentSession, taskId, listen, listenChunk: listenChunk, subAgentSessionList: subSessionIds);
+        } else {
+          _updateSession(sessionAgent.agentSession, taskId, listen, listenChunk: listenChunk);
+        }
+      } else {
+        _updateSession(sessionAgent.agentSession, taskId, listen, listenChunk: listenChunk);
+      }
+    };
+
+    await sessionAgent.userToAgent(contentList: userMessageList, stream: userTaskDto.isChunk, fetchTaskId: fetchTaskId);
   }
 
   Future<List<AgentMessageDto>?> getCacheHistory(String sessionId) async {
@@ -168,19 +176,54 @@ class AgentService {
     return Content(type: contentDto.type, message: contentDto.message);
   }
 
-  AgentSession _buildSession(String sessionId, void Function(String sessionId, AgentMessageDto agentMessageDto) listen, {void Function(String sessionId, AgentMessageChunkDto agentMessageChunkDto)? listenChunk}) {
-    AgentSession agentSession = AgentSession();
+  AgentSession _buildSession(String sessionId) {
+    AgentSession agentSession = AgentSession(sessionId: sessionId);
+    // agentSession.addAgentMessageListener((AgentMessage agentMessage) {
+    //   AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
+    //   _recordAgentMessage(sessionId, agentMessageDto);
+    //   listen(sessionId, agentMessageDto);
+    // });
+    // if(listenChunk != null) {
+    //   agentSession.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
+    //     listenChunk(sessionId, AgentMessageChunkDto.fromModel(agentMessageChunk));
+    //   });
+    // }
+    return agentSession;
+  }
+
+  void _updateSession(AgentSession agentSession, String taskId,
+    void Function(String sessionId, String taskId, AgentMessageDto agentMessageDto) listen, {
+      void Function(String sessionId, String taskId, AgentMessageChunkDto agentMessageChunkDto)? listenChunk,
+      List<String>? subAgentSessionList
+  }) {
     agentSession.addAgentMessageListener((AgentMessage agentMessage) {
       AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
-      _recordAgentMessage(sessionId, agentMessageDto);
-      listen(sessionId, agentMessageDto);
+      _recordAgentMessage(agentSession.sessionId, taskId, agentMessageDto);
+      listen(agentSession.sessionId, taskId, agentMessageDto);
     });
     if(listenChunk != null) {
       agentSession.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
-        listenChunk(sessionId, AgentMessageChunkDto.fromModel(agentMessageChunk));
+        listenChunk(agentSession.sessionId, taskId, AgentMessageChunkDto.fromModel(agentMessageChunk));
       });
     }
-    return agentSession;
+
+    if(subAgentSessionList != null && subAgentSessionList.isNotEmpty) {
+      subAgentSessionList.forEach((subSessionId) {
+        SessionAgent? subSessionAgent = sessionAgents[subSessionId];
+        if(subSessionAgent != null) {
+          subSessionAgent.agentSession.addAgentMessageListener((AgentMessage agentMessage) {
+            AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
+            _recordAgentMessage(subSessionId, taskId, agentMessageDto);
+            listen(subSessionId, taskId, agentMessageDto);
+          });
+          if(listenChunk != null) {
+            subSessionAgent.agentSession.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
+              listenChunk(subSessionId, taskId, AgentMessageChunkDto.fromModel(agentMessageChunk));
+            });
+          }
+        }
+      });
+    }
   }
 
   Future<List<ToolDriver>> _buildToolDriverList(List<OpenSpecDto>? openSpecDtoList) async {
@@ -224,7 +267,7 @@ class AgentService {
     return toolDriverList;
   }
 
-  Future<List<AgentDriver>?> _buildAgentDriverList(List<SessionNameDto>? sessionList, String sessionId, void Function(String sessionId, AgentMessageDto agentMessageDto) listen) async {
+  Future<List<AgentDriver>?> _buildAgentDriverList(List<SessionNameDto>? sessionList, String sessionId) async {
     if( sessionList == null || sessionList.isEmpty ) return null;
     List<NamedSimpleAgent> namedSimpleAgentList = [];
     List<NamedSessionAgent> namedSessionAgentList = [];
@@ -238,46 +281,46 @@ class AgentService {
       }
       if(sessionAgent != null) {
         String agentName = session.name??session.sessionId;
-        void Function(AgentMessage agentMessage) AgentListen = (AgentMessage agentMessage){
-            String role = agentMessage.role;
-            if(agentMessage.role == AgentRoleType.AGENT) role = AgentRoleType.SUBAGENT;
-            if(agentMessage.role == AgentRoleType.USER) role = AgentRoleType.AGENT;
-            String to = agentMessage.to;
-            if(agentMessage.to == AgentRoleType.AGENT) to = AgentRoleType.SUBAGENT;
-            if(agentMessage.to == AgentRoleType.USER) to = AgentRoleType.AGENT;
-
-            AgentMessage subAgentMessage = AgentMessage(
-              sessionId: agentMessage.sessionId,
-              parentTaskId: agentMessage.parentTaskId,
-              taskId: agentMessage.taskId,
-              role: role,
-              to: to,
-              type: agentMessage.type,
-              content: agentMessage.content
-            );
-            if(role == AgentRoleType.SUBAGENT && agentMessage.type == AgentMessageType.TASK_STATUS) {
-              if(agentMessage.content is TaskStatus) {
-                TaskStatus taskStatus = agentMessage.content as TaskStatus;
-                if(taskStatus.status == TaskStatusType.START) {
-                  taskStatus.description = {"subAgent": agentName};
-                  subAgentMessage = AgentMessage(
-                    sessionId: agentMessage.sessionId,
-                    parentTaskId: agentMessage.parentTaskId,
-                    taskId: agentMessage.taskId,
-                    role: role,
-                    to: to,
-                    type: agentMessage.type,
-                    content: taskStatus
-                  );
-                }
-              }
-            }
-
-          AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(subAgentMessage);
-          _recordAgentMessage(session.sessionId, agentMessageDto);
-          listen(sessionId, agentMessageDto);
-        };
-        sessionAgent.agentSession.addAgentMessageListener(AgentListen);
+        // void Function(AgentMessage agentMessage) AgentListen = (AgentMessage agentMessage){
+        //     String role = agentMessage.role;
+        //     if(agentMessage.role == AgentRoleType.AGENT) role = AgentRoleType.SUBAGENT;
+        //     if(agentMessage.role == AgentRoleType.USER) role = AgentRoleType.AGENT;
+        //     String to = agentMessage.to;
+        //     if(agentMessage.to == AgentRoleType.AGENT) to = AgentRoleType.SUBAGENT;
+        //     if(agentMessage.to == AgentRoleType.USER) to = AgentRoleType.AGENT;
+        //
+        //     AgentMessage subAgentMessage = AgentMessage(
+        //       sessionId: agentMessage.sessionId,
+        //       parentTaskId: agentMessage.parentTaskId,
+        //       taskId: agentMessage.taskId,
+        //       role: role,
+        //       to: to,
+        //       type: agentMessage.type,
+        //       content: agentMessage.content
+        //     );
+        //     if(role == AgentRoleType.SUBAGENT && agentMessage.type == AgentMessageType.TASK_STATUS) {
+        //       if(agentMessage.content is TaskStatus) {
+        //         TaskStatus taskStatus = agentMessage.content as TaskStatus;
+        //         if(taskStatus.status == TaskStatusType.START) {
+        //           taskStatus.description = {"subAgent": agentName};
+        //           subAgentMessage = AgentMessage(
+        //             sessionId: agentMessage.sessionId,
+        //             parentTaskId: agentMessage.parentTaskId,
+        //             taskId: agentMessage.taskId,
+        //             role: role,
+        //             to: to,
+        //             type: agentMessage.type,
+        //             content: taskStatus
+        //           );
+        //         }
+        //       }
+        //     }
+        //
+        //   AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(subAgentMessage);
+        //   _recordAgentMessage(session.sessionId, agentMessageDto);
+        //   listen(sessionId, agentMessageDto);
+        // };
+        // sessionAgent.agentSession.addAgentMessageListener(AgentListen);
         namedSessionAgentList.add(NamedSessionAgent(name: agentName, description: session.description, agent: sessionAgent));
       }
     });
@@ -291,8 +334,8 @@ class AgentService {
     return agentDriverList;
   }
 
-  void _recordAgentMessage(String sessionId, AgentMessageDto agentMessageDto) {
-    SessionAgentMessageDto sessionAgentMessageDto = SessionAgentMessageDto(sessionId: sessionId, agentMessageDto: agentMessageDto);
+  void _recordAgentMessage(String sessionId, String taskId, AgentMessageDto agentMessageDto) {
+    SessionAgentMessageDto sessionAgentMessageDto = SessionAgentMessageDto(sessionId: sessionId, taskId: taskId, agentMessageDto: agentMessageDto);
     agentMessageManageServiceList.forEach((service) {
       service.addMessage(sessionAgentMessageDto);
     });
@@ -316,7 +359,7 @@ class AgentService {
       if (rootAgent == null) {
         return [];
       }
-      
+
       Set<String> visitedSessionIds = {rootSessionId};
       return _getSubSessionIdsRecursive(rootAgent, visitedSessionIds);
     } catch (e) {
@@ -326,33 +369,33 @@ class AgentService {
 
   List<String> _getSubSessionIdsRecursive(SessionAgent agent, Set<String> visitedSessionIds) {
     List<String> allSubSessionIds = [];
-    
+
     final (sessionAgentDriver, simpleAgentDriver) = _extractAgentDrivers(agent);
-    
+
     if (sessionAgentDriver != null) {
       for (var namedSessionAgent in sessionAgentDriver.namedSessionAgents) {
         String subSessionId = namedSessionAgent.agent.sessionId;
-        
+
         if (!visitedSessionIds.contains(subSessionId)) {
           allSubSessionIds.add(subSessionId);
           visitedSessionIds.add(subSessionId);
-          
+
           allSubSessionIds.addAll(_getSubSessionIdsRecursive(namedSessionAgent.agent, visitedSessionIds));
         }
       }
     }
-    
+
     if (simpleAgentDriver != null) {
       for (var namedSimpleAgent in simpleAgentDriver.namedSimpleAgents) {
         String subSessionId = namedSimpleAgent.agent.sessionId;
-        
+
         if (!visitedSessionIds.contains(subSessionId)) {
           allSubSessionIds.add(subSessionId);
           visitedSessionIds.add(subSessionId);
         }
       }
     }
-    
+
     return allSubSessionIds;
   }
 
@@ -372,7 +415,7 @@ class AgentService {
       }
       if (sessionAgentDriver != null && simpleAgentDriver != null) break;
     }
-    
+
     return (sessionAgentDriver, simpleAgentDriver);
   }
 }

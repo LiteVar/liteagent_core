@@ -17,7 +17,12 @@ Future<void> main() async {
     agentSession: _buildSession(sessionId),
     systemPrompt: _buildSystemPrompt()
   );
-  await textAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt)], stream: true);
+
+  void Function(String taskId) fetchTaskId = (String taskId) {
+    _updateSession(textAgent.agentSession, taskId);
+  };
+
+  await textAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt)], stream: true, fetchTaskId: fetchTaskId);
 }
 
 LLMConfig _buildLLMConfig() {
@@ -32,14 +37,17 @@ LLMConfig _buildLLMConfig() {
 }
 
 AgentSession _buildSession(String sessionId) {
-  AgentSession session = AgentSession();
-  session.addAgentMessageListener((AgentMessage agentMessage) {
-    listen(sessionId, AgentMessageDto.fromModel(agentMessage));
-  });
-  session.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
-    listenChunk(sessionId, AgentMessageChunkDto.fromModel(agentMessageChunk));
-  });
+  AgentSession session = AgentSession(sessionId: sessionId);
   return session;
+}
+
+void _updateSession(AgentSession agentSession, String taskId) {
+  agentSession.addAgentMessageListener((AgentMessage agentMessage) {
+    listen(agentSession.sessionId, taskId, AgentMessageDto.fromModel(agentMessage));
+  });
+  agentSession.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
+    listenChunk(agentSession.sessionId, taskId,  AgentMessageChunkDto.fromModel(agentMessageChunk));
+  });
 }
 
 /// Use Prompt engineering to design SystemPrompt

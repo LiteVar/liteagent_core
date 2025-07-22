@@ -301,9 +301,9 @@ class ApiKeyDto {
 class UserTaskDto {
   @JsonKey(includeIfNull: false)
   List<ContentDto> content;
-  bool? stream;
+  bool? isChunk;
 
-  UserTaskDto({required this.content, this.stream});
+  UserTaskDto({required this.content, this.isChunk});
 
   factory UserTaskDto.fromJson(Map<String, dynamic> json) => _$UserTaskDtoFromJson(json);
 
@@ -540,8 +540,9 @@ class AgentInfoDto extends AgentIdDto {
 @JsonSerializable(explicitToJson: true)
 class SessionAgentMessageDto {
   String sessionId;
+  String taskId;
   AgentMessageDto agentMessageDto;
-  SessionAgentMessageDto({required this.sessionId, required this.agentMessageDto});
+  SessionAgentMessageDto({required this.sessionId, required this.taskId, required this.agentMessageDto});
 
   factory SessionAgentMessageDto.fromJson(Map<String, dynamic> json) => _$SessionAgentMessageDtoFromJson(json);
 

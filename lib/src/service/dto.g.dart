@@ -121,6 +121,8 @@ Map<String, dynamic> _$LLMConfigDtoToJson(LLMConfigDto instance) =>
 AgentMessageDto _$AgentMessageDtoFromJson(Map<String, dynamic> json) =>
     AgentMessageDto(
       sessionId: json['sessionId'] as String,
+      agentId: json['agentId'] as String?,
+      parentTaskId: json['parentTaskId'] as String?,
       taskId: json['taskId'] as String,
       role: json['role'] as String,
       to: json['to'] as String,
@@ -136,6 +138,8 @@ AgentMessageDto _$AgentMessageDtoFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$AgentMessageDtoToJson(AgentMessageDto instance) =>
     <String, dynamic>{
       'sessionId': instance.sessionId,
+      'agentId': instance.agentId,
+      'parentTaskId': instance.parentTaskId,
       'taskId': instance.taskId,
       'role': instance.role,
       'to': instance.to,
@@ -194,13 +198,13 @@ UserTaskDto _$UserTaskDtoFromJson(Map<String, dynamic> json) => UserTaskDto(
       content: (json['content'] as List<dynamic>)
           .map((e) => ContentDto.fromJson(e as Map<String, dynamic>))
           .toList(),
-      stream: json['stream'] as bool?,
+      isChunk: json['stream'] as bool?,
     );
 
 Map<String, dynamic> _$UserTaskDtoToJson(UserTaskDto instance) =>
     <String, dynamic>{
       'content': instance.content,
-      'stream': instance.stream,
+      'stream': instance.isChunk,
     };
 
 SessionTaskDto _$SessionTaskDtoFromJson(Map<String, dynamic> json) =>
@@ -308,6 +312,8 @@ AgentMessageChunkDto _$AgentMessageChunkDtoFromJson(
         Map<String, dynamic> json) =>
     AgentMessageChunkDto(
       sessionId: json['sessionId'] as String,
+      agentId: json['agentId'] as String?,
+      parentTaskId: json['parentTaskId'] as String?,
       taskId: json['taskId'] as String,
       role: json['role'] as String,
       to: json['to'] as String,
@@ -320,6 +326,8 @@ Map<String, dynamic> _$AgentMessageChunkDtoToJson(
         AgentMessageChunkDto instance) =>
     <String, dynamic>{
       'sessionId': instance.sessionId,
+      'agentId': instance.agentId,
+      'parentTaskId': instance.parentTaskId,
       'taskId': instance.taskId,
       'role': instance.role,
       'to': instance.to,
@@ -366,6 +374,7 @@ SessionAgentMessageDto _$SessionAgentMessageDtoFromJson(
         Map<String, dynamic> json) =>
     SessionAgentMessageDto(
       sessionId: json['sessionId'] as String,
+      taskId: json['taskId'] as String,
       agentMessageDto: AgentMessageDto.fromJson(
           json['agentMessageDto'] as Map<String, dynamic>),
     );
@@ -374,6 +383,7 @@ Map<String, dynamic> _$SessionAgentMessageDtoToJson(
         SessionAgentMessageDto instance) =>
     <String, dynamic>{
       'sessionId': instance.sessionId,
+      'taskId': instance.taskId,
       'agentMessageDto': instance.agentMessageDto.toJson(),
     };
 

@@ -22,7 +22,12 @@ Future<void> main() async {
     subAgentDriverList: await _buildSubAgentDriverList(llmConfig, sessionId),
     systemPrompt: "You play the role of a tool caller. You can help me decide which tool to call to complete the task according to my requirements. You can only call one tool at a time. \n\nYou support the following tools:\n\n 1. Translation\n 2. Add, delete, modify and query tools"
   );
-  await multiAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt)]);
+
+  void Function(String taskId) fetchTaskId = (String taskId) {
+    _updateSession(multiAgent.agentSession, taskId);
+  };
+
+  await multiAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt)], fetchTaskId: fetchTaskId);
 }
 
 LLMConfig _buildLLMConfig() {
@@ -74,11 +79,14 @@ Future<List<ToolDriver>> _buildToolDriverList() async {
 }
 
 AgentSession _buildSession(String originalSessionId) {
-  AgentSession session = AgentSession();
-  session.addAgentMessageListener((AgentMessage agentMessage) {
-    listen(originalSessionId, AgentMessageDto.fromModel(agentMessage));
-  });
+  AgentSession session = AgentSession(sessionId: originalSessionId);
   return session;
+}
+
+void _updateSession(AgentSession agentSession, String taskId) {
+  agentSession.addAgentMessageListener((AgentMessage agentMessage) {
+    listen(agentSession.sessionId, taskId, AgentMessageDto.fromModel(agentMessage));
+  });
 }
 
 /// Use Prompt engineering to design SystemPrompt

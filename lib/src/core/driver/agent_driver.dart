@@ -1,7 +1,10 @@
 import 'package:opentool_dart/opentool_dart.dart';
 
+import '../agents/model.dart';
+
 abstract class AgentDriver extends ToolDriver {
   String? parentTaskId;
+  List<void Function(AgentMessage)> agentMessageListeners = [];
   final String promptKey = "prompt";
   final String promptDescription = "A sentence described in natural language like a human. e.g. `Help me to do something.`";
   final String resultKey = "result";
@@ -9,6 +12,10 @@ abstract class AgentDriver extends ToolDriver {
 
   void setParentTaskId(String parentTaskId) {
     this.parentTaskId = parentTaskId;
+  }
+
+  void addAgentMessageListener(void Function(AgentMessage) agentMessageListener) {
+    agentMessageListeners.add(agentMessageListener);
   }
 
   String truncateWithEllipsis(String text, int maxLength) {
@@ -24,6 +31,12 @@ abstract class AgentDriver extends ToolDriver {
     }
 
     return '$truncated$ellipsis';
+  }
+
+  void broadcastAgentMessages(AgentMessage agentMessage) {
+    for (var listener in agentMessageListeners) {
+      listener(agentMessage);
+    }
   }
 
 }

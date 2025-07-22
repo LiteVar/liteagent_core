@@ -27,11 +27,11 @@ Future<void> main() async {
     sessionList: [SessionNameDto(sessionId: sessionDto1.sessionId, name: "translator"), SessionNameDto(sessionId: sessionDto2.sessionId, name: "CRUDTools")]
   );
 
-  SessionDto sessionDto = await agentService.initSession(capabilityDto, listen, listenChunk: listenChunk);
+  SessionDto sessionDto = await agentService.initSession(capabilityDto);
   print("[session] ${sessionDto.sessionId}");
 
   UserTaskDto userTaskDto = UserTaskDto(content: [ContentDto(type: ContentType.TEXT, message: prompt)]);
-  await agentService.startSession(sessionDto.sessionId, userTaskDto);
+  await agentService.startSession(sessionDto.sessionId, userTaskDto, listen, listenChunk: listenChunk);
 
   await sleep(20);
 
@@ -62,8 +62,7 @@ Future<SessionDto> _buildTextAgent() async {
   String systemPrompt = "Playing as a translator, knowing how to translate between languages.";
 
   CapabilityDto capabilityDto = CapabilityDto(llmConfig: llmConfig, systemPrompt: systemPrompt);
-  void Function(String sessionId, AgentMessageDto agentMessageDto) listen1 = (String sessionId, AgentMessageDto agentMessageDto){};
-  return await agentService.initSession(capabilityDto, listen1);
+  return await agentService.initSession(capabilityDto);
 }
 
 Future<SessionDto> _buildToolAgent() async {
@@ -72,8 +71,7 @@ Future<SessionDto> _buildToolAgent() async {
   String systemPrompt = "A storage management tool that knows how to add, delete, modify, and query my texts.";
 
   CapabilityDto capabilityDto = CapabilityDto(llmConfig: llmConfig, systemPrompt: systemPrompt);
-  void Function(String sessionId, AgentMessageDto agentMessageDto) listen2 = (String sessionId, AgentMessageDto agentMessageDto){};
-  return await agentService.initSession(capabilityDto, listen2, customToolDriverList: await _buildCustomDriverList());
+  return await agentService.initSession(capabilityDto, customToolDriverList: await _buildCustomDriverList());
 }
 
 Future<void> sleep(int seconds) async {

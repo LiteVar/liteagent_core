@@ -4,7 +4,7 @@ import 'package:lite_agent_core_dart/lite_agent_core.dart';
 import 'package:lite_agent_core_dart/lite_agent_service.dart';
 import 'package:opentool_dart/opentool_dart.dart';
 
-void listen(String originalSessionId, AgentMessageDto agentMessageDto) {
+void listen(String originalSessionId, String taskId, AgentMessageDto agentMessageDto) {
   String system = "🖥DEVEL ";
   String user = "👤USER  ";
   String agent = "🤖AGENT ";
@@ -69,7 +69,7 @@ void listen(String originalSessionId, AgentMessageDto agentMessageDto) {
 }
 
 bool hasFirst = false;
-void listenChunk(String sessionId, AgentMessageChunkDto agentMessageChunkDto) {
+void listenChunk(String sessionId, String taskId, AgentMessageChunkDto agentMessageChunkDto) {
   String user = "🧩👤USER  ";
   String agent = "🧩🤖AGENT ";
   String client = "🧩🔗CLIENT";

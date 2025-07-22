@@ -16,21 +16,26 @@ Future<void> main() async {
     systemPrompt: _buildSystemPrompt(),
     taskPipelineStrategy: PipelineStrategyType.REJECT /// Can change to PARALLEL or SERIAL to test
   );
+
+  void Function(String taskId) fetchTaskId = (String taskId) {
+    _updateSession(textAgent.agentSession, taskId);
+  };
+
   try {
     String prompt1 = "Who are you?";
-    await textAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt1)]);
+    await textAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt1)], fetchTaskId: fetchTaskId);
   } on TaskRejectException catch (e) {
     print(e);
   }
   try {
     String prompt2 = "Where are you from?";
-    await textAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt2)]);
+    await textAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt2)], fetchTaskId: fetchTaskId);
   } on TaskRejectException catch (e) {
     print(e);
   }
   try {
     String prompt3 = "What do you want to do?";
-    await textAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt3)]);
+    await textAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt3)], fetchTaskId: fetchTaskId);
   } on TaskRejectException catch (e) {
     print(e);
   }
@@ -49,11 +54,14 @@ LLMConfig _buildLLMConfig() {
 }
 
 AgentSession _buildSession(String sessionId) {
-  AgentSession session = AgentSession();
-  session.addAgentMessageListener((AgentMessage agentMessage) {
-    listen(sessionId, AgentMessageDto.fromModel(agentMessage));
-  });
+  AgentSession session = AgentSession(sessionId: sessionId);
   return session;
+}
+
+void _updateSession(AgentSession agentSession, String taskId) {
+  agentSession.addAgentMessageListener((AgentMessage agentMessage) {
+    listen(agentSession.sessionId, taskId, AgentMessageDto.fromModel(agentMessage));
+  });
 }
 
 /// Use Prompt engineering to design SystemPrompt

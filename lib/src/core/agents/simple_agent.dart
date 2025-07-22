@@ -10,9 +10,18 @@ class SimpleAgent {
   LLMConfig llmConfig;
   String? systemPrompt;
   ResponseFormat? responseFormat;
+  List<void Function(AgentMessage)> agentMessageListeners = [];
 
   SimpleAgent({required this.llmConfig, this.systemPrompt, this.responseFormat}){
     this.sessionId = uniqueId();
+  }
+
+  void addAgentMessageListener(void Function(AgentMessage) agentMessageListener) {
+    agentMessageListeners.add(agentMessageListener);
+  }
+
+  void addAgentMessageListeners(List<void Function(AgentMessage)> agentMessageListeners) {
+    this.agentMessageListeners.addAll(agentMessageListeners);
   }
 
   Future<AgentMessage> userToAgent({required List<Content> contentList, String? parentTaskId}) async {
@@ -31,6 +40,7 @@ class SimpleAgent {
         content: systemPrompt
       );
       agentLlmMessageList.add(systemMessage);
+      _broadcastAgentMessages(systemMessage);
     }
 
     AgentMessage userMessage = AgentMessage(
@@ -43,7 +53,14 @@ class SimpleAgent {
         content: contentList
     );
     agentLlmMessageList.add(userMessage);
+    _broadcastAgentMessages(userMessage);
 
     return await OpenAIExecutor(llmConfig).request(agentMessageList: agentLlmMessageList, responseFormat: responseFormat);
+  }
+
+  void _broadcastAgentMessages(AgentMessage agentMessage) {
+    for (var listener in agentMessageListeners) {
+      listener(agentMessage);
+    }
   }
 }

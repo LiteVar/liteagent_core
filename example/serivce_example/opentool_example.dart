@@ -25,7 +25,6 @@ Future<void> main() async {
 
   SessionDto sessionDto = await agentService.initSession(
       capabilityDto,
-      listen,
       /// Add opentool Map here
       opentoolDriverMap: await _buildOpenToolDriverMap()
   );
@@ -33,7 +32,7 @@ Future<void> main() async {
   print("[SessionDto] " + sessionDto.toJson().toString());
 
   UserTaskDto userTaskDto = UserTaskDto(content: [ContentDto(type: ContentType.TEXT, message: prompt)]);
-  await agentService.startSession(sessionDto.sessionId, userTaskDto);
+  await agentService.startSession(sessionDto.sessionId, userTaskDto, listen);
 
   print("[prompt] " + prompt);
 

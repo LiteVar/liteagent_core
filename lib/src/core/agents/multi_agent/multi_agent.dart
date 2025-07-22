@@ -149,7 +149,7 @@ class MultiAgent extends ToolAgent {
   }
 
   void onFunctionCallResult(String from, AgentMessage agentMessage) {
-    agentSession.addListenAgentMessage(agentMessage);
+    // agentSession.addListenAgentMessage(agentMessage);
     if(_separatedFunctionCallList.toolFunctionCalls.isNotEmpty &&
         from == MultiAgentRoleType.TOOL &&
         agentMessage.type == MultiAgentMessageType.TASK_STATUS &&
@@ -219,10 +219,13 @@ class MultiAgent extends ToolAgent {
       if(functionCallParam.type == null || functionCallParam.type == FunctionCallType.SUBAGENT) {
         AgentDriver agentDriver = subAgentDriverList[functionCallParam.index];
         agentDriver.setParentTaskId(functionCallParam.taskId);
+        agentDriver.addAgentMessageListener((AgentMessage agentMessage){
+          agentSession.addListenAgentMessage(agentMessage);
+        });
         ToolReturn toolReturn = await agentDriver.call(functionCallParam.functionCall);
         AgentMessage toolMessage = AgentMessage(
           sessionId: functionCallParam.sessionId,
-          parentTaskId: super.parentTaskId,
+          parentTaskId: this.parentTaskId,
           taskId: functionCallParam.taskId,
           role: MultiAgentRoleType.SUBAGENT,
           to: MultiAgentRoleType.AGENT,

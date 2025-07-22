@@ -23,7 +23,12 @@ Future<void> main() async {
     toolDriverList: await _buildToolDriverList(),
     systemPrompt: _buildSystemPrompt()
   );
-  await toolAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt)]);
+
+  void Function(String taskId) fetchTaskId = (String taskId) {
+    _updateSession(toolAgent.agentSession, taskId);
+  };
+
+  await toolAgent.userToAgent(contentList: [Content(type: ContentType.TEXT, message: prompt)], fetchTaskId: fetchTaskId);
 }
 
 LLMConfig _buildLLMConfig() {
@@ -76,11 +81,14 @@ Future<List<ToolDriver>> _buildToolDriverList() async {
 // }
 
 AgentSession _buildSession(String sessionId) {
-  AgentSession session = AgentSession();
-  session.addAgentMessageListener((AgentMessage agentMessage) {
-    listen(sessionId, AgentMessageDto.fromModel(agentMessage));
-  });
+  AgentSession session = AgentSession(sessionId: sessionId);
   return session;
+}
+
+void _updateSession(AgentSession agentSession, String taskId) {
+  agentSession.addAgentMessageListener((AgentMessage agentMessage) {
+    listen(agentSession.sessionId, taskId, AgentMessageDto.fromModel(agentMessage));
+  });
 }
 
 /// Use Prompt engineering to design SystemPrompt

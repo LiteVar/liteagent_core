@@ -27,17 +27,14 @@ Future<void> main() async {
 
   SessionDto sessionDto = await agentService.initSession(
     capabilityDto,
-    listen,
     /// If needed, add customToolDriverList here, for preset tools
-    customToolDriverList: customToolDriverList,
-    /// If needed, add listenChunk here, for text chunk by STREAM
-    listenChunk: listenChunk
+    customToolDriverList: customToolDriverList
   );
 
   print("[SessionDto] " + sessionDto.toJson().toString());
 
   UserTaskDto userTaskDto = UserTaskDto(content: [ContentDto(type: ContentType.TEXT, message: prompt)]);
-  await agentService.startSession(sessionDto.sessionId, userTaskDto);
+  await agentService.startSession(sessionDto.sessionId, userTaskDto, listen, listenChunk: listenChunk);
 
   print("[prompt] " + prompt);
 

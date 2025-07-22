@@ -21,28 +21,28 @@ Future<void> main() async {
 
   print("[CapabilityDto] " + capabilityDto.toJson().toString());
 
-  SessionDto sessionDto = await agentService.initSession(capabilityDto, listen);
+  SessionDto sessionDto = await agentService.initSession(capabilityDto);
 
   print("[SessionDto] " + sessionDto.toJson().toString());
 
   try {
     String prompt1 = "你是谁？";
     UserTaskDto userTaskDto = UserTaskDto(content: [ContentDto(type: ContentType.TEXT, message: prompt1)]);
-    await agentService.startSession(sessionDto.sessionId, userTaskDto);
+    await agentService.startSession(sessionDto.sessionId, userTaskDto, listen);
   } on TaskRejectException catch (e) {
     print(e);
   }
   try {
     String prompt2 = "你从哪里来？";
     UserTaskDto userTaskDto = UserTaskDto(content: [ContentDto(type: ContentType.TEXT, message: prompt2)]);
-    await agentService.startSession(sessionDto.sessionId, userTaskDto);
+    await agentService.startSession(sessionDto.sessionId, userTaskDto, listen);
   } on TaskRejectException catch (e) {
     print(e);
   }
   try {
     String prompt3 = "你要到哪里去？";
     UserTaskDto userTaskDto = UserTaskDto(content: [ContentDto(type: ContentType.TEXT, message: prompt3)]);
-    await agentService.startSession(sessionDto.sessionId, userTaskDto);
+    await agentService.startSession(sessionDto.sessionId, userTaskDto, listen);
   } on TaskRejectException catch (e) {
     print(e);
   }

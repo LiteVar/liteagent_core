@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:opentool_dart/opentool_dart.dart';
 import '../agents/model.dart';
 import '../agents/session_agent/model.dart';
+import '../agents/simple_agent.dart';
 import 'model.dart';
 import 'agent_driver.dart';
 
@@ -42,7 +43,12 @@ class SimpleAgentDriver extends AgentDriver {
       NamedSimpleAgent agentModel = namedSimpleAgents.where((agentModel) => agentModel.name == functionCall.name).first;
       Content content = Content(type: ContentType.TEXT, message: prompt);
 
-      AgentMessage agentMessage = await agentModel.agent.userToAgent(contentList: [content], parentTaskId: super.parentTaskId);
+      SimpleAgent simpleAgent = agentModel.agent;
+      simpleAgent.addAgentMessageListeners(this.agentMessageListeners);
+      
+      AgentMessage agentMessage = await simpleAgent.userToAgent(contentList: [content], parentTaskId: super.parentTaskId);
+
+      broadcastAgentMessages(agentMessage);
 
       String result = agentMessage.content as String;
 
