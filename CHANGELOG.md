@@ -1,3 +1,9 @@
+## 1.0.0
+
+- separate MultiAgent from ToolAgent
+- add parentTaskId in messages
+- change listen from initSession to startSession
+
 ## 0.9.0
 
 - remove client taskId
