@@ -65,6 +65,10 @@ CapabilityDto _$CapabilityDtoFromJson(Map<String, dynamic> json) =>
       taskPipelineStrategy: json['taskPipelineStrategy'] as String? ??
           PipelineStrategyType.PARALLEL,
       toolPipelineStrategy: json['toolPipelineStrategy'] as String?,
+      auto: json['auto'] as bool?,
+      llmConfigList: (json['llmConfigList'] as List<dynamic>?)
+          ?.map((e) => LLMConfigDto.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
 Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
@@ -86,6 +90,10 @@ Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
       'taskPipelineStrategy': instance.taskPipelineStrategy,
       if (instance.toolPipelineStrategy case final value?)
         'toolPipelineStrategy': value,
+      if (instance.auto case final value?) 'auto': value,
+      if (instance.llmConfigList?.map((e) => e.toJson()).toList()
+          case final value?)
+        'llmConfigList': value,
     };
 
 OpenSpecDto _$OpenSpecDtoFromJson(Map<String, dynamic> json) => OpenSpecDto(

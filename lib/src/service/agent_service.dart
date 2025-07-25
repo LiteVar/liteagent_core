@@ -5,6 +5,7 @@ import 'package:openapi_dart/openapi_dart.dart';
 import 'package:openmodbus_dart/openmodbus_dart.dart';
 import 'package:openrpc_dart/openrpc_dart.dart';
 import '../../lite_agent_core.dart';
+import '../core/agents/auto/auto_multi_agent.dart';
 import 'session_message_manage_service.dart';
 import 'dto.dart';
 import 'exception.dart';
@@ -73,7 +74,23 @@ class AgentService {
 
     List<AgentDriver>? agentDriverList = await _buildAgentDriverList(capabilityDto.sessionList, sessionId);
 
-    if(toolDriverList.isEmpty && agentDriverList == null && capabilityDto.clientOpenTool == null) { // TextAgent
+    if (capabilityDto.auto == true) { // AutoAgent
+        List<LLMConfig>? llmConfigList = capabilityDto.llmConfigList?.map((llmConfigDto) => llmConfigDto.toModel()).toList();
+
+        AutoMultiAgent autoMultiAgent = AutoMultiAgent(
+          sessionId: sessionId,
+          llmConfig: llmConfig,
+          agentSession: _buildSession(sessionId),
+          toolDriverList: toolDriverList,
+          systemPrompt: systemPrompt,
+          toolReflectPromptList: reflectPromptList ?? const[],
+          timeoutSeconds: capabilityDto.timeoutSeconds,
+          taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
+          toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL,
+          llmConfigList: llmConfigList,
+        );
+        sessionAgents[sessionId] = autoMultiAgent;
+    } else if(toolDriverList.isEmpty && agentDriverList == null && capabilityDto.clientOpenTool == null) { // TextAgent
       SessionAgent textAgent = TextAgent(
         sessionId: sessionId,
         llmConfig: llmConfig,

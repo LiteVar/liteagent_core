@@ -16,6 +16,12 @@ export 'src/core/agents/multi_agent/multi_agent.dart';
 export 'src/core/agents/multi_agent/multi_agent_message_handler.dart';
 export 'src/core/agents/multi_agent/model.dart';
 export 'src/core/agents/reflection/model.dart';
+export 'src/core/agents/auto/auto_multi_agent.dart';
+export 'src/core/agents/auto/models/node.dart';
+
+export 'src/core/agents/auto/planner/planner.dart';
+export 'src/core/agents/auto/executor/executor.dart';
+export 'src/core/agents/auto/planner/template.dart';
 export 'src/core/agents/llm/llm_executor.dart';
 export 'src/core/agents/llm/exception.dart';
 export 'src/core/agents/llm/openai_executor.dart';

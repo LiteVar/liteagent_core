@@ -39,7 +39,7 @@
     },
     {
       "name": "read",
-      "description": "Read text from storage by id",
+      "description": "Read text from storage by id, id start from 0",
       "parameters": [
         {
           "name": "id",
