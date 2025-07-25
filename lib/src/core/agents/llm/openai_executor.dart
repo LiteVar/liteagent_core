@@ -335,7 +335,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
   AgentMessage _toAgentMessage(OpenAIChatCompletionChoiceMessageModel openAIChatCompletionChoiceMessageModel, {Completions? completions}) {
     dynamic message;
 
-    if (openAIChatCompletionChoiceMessageModel.haveToolCalls) {
+    if (openAIChatCompletionChoiceMessageModel.haveToolCalls && openAIChatCompletionChoiceMessageModel.toolCalls!.isNotEmpty) {
       return _toFunctionCallList(openAIChatCompletionChoiceMessageModel.toolCalls!, completions);
     }
 
