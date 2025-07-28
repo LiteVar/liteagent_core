@@ -1,29 +1,25 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:opentool_dart/opentool_dart.dart';
 import '../../../llm/model.dart';
-import 'template.dart';
-import '../../tool_agent/tool_agent.dart';
+import 'prompt.dart';
 import '../../session_agent/model.dart';
 import '../../session_agent/session.dart';
 import '../../../util/unique_id_generator.dart';
-import '../models/function.dart';
-import '../models/node.dart';
-import '../models/llm.dart';
-import '../../session_agent/session_agent.dart';
-import '../../multi_agent/model.dart';
-import '../../tool_agent/model.dart';
+import '../wrappers/function.dart';
+import '../wrappers/llm.dart';
 import '../../model.dart';
+import '../wrappers/tool_agent.dart';
+import '../auto_multi_agent.dart';
 
 class AutoTaskPlanner {
 
   final LLMConfig plannerLLMConfig;
 
-  final SessionAgent mainAgent;
+  final AutoMessageSender messageSender;
 
   AutoTaskPlanner({
     required this.plannerLLMConfig,
-    required this.mainAgent,
+    required this.messageSender,
   });
 
   Future<String> planTasks({
@@ -33,7 +29,7 @@ class AutoTaskPlanner {
     required String taskId,
   }) async {
 
-    final planningPrompt = AutoPlanningTemplate.getTaskPlanningTemplate(
+    final planningPrompt = PlanningPrompt.getSystemPrompt(
       availableModels: indexedLLMConfigs,
       indexedFunctions: indexedFunctions,
     );
@@ -46,7 +42,7 @@ class AutoTaskPlanner {
 
     tempSession.addAgentMessageListener((message) {
 
-      mainAgent.agentSession.addListenAgentMessage(message);
+      messageSender.sendAgentMessage(message);
 
       if (message.type == SessionMessageType.TEXT &&
           message.role == SessionRoleType.AGENT &&
@@ -67,9 +63,8 @@ class AutoTaskPlanner {
       }
     });
 
-    final plannerAgent = ToolAgent(
-      sessionId: tempSessionId,
-      toolDriverList: const <ToolDriver>[],
+    final plannerAgent = AutoToolAgent(
+      sessionId: tempSessionId, 
       llmConfig: plannerLLMConfig,
       agentSession: tempSession,
       systemPrompt: planningPrompt,
@@ -78,7 +73,7 @@ class AutoTaskPlanner {
     final plannerFunctionCall = FunctionCall(id: uniqueId(), name: 'planner', arguments: {});
 
     try {
-      sendStartMessage(taskId, plannerFunctionCall);
+      await messageSender.sendFunctionCallStart(taskId, plannerFunctionCall);
 
       await plannerAgent.userToAgent(
         contentList: [Content(type: ContentType.TEXT, message: userCommand)],
@@ -87,12 +82,12 @@ class AutoTaskPlanner {
 
       final resultContent = await completer.future;
 
-      sendDoneMessage(taskId, plannerFunctionCall, resultContent);
+      await messageSender.sendFunctionCallDone(taskId, plannerFunctionCall, resultContent);
 
       return resultContent;
 
     } catch (e) {
-      sendDoneMessage(taskId, plannerFunctionCall, "task planning failed: $e");
+      await messageSender.sendFunctionCallDone(taskId, plannerFunctionCall, "task planning failed: $e");
       throw AutoPlanningException('task planning failed: $e');
     } finally {
       // clean up temporary session resources
@@ -101,52 +96,39 @@ class AutoTaskPlanner {
     }
   }
 
-  Future<void> sendStartMessage(String taskId, FunctionCall functionCall) async {
-      AgentMessage subAgentMessage = AgentMessage(
-        sessionId: mainAgent.sessionId,
-        parentTaskId: mainAgent.parentTaskId,
-        taskId: taskId,
-        role: MultiAgentRoleType.AGENT,
-        to: MultiAgentRoleType.SUBAGENT,
-        type: MultiAgentMessageType.TOOL_CALLS,
-        content: [functionCall]
-      );
-      mainAgent.agentSession.addListenAgentMessage(subAgentMessage);
-
-      AgentMessage clientMessage = AgentMessage(
-        sessionId: mainAgent.sessionId,
-        parentTaskId: mainAgent.parentTaskId,
-        taskId: taskId,
-        role: MultiAgentRoleType.AGENT,
-        to: MultiAgentRoleType.CLIENT,
-        type: MultiAgentMessageType.TASK_STATUS,
-        content: TaskStatus(status:MultiAgentStatusType.START, taskId: taskId, description: ToolStatusDescription(functionCallIdList: [functionCall.id]).toJson())
-      );
-      mainAgent.agentSession.addListenAgentMessage(clientMessage);
+  bool validatePlanningResult(String result) {
+    try {
+      final decoded = result.trim();
+      if (!decoded.startsWith('[') || !decoded.endsWith(']')) {
+        return false;
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
-  Future<void> sendDoneMessage(String taskId, FunctionCall functionCall, String finalResult) async {
-      AgentMessage subAgentReturnMessage = AgentMessage(
-        sessionId: mainAgent.sessionId,
-        parentTaskId: mainAgent.parentTaskId,
-        taskId: taskId,
-        role: MultiAgentRoleType.SUBAGENT,
-        to: MultiAgentRoleType.AGENT,
-        type: MultiAgentMessageType.TOOL_RETURN,
-        content: ToolReturn(id: functionCall.id, result: {"result": finalResult})
-      );
-      mainAgent.agentSession.addListenAgentMessage(subAgentReturnMessage);
-
-      AgentMessage subAgentStatusMessage = AgentMessage(
-        sessionId: mainAgent.sessionId,
-        parentTaskId: mainAgent.parentTaskId,
-        taskId: taskId,
-        role: MultiAgentRoleType.SUBAGENT,
-        to: MultiAgentRoleType.AGENT,
-        type: MultiAgentMessageType.TASK_STATUS,
-        content: TaskStatus(status:MultiAgentStatusType.DONE, taskId: taskId, description: ToolStatusDescription(functionCallIdList: [functionCall.id]).toJson())
-      );
-      mainAgent.agentSession.addListenAgentMessage(subAgentStatusMessage);
+  /// clean up the extra content in the planning result
+  String cleanPlanningResult(String result) {
+    String cleaned = result.trim();
+    if (cleaned.startsWith('```json')) {
+      cleaned = cleaned.substring(7);
+    }
+    if (cleaned.startsWith('```')) {
+      cleaned = cleaned.substring(3);
+    }
+    if (cleaned.endsWith('```')) {
+      cleaned = cleaned.substring(0, cleaned.length - 3);
+    }
+    
+    int startIndex = cleaned.indexOf('[');
+    int endIndex = cleaned.lastIndexOf(']');
+    
+    if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+      cleaned = cleaned.substring(startIndex, endIndex + 1);
+    }
+    
+    return cleaned.trim();
   }
 }
 

@@ -1,10 +1,10 @@
-import '../models/function.dart';
-import '../models/llm.dart';
+import '../wrappers/function.dart';
+import '../wrappers/llm.dart';
 
 /// Auto task planning template
-class AutoPlanningTemplate {
+class PlanningPrompt {
 
-  static String getTaskPlanningTemplate({
+  static String getSystemPrompt({
     required List<IndexedLLMConfig> availableModels,
     required List<IndexedFunction> indexedFunctions,
   }) {
@@ -34,7 +34,7 @@ class AutoPlanningTemplate {
 # 4.职责：根据用户的指令，科学分解成最优的任务树结构
  > 如果用户指令是打招呼(hello,hi,你好,您好等)，礼貌回复即可，无需分解任务
  > 其他指令都必须基于上述原则进行科学分解，按以下json格式返回：
-[{"id":"1","name":"{name} agent","description":{"duty":"duty","constraint":"constraint"},"tools":[{"id":"0","name":"tool name"},{"id":"1","name":"tool name"}],"model":{"id":"0","name":"model name"},"dependencies":[]},{"id":"2","name":"{name} agent","description":{"duty":"duty","constraint":"constraint"},"tools":[{"id":"2","name":"tool name"}],"model":{"id":"0","name":"model name"},"dependencies":[{"id":"1","name":"{name} agent"}]}]
+[{"id":"1","name":"{name}agent","description":{"duty":"duty","constraint":"constraint"},"tools":[{"id":"0","name":"tool name"},{"id":"1","name":"tool name"}],"model":{"id":"0","name":"model name"},"dependencies":[]},{"id":"2","name":"{name}agent","description":{"duty":"duty","constraint":"constraint"},"tools":[{"id":"2","name":"tool name"}],"model":{"id":"0","name":"model name"},"dependencies":[{"id":"1","name":"{name}agent"}]}]
 
 # 5.详细要求
 ## 5.1 描述(description)：精确描述任务职责和约束
@@ -93,40 +93,5 @@ ${_formatToolsSection(indexedFunctions)}
     }
     buffer.write(']');
     return buffer.toString();
-  }
-
-  static bool validatePlanningResult(String result) {
-    try {
-      final decoded = result.trim();
-      if (!decoded.startsWith('[') || !decoded.endsWith(']')) {
-        return false;
-      }
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /// clean up the extra content in the planning result
-  static String cleanPlanningResult(String result) {
-    String cleaned = result.trim();
-    if (cleaned.startsWith('```json')) {
-      cleaned = cleaned.substring(7);
-    }
-    if (cleaned.startsWith('```')) {
-      cleaned = cleaned.substring(3);
-    }
-    if (cleaned.endsWith('```')) {
-      cleaned = cleaned.substring(0, cleaned.length - 3);
-    }
-    
-    int startIndex = cleaned.indexOf('[');
-    int endIndex = cleaned.lastIndexOf(']');
-    
-    if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
-      cleaned = cleaned.substring(startIndex, endIndex + 1);
-    }
-    
-    return cleaned.trim();
   }
 } 

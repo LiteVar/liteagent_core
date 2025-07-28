@@ -1,4 +1,8 @@
 
+import 'package:json_annotation/json_annotation.dart';
+
+part 'node.g.dart';
+
 enum AutoNodeStatus {
   PENDING,     // waiting to be executed
   EXECUTING,   // executing
@@ -42,6 +46,7 @@ enum AutoNodeStatus {
 }
 
 /// DAG task node model
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class AutoTaskNode {
 
   final String id;
@@ -53,6 +58,7 @@ class AutoTaskNode {
   String? result;
   DateTime? startTime;
   DateTime? endTime;
+  @JsonKey(fromJson: AutoNodeStatus.fromString, toJson: _statusToString)
   AutoNodeStatus status;
 
   AutoTaskNode({
@@ -68,42 +74,17 @@ class AutoTaskNode {
     this.status = AutoNodeStatus.PENDING,
   });
 
+  static String _statusToString(AutoNodeStatus status) => status.toStringValue();
+
   int? get executionTimeMs {
     if (startTime != null && endTime != null) {
       return endTime!.difference(startTime!).inMilliseconds;
     }
     return null;
   }
-  factory AutoTaskNode.fromJson(Map<String, dynamic> json) {
+  factory AutoTaskNode.fromJson(Map<String, dynamic> json) => _$AutoTaskNodeFromJson(json);
 
-    return AutoTaskNode(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      description: AutoTaskDescription.fromJson(json['description'] as Map<String, dynamic>),
-      tools: (json['tools'] as List<dynamic>?)?.map((tool) => NodeTool.fromJson(tool as Map<String, dynamic>)).toList() ?? [],
-      model: NodeLLMModel.fromJson(json['model'] as Map<String, dynamic>),
-      dependencies: (json['dependencies'] as List<dynamic>?)?.map((dep) => NodeDependency.fromJson(dep as Map<String, dynamic>)).toList() ?? [],
-      result: json['result'] as String?,
-      startTime: json['startTime'] != null ? DateTime.parse(json['startTime']) : null,
-      endTime: json['endTime'] != null ? DateTime.parse(json['endTime']) : null,
-      status: AutoNodeStatus.fromString(json['status'] as String? ?? 'pending'),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'description': description.toJson(),
-      'tools': tools.map((tool) => tool.toJson()).toList(),
-      'model': model.toJson(),
-      'dependencies': dependencies.map((dep) => dep.toJson()).toList(),
-      'result': result,
-      'startTime': startTime?.toIso8601String(),
-      'endTime': endTime?.toIso8601String(),
-      'status': status.toStringValue(),
-    };
-  }
+  Map<String, dynamic> toJson() => _$AutoTaskNodeToJson(this);
 
   @override
   String toString() {
@@ -115,6 +96,7 @@ class AutoTaskNode {
   }
 }
 
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class AutoTaskDescription {
 
   final String duty;
@@ -126,24 +108,15 @@ class AutoTaskDescription {
     required this.constraint,
   });
 
-  factory AutoTaskDescription.fromJson(Map<String, dynamic> json) {
-    return AutoTaskDescription(
-      duty: json['duty'] as String,
-      constraint: json['constraint'] as String,
-    );
-  }
+  factory AutoTaskDescription.fromJson(Map<String, dynamic> json) => _$AutoTaskDescriptionFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return {
-      'duty': duty,
-      'constraint': constraint,
-    };
-  }
+  Map<String, dynamic> toJson() => _$AutoTaskDescriptionToJson(this);
 
   @override
   String toString() => 'AutoTaskDescription{duty: $duty, constraint: $constraint}';
 }
 
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class NodeLLMModel {
 
   final String id;
@@ -154,24 +127,15 @@ class NodeLLMModel {
     required this.name,
   });
 
-  factory NodeLLMModel.fromJson(Map<String, dynamic> json) {
-    return NodeLLMModel(
-      id: json['id'] as String,
-      name: json['name'] as String,
-    );
-  }
+  factory NodeLLMModel.fromJson(Map<String, dynamic> json) => _$NodeLLMModelFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-    };
-  }
+  Map<String, dynamic> toJson() => _$NodeLLMModelToJson(this);
 
   @override
   String toString() => 'NodeLLMModel{id: $id, name: $name}';
 }
 
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class NodeTool {
 
   final String id;
@@ -182,24 +146,15 @@ class NodeTool {
     required this.name,
   });
 
-  factory NodeTool.fromJson(Map<String, dynamic> json) {
-    return NodeTool(
-      id: json['id'] as String,
-      name: json['name'] as String,
-    );
-  }
+  factory NodeTool.fromJson(Map<String, dynamic> json) => _$NodeToolFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-    };
-  }
+  Map<String, dynamic> toJson() => _$NodeToolToJson(this);
 
   @override
   String toString() => 'NodeTool{id: $id, name: $name}';  
 }
 
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class NodeDependency {
 
   final String id;
@@ -210,19 +165,9 @@ class NodeDependency {
     required this.name,
   });
 
-  factory NodeDependency.fromJson(Map<String, dynamic> json) {
-    return NodeDependency(
-      id: json['id'] as String,
-      name: json['name'] as String,
-    );
-  }
+  factory NodeDependency.fromJson(Map<String, dynamic> json) => _$NodeDependencyFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-    };
-  }
+  Map<String, dynamic> toJson() => _$NodeDependencyToJson(this);
 
   @override
   String toString() => 'NodeDependency{id: $id, name: $name}';

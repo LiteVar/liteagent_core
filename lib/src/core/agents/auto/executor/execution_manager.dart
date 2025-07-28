@@ -2,25 +2,25 @@ import 'dart:async';
 import 'package:opentool_dart/opentool_dart.dart';
 
 import '../../tool_agent/tool_agent.dart';
-import '../../../llm/model.dart';
 import '../../session_agent/session_agent.dart';
 import '../../session_agent/session.dart';
 import '../models/node.dart';
-import '../models/function.dart';
-import '../../multi_agent/model.dart';
+import '../wrappers/function.dart';
 import '../../session_agent/model.dart';
-import '../../tool_agent/model.dart';
 import '../../model.dart';
 import '../../../util/unique_id_generator.dart';
 import 'context_builder.dart';
-
+import '../wrappers/tool_agent.dart';
+import '../wrappers/llm.dart';
+import '../auto_multi_agent.dart';
+import 'prompt.dart';
 
 /// execution manager
 /// responsible for concurrent execution control and status management
 class ExecutionManager {
-  final Map<String, LLMConfig> modelConfigMap;
+  final List<IndexedLLMConfig> indexedLLMConfigs;
   final List<IndexedFunction> indexedFunctions;
-  final SessionAgent mainAgent;
+  final AutoMessageSender messageSender;
   final int maxConcurrency;
 
   final Map<String, ToolAgent> _taskExecutors = {};
@@ -28,9 +28,9 @@ class ExecutionManager {
   final Set<String> _activeSubSessionIds = {};
 
   ExecutionManager({
-    required this.modelConfigMap,
+    required this.indexedLLMConfigs,
     required this.indexedFunctions,
-    required this.mainAgent,
+    required this.messageSender,
     this.maxConcurrency = 3,
   });
 
@@ -100,7 +100,7 @@ class ExecutionManager {
 
       tempSession.addAgentMessageListener((message) {
 
-        mainAgent.agentSession.addListenAgentMessage(message);
+        messageSender.sendAgentMessage(message);
 
         // collect execution results
         if (message.type == SessionMessageType.TEXT &&
@@ -122,33 +122,30 @@ class ExecutionManager {
         }
       });
 
-      final nodeTools = <ToolDriver>[];
-      for (NodeTool tool in node.tools) {
-        if (int.tryParse(tool.id) != null) {
-          nodeTools.add(indexedFunctions[int.parse(tool.id)].toolDriver);
-        }
-      }
+      final indexedFunctionsForNode = indexedFunctions.where((indexedFunction) => node.tools.any((tool) => tool.id == indexedFunction.index.toString())).toList();
+      final llmConfig = indexedLLMConfigs[int.parse(node.model.id)].llmConfig;
+      final systemPrompt = ExecutionPrompt.getSystemPrompt(node, context);
 
-      final tempToolAgent = ToolAgent(
+      final tempToolAgent = AutoToolAgent(
         sessionId: sessionId,
-        toolDriverList: nodeTools,
-        llmConfig: modelConfigMap[node.model.id] ?? modelConfigMap.values.first,
+        indexedFunctions: indexedFunctionsForNode,
+        llmConfig: llmConfig,
         agentSession: tempSession,
-        systemPrompt: _buildSystemPrompt(node, context),
+        systemPrompt: systemPrompt,
       );
+
+      await messageSender.sendFunctionCallStart(taskId, functionCall);
 
       await tempToolAgent.userToAgent(
         contentList: [Content(type: ContentType.TEXT, message: "execute task")],
         parentTaskId: taskId,
       );
 
-      sendStartMessage(taskId, functionCall);
-
       final resultContent = await completer.future;
 
       String finalResult = resultContent.isNotEmpty ? resultContent : 'Task done';
 
-      sendDoneMessage(taskId, functionCall, finalResult);
+      await messageSender.sendFunctionCallDone(taskId, functionCall, finalResult);
 
       return finalResult;
 
@@ -160,75 +157,11 @@ class ExecutionManager {
     }
   }
 
-  void sendStartMessage(String taskId, FunctionCall functionCall) {
-    AgentMessage subAgentMessage = AgentMessage(
-      sessionId: mainAgent.sessionId,
-      parentTaskId: mainAgent.parentTaskId,
-      taskId: taskId,
-      role: MultiAgentRoleType.AGENT,
-      to: MultiAgentRoleType.SUBAGENT,
-      type: MultiAgentMessageType.TOOL_CALLS,
-      content: [functionCall]
-    );
-    mainAgent.agentSession.addListenAgentMessage(subAgentMessage);
 
-    AgentMessage clientMessage = AgentMessage(
-      sessionId: mainAgent.sessionId,
-      parentTaskId: mainAgent.parentTaskId,
-      taskId: taskId,
-      role: MultiAgentRoleType.AGENT,
-      to: MultiAgentRoleType.CLIENT,
-      type: MultiAgentMessageType.TASK_STATUS,
-      content: TaskStatus(status:MultiAgentStatusType.START, taskId: taskId, description: ToolStatusDescription(functionCallIdList: [functionCall.id]).toJson())
-    );
-    mainAgent.agentSession.addListenAgentMessage(clientMessage);
-  }
-
-  void sendDoneMessage(String taskId, FunctionCall functionCall, String finalResult) {
-    AgentMessage subAgentReturnMessage = AgentMessage(
-      sessionId: mainAgent.sessionId,
-      parentTaskId: mainAgent.parentTaskId,
-      taskId: taskId,
-      role: MultiAgentRoleType.SUBAGENT,
-      to: MultiAgentRoleType.AGENT,
-      type: MultiAgentMessageType.TOOL_RETURN,
-      content: ToolReturn(id: functionCall.id, result: {"result": finalResult})
-    );
-    mainAgent.agentSession.addListenAgentMessage(subAgentReturnMessage);
-
-    AgentMessage subAgentStatusMessage = AgentMessage(
-      sessionId: mainAgent.sessionId,
-      parentTaskId: mainAgent.parentTaskId,
-      taskId: taskId,
-      role: MultiAgentRoleType.SUBAGENT,
-      to: MultiAgentRoleType.AGENT,
-      type: MultiAgentMessageType.TASK_STATUS,
-      content: TaskStatus(status:MultiAgentStatusType.DONE, taskId: taskId, description: ToolStatusDescription(functionCallIdList: [functionCall.id]).toJson())
-    );
-    mainAgent.agentSession.addListenAgentMessage(subAgentStatusMessage);
-  }
 
   /// check if the node can be executed concurrently
   bool canExecuteConcurrently(String nodeId) {
     return !_executing.contains(nodeId) && _executing.length < maxConcurrency;
-  }
-
-  String _buildSystemPrompt(AutoTaskNode node, String context) {
-    return '''
-你是一个专门执行"${node.name}"任务的AI助手。
-
-任务职责: ${node.description.duty}
-执行约束: ${node.description.constraint}
-
-请根据用户提供的上下文信息和任务要求，使用可用的工具完成任务。
-
-**严格要求**：
-- 当需要用户补充信息时，直接从已知信息里决策，禁止向用户提问或互动
-- 当同一个工具连续两次调用失败时，请停止继续调用
-
-已知的上下文信息:
-$context
-''';
   }
 
   Map<String, String> _getNodeDependencyResults(AutoTaskNode node, Map<String, String> allResults) {

@@ -8,22 +8,12 @@ class ContextBuilder {
       AutoTaskNode node) {
     final contextParts = <String>[];
 
-    final sortedDependencies = _sortByCompletionOrder(dependencyResults);
-
-    for (final entry in sortedDependencies.entries) {
-      String depId = entry.key;
-      String result = entry.value;
-      contextParts.add('【task ${depId} execution result】:\n$result\n');
+    for (final dep in node.dependencies) {
+      String result = dependencyResults[dep.id] ?? '';
+      contextParts.add('【任务[${dep.name}]执行结果】:\n$result\n');
     }
 
-    final taskContext = buildTaskSpecificPrompt(node);
-
-    String fullContext = '';
-    if (contextParts.isNotEmpty) {
-      fullContext = '${contextParts.join('\n')}\n【current task requirements】:\n$taskContext';
-    } else {
-      fullContext = '【current task requirements】:\n$taskContext';
-    }
+    String fullContext = contextParts.join('\n');
 
     return fullContext;
   }
@@ -39,18 +29,5 @@ class ContextBuilder {
     }
 
     return formatted.join('\n');
-  }
-
-  String buildTaskSpecificPrompt(AutoTaskNode node) {
-    return '''
-任务名称: ${node.name}
-任务职责: ${node.description.duty}
-执行约束: ${node.description.constraint}
-可用工具: ${node.tools.isEmpty ? '无' : node.tools.join(', ')}
-''';
-  }
-
-  Map<String, String> _sortByCompletionOrder(Map<String, String> results) {
-    return results;
   }
 }

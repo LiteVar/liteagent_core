@@ -15,7 +15,7 @@ import '../listener.dart';
 /// - Complex task execution with parallel processing
 /// - Multi-LLM configuration for different task nodes
 ///
-String prompt = "query text count, add text:hello, then modify to hi, then query text count again. pay attention to the impact of these operations";
+String prompt = "规划三菜一汤";// "query text count, add text:hello, then modify to hi, then query text count again. pay attention to the impact of these operations";
 
 AgentService agentService = AgentService();
 Future<void> main() async {
@@ -45,7 +45,7 @@ Future<void> main() async {
   print("[prompt] " + prompt);
 
   /// Auto mode requires more time for task planning and execution
-  await sleep(30);
+  await sleep(200);
 
   SessionTaskDto sessionTaskDto = SessionTaskDto(sessionId: sessionDto.sessionId);
   await agentService.stopSession(sessionTaskDto);

@@ -1,17 +1,18 @@
 import 'dart:async';
 
 import '../../../llm/model.dart';
-import '../../session_agent/session_agent.dart';
 import '../models/node.dart';
-import '../models/function.dart';
+import '../wrappers/function.dart';
 import 'dependency_analyzer.dart';
 import 'execution_manager.dart';
 import 'topological_scheduler.dart';
+import '../wrappers/llm.dart';
+import '../auto_multi_agent.dart';
 
 class AutoNodeExecutor {
-  final Map<String, LLMConfig> modelConfigMap;
+  final List<IndexedLLMConfig> indexedLLMConfigs;
   final List<IndexedFunction> indexedFunctions;
-  final SessionAgent mainAgent;
+  final AutoMessageSender messageSender;
   
   late final DependencyAnalyzer _dependencyAnalyzer;
   late final TopologicalScheduler _topologicalScheduler;
@@ -20,16 +21,16 @@ class AutoNodeExecutor {
   bool _isRunning = false;
   
   AutoNodeExecutor({
-    required this.modelConfigMap,
+    required this.indexedLLMConfigs,
     required this.indexedFunctions,
-    required this.mainAgent,
+    required this.messageSender,
   }) {
     _dependencyAnalyzer = DependencyAnalyzer();
     _topologicalScheduler = TopologicalScheduler();
     _executionManager = ExecutionManager(
-      modelConfigMap: modelConfigMap,
+      indexedLLMConfigs: indexedLLMConfigs,
       indexedFunctions: indexedFunctions,
-      mainAgent: mainAgent,
+      messageSender: messageSender,
     );
   }
   

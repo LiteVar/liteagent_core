@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math' as math;
 import '../model.dart';
 import '../session_agent/model.dart';
-import '../session_agent/dispatcher.dart';
 import '../tool_agent/tool_agent.dart';
 import 'planner/planner.dart';
 import 'executor/executor.dart';
@@ -11,12 +9,22 @@ import 'summarizer/summarizer.dart';
 import 'package:opentool_dart/opentool_dart.dart';
 import '../../util/unique_id_generator.dart';
 import '../../llm/model.dart';
-import 'models/function.dart';
+import 'wrappers/function.dart';
 import 'models/node.dart';
-import 'models/llm.dart';
-import 'planner/template.dart';
+import 'wrappers/llm.dart';
+import '../multi_agent/model.dart';
+import '../tool_agent/model.dart';
 
-class AutoMultiAgent extends ToolAgent {
+abstract class AutoMessageSender {
+
+  Future<void> sendAgentMessage(AgentMessage message);
+
+  Future<void> sendFunctionCallStart(String taskId, FunctionCall call);
+
+  Future<void> sendFunctionCallDone(String taskId, FunctionCall call, String result);
+}
+
+class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
 
   late final AutoTaskPlanner taskPlanner;
 
@@ -24,10 +32,10 @@ class AutoMultiAgent extends ToolAgent {
   
   late final AutoSummarizer autoSummarizer;
   
-  final List<IndexedFunction> indexedFunctions = [];
-  
   final List<IndexedLLMConfig> indexedLLMConfigs = [];
-  
+
+  final List<IndexedFunction> indexedFunctions = [];
+    
   AutoMultiAgent({
     required super.sessionId,
     required super.toolDriverList,
@@ -41,33 +49,33 @@ class AutoMultiAgent extends ToolAgent {
     super.toolPipelineStrategy,
     List<LLMConfig>? llmConfigList,
   }) {
-    _initializeIndexedFunctions();
     _initializeIndexedLLMConfigs(llmConfigList);
-
-    print('=== AutoMultiAgent available functions ===');
-    for (IndexedFunction indexedFunction in indexedFunctions) {
-      print('${indexedFunction.index}: ${indexedFunction.functionModel.name} - ${indexedFunction.functionModel.description}');
-    }
+    _initializeIndexedFunctions();
 
     print('=== AutoMultiAgent available LLM models ===');
     for (IndexedLLMConfig indexedLLMConfig in indexedLLMConfigs) {
       print('${indexedLLMConfig.index}: ${indexedLLMConfig.llmConfig.model} - ${indexedLLMConfig.description ?? "general model"}');
     }
 
+    print('=== AutoMultiAgent available functions ===');
+    for (IndexedFunction indexedFunction in indexedFunctions) {
+      print('${indexedFunction.index}: ${indexedFunction.functionModel.name} - ${indexedFunction.functionModel.description}');
+    }
+
     taskPlanner = AutoTaskPlanner(
       plannerLLMConfig: llmConfig,
-      mainAgent: this,
+      messageSender: this,
     );
 
     nodeExecutor = AutoNodeExecutor(
-      modelConfigMap: _buildModelConfigMap(),
+      indexedLLMConfigs: indexedLLMConfigs,
       indexedFunctions: indexedFunctions,
-      mainAgent: this,
+      messageSender: this,
     );
 
     autoSummarizer = AutoSummarizer(
       summarizerLLMConfig: llmConfig,
-      mainAgent: this,
+      messageSender: this,
     );
   }
 
@@ -97,24 +105,6 @@ class AutoMultiAgent extends ToolAgent {
     super.clear();
   }
 
-  void _initializeIndexedFunctions() {
-    indexedFunctions.clear();
-    int currentIndex = 0;
-    
-    for (ToolDriver toolDriver in toolDriverList) {
-      List<FunctionModel> functionModels = toolDriver.parse();
-      
-      for (FunctionModel functionModel in functionModels) {
-        indexedFunctions.add(IndexedFunction(
-          index: currentIndex,
-          functionModel: functionModel,
-          toolDriver: toolDriver,
-        ));
-        currentIndex++;
-      }
-    }
-  }
-
   void _initializeIndexedLLMConfigs(List<LLMConfig>? llmConfigList) {
     indexedLLMConfigs.clear();
     
@@ -136,6 +126,24 @@ class AutoMultiAgent extends ToolAgent {
     }
   }
 
+  void _initializeIndexedFunctions() {
+    indexedFunctions.clear();
+    int currentIndex = 0;
+    
+    for (ToolDriver toolDriver in toolDriverList) {
+      List<FunctionModel> functionModels = toolDriver.parse();
+      
+      for (FunctionModel functionModel in functionModels) {
+        indexedFunctions.add(IndexedFunction(
+          index: currentIndex,
+          functionModel: functionModel,
+          toolDriver: toolDriver,
+        ));
+        currentIndex++;
+      }
+    }
+  }
+
   Future<void> _executeAutoMode(String taskId, List<Content> contentList) async {
     await Future.delayed(Duration(seconds: 1));
 
@@ -150,9 +158,9 @@ class AutoMultiAgent extends ToolAgent {
       taskId: taskId,
     );
 
-    String cleanedResult = AutoPlanningTemplate.cleanPlanningResult(planningResult);
+    String cleanedResult = taskPlanner.cleanPlanningResult(planningResult);
     
-    if (!AutoPlanningTemplate.validatePlanningResult(cleanedResult)) {
+    if (!taskPlanner.validatePlanningResult(cleanedResult)) {
       _sendDoneMessage(taskId, cleanedResult);
       return;
     }
@@ -240,6 +248,61 @@ class AutoMultiAgent extends ToolAgent {
       content: TaskStatus(status: TaskStatusType.DONE, taskId: taskId)
     );
     await agentSession.addListenAgentMessage(clientMessage);
+  }
+
+  @override
+  Future<void> sendAgentMessage(AgentMessage message) async {
+    await agentSession.addListenAgentMessage(message);
+  }
+
+  @override
+  Future<void> sendFunctionCallStart(String taskId, FunctionCall call) async {
+    AgentMessage subAgentMessage = AgentMessage(
+      sessionId: sessionId,
+      parentTaskId: parentTaskId,
+      taskId: taskId,
+      role: MultiAgentRoleType.AGENT,
+      to: MultiAgentRoleType.SUBAGENT,
+      type: MultiAgentMessageType.TOOL_CALLS,
+      content: [call]
+    );
+    sendAgentMessage(subAgentMessage);
+
+    AgentMessage clientMessage = AgentMessage(
+      sessionId: sessionId,
+      parentTaskId: parentTaskId,
+      taskId: taskId,
+      role: MultiAgentRoleType.AGENT,
+      to: MultiAgentRoleType.CLIENT,
+      type: MultiAgentMessageType.TASK_STATUS,
+      content: TaskStatus(status:MultiAgentStatusType.START, taskId: taskId, description: ToolStatusDescription(functionCallIdList: [call.id]).toJson())
+    );
+    sendAgentMessage(clientMessage);
+  }
+
+  @override
+  Future<void> sendFunctionCallDone(String taskId, FunctionCall call, String result) async {
+    AgentMessage subAgentReturnMessage = AgentMessage(
+      sessionId: sessionId,
+      parentTaskId: parentTaskId,
+      taskId: taskId,
+      role: MultiAgentRoleType.SUBAGENT,
+      to: MultiAgentRoleType.AGENT,
+      type: MultiAgentMessageType.TOOL_RETURN,
+      content: ToolReturn(id: call.id, result: {"result": result})
+    );
+    sendAgentMessage(subAgentReturnMessage);
+
+    AgentMessage subAgentStatusMessage = AgentMessage(
+      sessionId: sessionId,
+      parentTaskId: parentTaskId,
+      taskId: taskId,
+      role: MultiAgentRoleType.SUBAGENT,
+      to: MultiAgentRoleType.AGENT,
+      type: MultiAgentMessageType.TASK_STATUS,
+      content: TaskStatus(status:MultiAgentStatusType.DONE, taskId: taskId, description: ToolStatusDescription(functionCallIdList: [call.id]).toJson())
+    );
+    sendAgentMessage(subAgentStatusMessage);
   }
 }
 

@@ -21,7 +21,7 @@ export 'src/core/agents/auto/models/node.dart';
 
 export 'src/core/agents/auto/planner/planner.dart';
 export 'src/core/agents/auto/executor/executor.dart';
-export 'src/core/agents/auto/planner/template.dart';
+export 'src/core/agents/auto/planner/prompt.dart';
 export 'src/core/agents/llm/llm_executor.dart';
 export 'src/core/agents/llm/exception.dart';
 export 'src/core/agents/llm/openai_executor.dart';
