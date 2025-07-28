@@ -30,7 +30,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
 
   late final AutoNodeExecutor nodeExecutor;
   
-  late final AutoSummarizer autoSummarizer;
+  late final AutoSummarizer summarizer;
   
   final List<IndexedLLMConfig> indexedLLMConfigs = [];
 
@@ -73,7 +73,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
       messageSender: this,
     );
 
-    autoSummarizer = AutoSummarizer(
+    summarizer = AutoSummarizer(
       summarizerLLMConfig: llmConfig,
       messageSender: this,
     );
@@ -95,13 +95,17 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
 
   @override
   void stop({String? taskId}) {
+    taskPlanner.stop();
     nodeExecutor.stop();
+    summarizer.stop();
     super.stop(taskId: taskId);
   }
 
   @override
   void clear() {
+    taskPlanner.clear();
     nodeExecutor.clear();
+    summarizer.clear();
     super.clear();
   }
 
@@ -176,7 +180,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
     
     List<AutoTaskNode> completedNodes = await nodeExecutor.executeNodeTree(taskNodes, taskId);
                 
-    String summary = await autoSummarizer.generateSummary(
+    String summary = await summarizer.generateSummary(
       userCommand: userCommand,
       completedNodes: completedNodes,
       taskId: taskId,

@@ -4,12 +4,16 @@ import 'prompt.dart';
 import '../models/node.dart';
 import '../wrappers/tool_agent.dart';
 import '../auto_multi_agent.dart';
+import '../../../util/unique_id_generator.dart';
+import '../../session_agent/session.dart';
 
 class AutoSummarizer {
 
   final LLMConfig summarizerLLMConfig;
 
   final AutoMessageSender messageSender;
+
+  late AutoToolAgent summarizerAgent;
 
   AutoSummarizer({
     required this.summarizerLLMConfig,
@@ -22,25 +26,29 @@ class AutoSummarizer {
     required String taskId,
   }) async {
 
-    String systemPrompt = SummaryPrompt.getSystemPrompt(
+    final sessionId = uniqueId();
+    final agentSession = AgentSession(sessionId: sessionId);
+    final systemPrompt = SummaryPrompt.getSystemPrompt(
       userCommand: userCommand,
       completedNodes: completedNodes,
     );
 
+    summarizerAgent = AutoToolAgent(
+      sessionId: sessionId,
+      agentSession: agentSession,
+      llmConfig: summarizerLLMConfig,
+      systemPrompt: systemPrompt,
+    );
+
     try {
-      final resultContent = await AutoToolAgent.executeWithTracking(
-        functionName: 'summarizer',
+      final resultContent = await summarizerAgent.execute(
         userInput: "generate summary",
-        taskId: taskId,
-        messageSender: messageSender,
-        llmConfig: summarizerLLMConfig,
-        systemPrompt: systemPrompt,
         parentTaskId: taskId,
+        functionName: 'summarizer',
+        messageSender: messageSender,
       );
 
-      String cleanedResult = _cleanSummaryResult(resultContent);
-      return cleanedResult;
-
+      return _cleanSummaryResult(resultContent);
     } catch (e) {
       throw AutoSummaryException('summary generation failed: $e');
     }
@@ -61,6 +69,14 @@ class AutoSummarizer {
     }
     
     return cleaned.trim();
+  }
+
+  void stop() {
+    summarizerAgent.stop();
+  }
+
+  void clear() {
+    summarizerAgent.clear();
   }
 }
 

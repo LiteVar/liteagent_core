@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import '../../../llm/model.dart';
 import '../models/node.dart';
 import '../wrappers/function.dart';
 import 'dependency_analyzer.dart';

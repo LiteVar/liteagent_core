@@ -6,7 +6,6 @@ import '../../session_agent/session.dart';
 import '../../session_agent/model.dart';
 import '../../../util/unique_id_generator.dart';
 import '../../model.dart';
-import '../../../llm/model.dart';
 import '../auto_multi_agent.dart';
 
 class AutoToolAgent extends ToolAgent {
@@ -42,38 +41,31 @@ class AutoToolAgent extends ToolAgent {
     return functionModelList;
   }
 
-  static Future<String> executeWithTracking({
-    required String functionName,
+  Future<String> execute({
     required String userInput,
-    required String taskId,
-    required AutoMessageSender messageSender,
-    required LLMConfig llmConfig,
-    String? systemPrompt,
-    List<IndexedFunction>? indexedFunctions,
     String? parentTaskId,
+    required String functionName,
+    required AutoMessageSender messageSender,
   }) async {
-    final tempSession = _createTempSession();
+
     final completer = Completer<String>();
     String result = '';
 
-    _setupMessageListener(tempSession, completer, result, messageSender);
-
-    final agent = AutoToolAgent(
-      sessionId: tempSession.sessionId,
-      llmConfig: llmConfig,
-      agentSession: tempSession,
-      systemPrompt: systemPrompt,
-      indexedFunctions: indexedFunctions ?? [],
-    );
+    _setupMessageListener(agentSession, completer, result, messageSender);
 
     final functionCall = FunctionCall(id: uniqueId(), name: functionName, arguments: {});
 
+    String taskId = uniqueId();
+    void Function(String result) fetchTaskId = (String result) {
+      taskId = result;
+    };
+
     try {
       await messageSender.sendFunctionCallStart(taskId, functionCall);
-
-      await agent.userToAgent(
+      await super.userToAgent(
         contentList: [Content(type: ContentType.TEXT, message: userInput)],
-        parentTaskId: parentTaskId ?? taskId,
+        parentTaskId: parentTaskId,
+        fetchTaskId: fetchTaskId,
       );
 
       final resultContent = await completer.future;
@@ -89,20 +81,15 @@ class AutoToolAgent extends ToolAgent {
     }
   }
 
-  static AgentSession _createTempSession() {
-    String tempSessionId = uniqueId();
-    return AgentSession(sessionId: tempSessionId);
-  }
-
-  static void _setupMessageListener(
-    AgentSession tempSession,
+  void _setupMessageListener(
+    AgentSession agentSession,
     Completer<String> completer,
     String result,
     AutoMessageSender messageSender,
   ) {
     String accumResult = result;
     
-    tempSession.addAgentMessageListener((message) {
+    agentSession.addAgentMessageListener((message) {
 
       messageSender.sendAgentMessage(message);
 

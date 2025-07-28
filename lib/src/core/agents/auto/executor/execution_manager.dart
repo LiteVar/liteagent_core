@@ -7,6 +7,8 @@ import '../wrappers/tool_agent.dart';
 import '../wrappers/llm.dart';
 import '../auto_multi_agent.dart';
 import 'prompt.dart';
+import '../../session_agent/session.dart';
+import '../../../util/unique_id_generator.dart';
 
 /// execution manager
 /// responsible for concurrent execution control and status management
@@ -16,9 +18,8 @@ class ExecutionManager {
   final AutoMessageSender messageSender;
   final int maxConcurrency;
 
-  final Map<String, ToolAgent> _taskExecutors = {};
-  final Set<String> _executing = {};
-  final Set<String> _activeSubSessionIds = {};
+  final Map<String, AutoToolAgent> _executorPool = {};
+  final Map<String, AutoToolAgent> _activeExecutors = {};
 
   ExecutionManager({
     required this.indexedLLMConfigs,
@@ -71,26 +72,35 @@ class ExecutionManager {
   }
 
   Future<String> executeNode(AutoTaskNode node, String context, String taskId) async {
-    if (_executing.contains(node.id)) {
+    if (_activeExecutors.containsKey(node.id)) {
       throw Exception('node ${node.id} is already executing');
     }
 
-    _executing.add(node.id);
+
+    final sessionId = uniqueId();
+    final agentSession = AgentSession(sessionId: sessionId);
+    final llmConfig = indexedLLMConfigs[int.parse(node.model.id)].llmConfig;
+    final systemPrompt = ExecutionPrompt.getSystemPrompt(node, context);
+    final indexedFunctionsForNode = indexedFunctions.where((indexedFunction) => node.tools.any((tool) => tool.id == indexedFunction.index.toString())).toList();
+
+    final agent = AutoToolAgent(
+      sessionId: sessionId,
+      agentSession: agentSession,
+      llmConfig: llmConfig,
+      systemPrompt: systemPrompt,
+      indexedFunctions: indexedFunctionsForNode,
+    );
+
+    _executorPool[node.id] = agent;
+    _activeExecutors[node.id] = agent;
 
     try {
-      final indexedFunctionsForNode = indexedFunctions.where((indexedFunction) => node.tools.any((tool) => tool.id == indexedFunction.index.toString())).toList();
-      final llmConfig = indexedLLMConfigs[int.parse(node.model.id)].llmConfig;
-      final systemPrompt = ExecutionPrompt.getSystemPrompt(node, context);
 
-      final resultContent = await AutoToolAgent.executeWithTracking(
-        functionName: node.name,
+      final resultContent = await agent.execute(
         userInput: "execute task",
-        taskId: taskId,
-        messageSender: messageSender,
-        llmConfig: llmConfig,
-        systemPrompt: systemPrompt,
-        indexedFunctions: indexedFunctionsForNode,
         parentTaskId: taskId,
+        functionName: node.name,
+        messageSender: messageSender,
       );
 
       String finalResult = resultContent.isNotEmpty ? resultContent : 'Task done';
@@ -99,13 +109,13 @@ class ExecutionManager {
     } catch (error) {
       rethrow;
     } finally {
-      _executing.remove(node.id);
+      _activeExecutors.remove(node.id);
     }
   }
 
   /// check if the node can be executed concurrently
   bool canExecuteConcurrently(String nodeId) {
-    return !_executing.contains(nodeId) && _executing.length < maxConcurrency;
+    return !_activeExecutors.containsKey(nodeId) && _activeExecutors.length < maxConcurrency;
   }
 
   Map<String, String> _getNodeDependencyResults(AutoTaskNode node, Map<String, String> allResults) {
@@ -119,25 +129,16 @@ class ExecutionManager {
   }
 
   void clear() {
-    for (var toolAgent in _taskExecutors.values) {
-      toolAgent.clear();
+    for (var agent in _executorPool.values) {
+      agent.clear();
     }
-    _taskExecutors.clear();
-    _executing.clear();
-    _activeSubSessionIds.clear();
-  }
-
-  void _addSubSessionId(String sessionId) {
-    _activeSubSessionIds.add(sessionId);
-  }
-
-  void _removeSubSessionId(String sessionId) {
-    _activeSubSessionIds.remove(sessionId);
+    _executorPool.clear();
   }
 
   void stop() {
-    for (var toolAgent in _taskExecutors.values) {
-      toolAgent.stop();
+    for (var agent in _activeExecutors.values) {
+      agent.stop();
     }
+    _activeExecutors.clear();
   }
 }

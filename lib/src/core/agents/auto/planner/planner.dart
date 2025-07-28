@@ -5,12 +5,16 @@ import '../wrappers/function.dart';
 import '../wrappers/llm.dart';
 import '../wrappers/tool_agent.dart';
 import '../auto_multi_agent.dart';
+import '../../../util/unique_id_generator.dart';
+import '../../session_agent/session.dart';
 
 class AutoTaskPlanner {
 
   final LLMConfig plannerLLMConfig;
 
   final AutoMessageSender messageSender;
+
+  late AutoToolAgent plannerAgent;
 
   AutoTaskPlanner({
     required this.plannerLLMConfig,
@@ -24,20 +28,26 @@ class AutoTaskPlanner {
     required String taskId,
   }) async {
 
+    final sessionId = uniqueId();
+    final agentSession = AgentSession(sessionId: sessionId);
     final planningPrompt = PlanningPrompt.getSystemPrompt(
       availableModels: indexedLLMConfigs,
       indexedFunctions: indexedFunctions,
     );
 
+    plannerAgent = AutoToolAgent(
+      sessionId: sessionId,
+      agentSession: agentSession,
+      llmConfig: plannerLLMConfig,
+      systemPrompt: planningPrompt,
+    );
+
     try {
-      return await AutoToolAgent.executeWithTracking(
-        functionName: 'planner',
+      return await plannerAgent.execute(
         userInput: userCommand,
-        taskId: taskId,
-        messageSender: messageSender,
-        llmConfig: plannerLLMConfig,
-        systemPrompt: planningPrompt,
         parentTaskId: taskId,
+        functionName: 'planner',
+        messageSender: messageSender,
       );
     } catch (e) {
       throw AutoPlanningException('task planning failed: $e');
@@ -77,6 +87,14 @@ class AutoTaskPlanner {
     }
     
     return cleaned.trim();
+  }
+
+  void stop() {
+    plannerAgent.stop();
+  }
+
+  void clear() {
+    plannerAgent.clear();
   }
 }
 
