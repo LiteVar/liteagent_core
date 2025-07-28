@@ -28,41 +28,37 @@ class PlanningPrompt {
 - 避免为关键路径任务添加不必要的dependencies依赖
 
 ## 2.3 工具聚合优化原则
-- **充分利用ToolAgent多工具能力**：每个节点可同时使用3-8个相关工具，避免过度细化
-- **功能完整性优先**：基于功能逻辑而非工具数量进行任务分解，确保单个任务的业务完整性
+- 功能完整性优先：基于功能逻辑而非工具数量进行任务分解，确保单个任务的业务完整性
 
 # 4.职责：根据用户的指令，科学分解成最优的任务树结构
- > 如果用户指令是打招呼(hello,hi,你好,您好等)，礼貌回复即可，无需分解任务
- > 其他指令都必须基于上述原则进行科学分解，按以下json格式返回：
-[{"id":"1","name":"{name}agent","description":{"duty":"duty","constraint":"constraint"},"tools":[{"id":"0","name":"tool name"},{"id":"1","name":"tool name"}],"model":{"id":"0","name":"model name"},"dependencies":[]},{"id":"2","name":"{name}agent","description":{"duty":"duty","constraint":"constraint"},"tools":[{"id":"2","name":"tool name"}],"model":{"id":"0","name":"model name"},"dependencies":[{"id":"1","name":"{name}agent"}]}]
+- 如果用户指令是打招呼(hello,hi,你好,您好等)，礼貌回复即可，无需分解任务
+- 其他指令都必须基于上述原则进行科学分解，按以下json格式返回：
+[{"id":"1","name":"{name}-agent","description":{"duty":"duty","constraint":"constraint"},"tools":[{"id":"0","name":"tool name"},{"id":"1","name":"tool name"}],"model":{"id":"0","name":"model name"},"dependencies":[]},{"id":"2","name":"{name}-agent","description":{"duty":"duty","constraint":"constraint"},"tools":[{"id":"2","name":"tool name"}],"model":{"id":"0","name":"model name"},"dependencies":[{"id":"1","name":"{name}-agent"}]}]
 
 # 5.详细要求
 ## 5.1 描述(description)：精确描述任务职责和约束
- > **duty字段要求**：不得少于10个字，必须包含用户指令中的关键参数和具体目标
- > **constraint字段要求**：明确任务的执行约束、质量标准和成功条件
+- duty字段要求：不得少于10个字，必须包含用户指令中的关键参数和具体目标
+- constraint字段要求：明确任务的执行约束、质量标准和成功条件
 
 ## 5.2 智能模型选择(model)：根据任务复杂度选择最优模型
-${_formatModelsSection(availableModels)}
- > **选择原则**：复杂分析任务选择高性能模型，简单执行任务选择轻量级模型
- > **负载考虑**：避免所有任务都选择同一个模型，合理分配模型负载
+availableModels:${_formatModelsSection(availableModels)}
+- 选择原则：复杂分析任务选择高性能模型，简单执行任务选择轻量级模型
+- 确保所有model的id和name都与availableModels中的id和name一致
 
 ## 5.3 智能工具分配(tools)：充分利用ToolAgent多工具并发能力
-${_formatToolsSection(indexedFunctions)}
- > **分配策略（重要：充分利用ToolAgent能力）**：
- > - **多工具节点优先**：每个节点建议分配3-8个功能相关的工具，充分利用ToolAgent的多工具并发能力
- > - **功能聚合原则**：将完成同一业务功能所需的工具分配给同一节点（如：数据收集+处理+验证）
- > - **工具亲和性分组**：语义相关、功能互补的工具应分配给同一节点，减少节点间协调
- > - **负载均衡考虑**：在保证功能聚合的前提下，适当平衡不同节点的工具负载
+availableTools:${_formatToolsSection(indexedFunctions)}
+- 分配策略：根据任务的实际需要进行工具分配，并充分利用ToolAgent能力
+- 禁止为一个节点分配其语义无关的工具
+- 确保所有tools的id和name都与availableTools中的id和name一致
 
 ## 5.4 分解质量自评估（必须执行）
 分解完成后，请对结果进行以下检查：
- > **循环依赖检查**：验证DAG结构无环，确保不存在A→B→A的循环依赖
- > **拓扑有效性**：验证所有dependencies引用的任务ID都存在且有效
+- 循环依赖检查：验证DAG结构无环，确保不存在A→B→A的循环依赖
+- 拓扑有效性：验证所有dependencies引用的任务ID都存在且有效
 
 **严格要求**：
 - 使用用户指令相同的语言进行规划
 - 必须按照上述JSON格式返回，不添加任何解释文本,json必须紧凑
-- 确保所有id唯一且dependencies引用的任务ID都存在
 - 确保DAG结构无环，验证不存在循环依赖
 ''';
   }

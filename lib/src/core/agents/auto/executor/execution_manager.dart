@@ -1,14 +1,7 @@
 import 'dart:async';
-import 'package:opentool_dart/opentool_dart.dart';
-
 import '../../tool_agent/tool_agent.dart';
-import '../../session_agent/session_agent.dart';
-import '../../session_agent/session.dart';
 import '../models/node.dart';
 import '../wrappers/function.dart';
-import '../../session_agent/model.dart';
-import '../../model.dart';
-import '../../../util/unique_id_generator.dart';
 import 'context_builder.dart';
 import '../wrappers/tool_agent.dart';
 import '../wrappers/llm.dart';
@@ -84,80 +77,31 @@ class ExecutionManager {
 
     _executing.add(node.id);
 
-    String sessionId = uniqueId();
-    
-    final functionCall = FunctionCall(id: node.id, name: node.name, arguments: {});
-
     try {
-
-      final tempSession = AgentSession(sessionId: sessionId);
-
-      String executionResult = '';
-      final completer = Completer<String>();
-
-      // record sub session ID
-      _addSubSessionId(sessionId);
-
-      tempSession.addAgentMessageListener((message) {
-
-        messageSender.sendAgentMessage(message);
-
-        // collect execution results
-        if (message.type == SessionMessageType.TEXT &&
-            message.role == SessionRoleType.AGENT &&
-            message.to == SessionRoleType.USER &&
-            message.content is String) {
-          executionResult += message.content as String;
-        }
-
-
-        // check if the task is completed
-        if (message.type == SessionMessageType.TASK_STATUS) {
-          final taskStatus = message.content as TaskStatus;
-          if(taskStatus.status == TaskStatusType.DONE || taskStatus.status == TaskStatusType.STOP || taskStatus.status == TaskStatusType.EXCEPTION ) {
-            if (!completer.isCompleted) {
-              completer.complete(executionResult);
-            }
-          }
-        }
-      });
-
       final indexedFunctionsForNode = indexedFunctions.where((indexedFunction) => node.tools.any((tool) => tool.id == indexedFunction.index.toString())).toList();
       final llmConfig = indexedLLMConfigs[int.parse(node.model.id)].llmConfig;
       final systemPrompt = ExecutionPrompt.getSystemPrompt(node, context);
 
-      final tempToolAgent = AutoToolAgent(
-        sessionId: sessionId,
-        indexedFunctions: indexedFunctionsForNode,
+      final resultContent = await AutoToolAgent.executeWithTracking(
+        functionName: node.name,
+        userInput: "execute task",
+        taskId: taskId,
+        messageSender: messageSender,
         llmConfig: llmConfig,
-        agentSession: tempSession,
         systemPrompt: systemPrompt,
-      );
-
-      await messageSender.sendFunctionCallStart(taskId, functionCall);
-
-      await tempToolAgent.userToAgent(
-        contentList: [Content(type: ContentType.TEXT, message: "execute task")],
+        indexedFunctions: indexedFunctionsForNode,
         parentTaskId: taskId,
       );
 
-      final resultContent = await completer.future;
-
       String finalResult = resultContent.isNotEmpty ? resultContent : 'Task done';
-
-      await messageSender.sendFunctionCallDone(taskId, functionCall, finalResult);
-
       return finalResult;
 
     } catch (error) {
       rethrow;
     } finally {
       _executing.remove(node.id);
-      _removeSubSessionId(sessionId);
     }
   }
-
-
 
   /// check if the node can be executed concurrently
   bool canExecuteConcurrently(String nodeId) {

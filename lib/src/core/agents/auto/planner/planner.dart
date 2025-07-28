@@ -1,13 +1,8 @@
 import 'dart:async';
-import 'package:opentool_dart/opentool_dart.dart';
 import '../../../llm/model.dart';
 import 'prompt.dart';
-import '../../session_agent/model.dart';
-import '../../session_agent/session.dart';
-import '../../../util/unique_id_generator.dart';
 import '../wrappers/function.dart';
 import '../wrappers/llm.dart';
-import '../../model.dart';
 import '../wrappers/tool_agent.dart';
 import '../auto_multi_agent.dart';
 
@@ -34,65 +29,18 @@ class AutoTaskPlanner {
       indexedFunctions: indexedFunctions,
     );
 
-    String tempSessionId = uniqueId();
-    final tempSession = AgentSession(sessionId: tempSessionId);
-
-    String planningResult = '';
-    final completer = Completer<String>();
-
-    tempSession.addAgentMessageListener((message) {
-
-      messageSender.sendAgentMessage(message);
-
-      if (message.type == SessionMessageType.TEXT &&
-          message.role == SessionRoleType.AGENT &&
-          message.to == SessionRoleType.USER &&
-          message.content is String) {
-        planningResult += message.content as String;
-      }
-
-      if (message.type == SessionMessageType.TASK_STATUS) {
-        final taskStatus = message.content as TaskStatus;
-        if (taskStatus.status == TaskStatusType.DONE || 
-            taskStatus.status == TaskStatusType.STOP || 
-            taskStatus.status == TaskStatusType.EXCEPTION) {
-          if (!completer.isCompleted) {
-            completer.complete(planningResult);
-          }
-        }
-      }
-    });
-
-    final plannerAgent = AutoToolAgent(
-      sessionId: tempSessionId, 
-      llmConfig: plannerLLMConfig,
-      agentSession: tempSession,
-      systemPrompt: planningPrompt,
-    );
-
-    final plannerFunctionCall = FunctionCall(id: uniqueId(), name: 'planner', arguments: {});
-
     try {
-      await messageSender.sendFunctionCallStart(taskId, plannerFunctionCall);
-
-      await plannerAgent.userToAgent(
-        contentList: [Content(type: ContentType.TEXT, message: userCommand)],
+      return await AutoToolAgent.executeWithTracking(
+        functionName: 'planner',
+        userInput: userCommand,
+        taskId: taskId,
+        messageSender: messageSender,
+        llmConfig: plannerLLMConfig,
+        systemPrompt: planningPrompt,
         parentTaskId: taskId,
       );
-
-      final resultContent = await completer.future;
-
-      await messageSender.sendFunctionCallDone(taskId, plannerFunctionCall, resultContent);
-
-      return resultContent;
-
     } catch (e) {
-      await messageSender.sendFunctionCallDone(taskId, plannerFunctionCall, "task planning failed: $e");
       throw AutoPlanningException('task planning failed: $e');
-    } finally {
-      // clean up temporary session resources
-      tempSession.resetListener();
-      tempSession.clearMessage();
     }
   }
 
