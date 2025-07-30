@@ -14,7 +14,7 @@ class AutoTaskPlanner {
 
   final AutoMessageSender messageSender;
 
-  late AutoToolAgent plannerAgent;
+  AutoToolAgent? plannerAgent;
 
   AutoTaskPlanner({
     required this.plannerLLMConfig,
@@ -43,7 +43,7 @@ class AutoTaskPlanner {
     );
 
     try {
-      return await plannerAgent.execute(
+      return await plannerAgent!.execute(
         userInput: userCommand,
         parentTaskId: taskId,
         functionName: 'planner',
@@ -90,11 +90,11 @@ class AutoTaskPlanner {
   }
 
   void stop() {
-    plannerAgent.stop();
+    plannerAgent?.stop();
   }
 
   void clear() {
-    plannerAgent.clear();
+    plannerAgent?.clear();
   }
 }
 

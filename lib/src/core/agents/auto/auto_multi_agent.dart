@@ -95,17 +95,27 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
 
   @override
   void stop({String? taskId}) {
-    taskPlanner.stop();
-    nodeExecutor.stop();
-    summarizer.stop();
+    try {
+      taskPlanner.stop();
+      nodeExecutor.stop();
+      summarizer.stop();
+    } catch (e) {
+      print('stop error');
+    }
+    
     super.stop(taskId: taskId);
   }
 
   @override
   void clear() {
-    taskPlanner.clear();
-    nodeExecutor.clear();
-    summarizer.clear();
+    try {
+      taskPlanner.clear();
+      nodeExecutor.clear();
+      summarizer.clear();
+    } catch (e) {
+      print('clear error');
+    }
+    
     super.clear();
   }
 

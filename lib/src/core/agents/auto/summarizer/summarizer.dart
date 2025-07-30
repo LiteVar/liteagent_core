@@ -13,7 +13,7 @@ class AutoSummarizer {
 
   final AutoMessageSender messageSender;
 
-  late AutoToolAgent summarizerAgent;
+  AutoToolAgent? summarizerAgent;
 
   AutoSummarizer({
     required this.summarizerLLMConfig,
@@ -41,7 +41,7 @@ class AutoSummarizer {
     );
 
     try {
-      final resultContent = await summarizerAgent.execute(
+      final resultContent = await summarizerAgent!.execute(
         userInput: "generate summary",
         parentTaskId: taskId,
         functionName: 'summarizer',
@@ -72,11 +72,11 @@ class AutoSummarizer {
   }
 
   void stop() {
-    summarizerAgent.stop();
+    summarizerAgent?.stop();
   }
 
   void clear() {
-    summarizerAgent.clear();
+    summarizerAgent?.clear();
   }
 }
 
