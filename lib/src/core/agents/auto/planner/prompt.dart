@@ -44,6 +44,7 @@ class PlanningPrompt {
 availableModels:${_formatModelsSection(availableModels)}
 - 选择原则：复杂分析任务选择高性能模型，简单执行任务选择轻量级模型
 - 确保所有model的id和name都与availableModels中的id和name一致
+- 当一个节点需要调用工具时，优先选择supportsToolCalling的模型
 
 ## 5.3 智能工具分配(tools)：充分利用ToolAgent多工具并发能力
 availableTools:${_formatToolsSection(indexedFunctions)}
@@ -65,13 +66,13 @@ availableTools:${_formatToolsSection(indexedFunctions)}
 
   static String _formatModelsSection(List<IndexedLLMConfig> models) {
     if (models.isEmpty) {
-      return '[{"id":"0","name":"textUnderstanding: 文本生成和推理"}]';
+      return "";
     }
     
     StringBuffer buffer = StringBuffer('[');
     for (int i = 0; i < models.length; i++) {
       if (i > 0) buffer.write(',');
-      buffer.write('{"id":"${models[i].index}","name":"${models[i].llmConfig.model}","summary":"${models[i].description}"}');
+      buffer.write('{"id":"${models[i].index}","name":"${models[i].llmConfig.model}","summary":"${models[i].description}, supportsToolCalling:${models[i].llmConfig.supportsToolCalling}"}');
     }
     buffer.write(']');
     return buffer.toString();

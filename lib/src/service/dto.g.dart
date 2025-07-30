@@ -120,6 +120,8 @@ LLMConfigDto _$LLMConfigDtoFromJson(Map<String, dynamic> json) => LLMConfigDto(
       temperature: (json['temperature'] as num?)?.toDouble() ?? 0.0,
       maxTokens: (json['maxTokens'] as num?)?.toInt() ?? 4096,
       topP: (json['topP'] as num?)?.toDouble() ?? 1.0,
+      supportsToolCalling: json['supportsToolCalling'] as bool? ?? true,
+      supportsDeepThinking: json['supportsDeepThinking'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$LLMConfigDtoToJson(LLMConfigDto instance) =>
@@ -130,6 +132,8 @@ Map<String, dynamic> _$LLMConfigDtoToJson(LLMConfigDto instance) =>
       'temperature': instance.temperature,
       'maxTokens': instance.maxTokens,
       'topP': instance.topP,
+      'supportsToolCalling': instance.supportsToolCalling,
+      'supportsDeepThinking': instance.supportsDeepThinking,
     };
 
 AgentMessageDto _$AgentMessageDtoFromJson(Map<String, dynamic> json) =>

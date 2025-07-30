@@ -117,7 +117,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
         indexedLLMConfigs.add(IndexedLLMConfig(
           index: i,
           llmConfig: llmConfigList[i],
-          description: 'model ${i + 1}',
+          description: "",
         ));
       }
     } else {

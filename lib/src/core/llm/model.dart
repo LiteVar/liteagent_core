@@ -7,13 +7,17 @@ class LLMConfig {
   double temperature;
   int maxTokens;
   double topP;
+  bool supportsToolCalling;
+  bool supportsDeepThinking;
   LLMConfig({
     required this.baseUrl,
     required this.apiKey,
     required this.model,
     this.temperature = 0.0,
     this.maxTokens = 4096,
-    this.topP = 1.0
+    this.topP = 1.0,
+    this.supportsToolCalling = true,
+    this.supportsDeepThinking = false
   });
 }
 

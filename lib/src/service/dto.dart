@@ -111,6 +111,8 @@ class LLMConfigDto {
   double temperature;
   int maxTokens;
   double topP;
+  bool supportsToolCalling;
+  bool supportsDeepThinking;
 
   LLMConfigDto({
     required this.baseUrl,
@@ -118,7 +120,9 @@ class LLMConfigDto {
     required this.model,
     this.temperature = 0.0,
     this.maxTokens = 4096,
-    this.topP = 1.0
+    this.topP = 1.0,
+    this.supportsToolCalling = true,
+    this.supportsDeepThinking = false
   });
 
   factory LLMConfigDto.fromJson(Map<String, dynamic> json) => _$LLMConfigDtoFromJson(json);
@@ -131,7 +135,9 @@ class LLMConfigDto {
     model: llmConfig.model,
     temperature: llmConfig.temperature,
     maxTokens: llmConfig.maxTokens,
-    topP: llmConfig.topP
+    topP: llmConfig.topP,
+    supportsToolCalling: llmConfig.supportsToolCalling,
+    supportsDeepThinking: llmConfig.supportsDeepThinking
   );
 
   LLMConfig toModel() => LLMConfig(
@@ -140,7 +146,9 @@ class LLMConfigDto {
     model: model,
     temperature: temperature,
     maxTokens: maxTokens,
-    topP: topP
+    topP: topP,
+    supportsToolCalling: supportsToolCalling,
+    supportsDeepThinking: supportsDeepThinking
   );
 }
 
