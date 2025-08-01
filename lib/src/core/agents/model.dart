@@ -3,6 +3,7 @@ import '../llm/model.dart';
 class Message {
   String sessionId;
   String? agentId;
+  String originalTaskId;
   String? parentTaskId;
   String role;
   String to;
@@ -11,7 +12,8 @@ class Message {
   Message({
     required this.sessionId,
     this.agentId,
-     this.parentTaskId,
+    required this.originalTaskId,
+    this.parentTaskId,
     required this.role,
     required this.to,
     required this.type
@@ -24,6 +26,7 @@ class AgentMessageBase extends Message {
   AgentMessageBase({
     required super.sessionId,
     super.agentId,
+    required super.originalTaskId,
     super.parentTaskId,
     required super.role,
     required super.to,
@@ -39,6 +42,7 @@ class AgentMessage extends AgentMessageBase {
   AgentMessage({
     required super.sessionId,
     super.agentId,
+    required super.originalTaskId,
     required super.parentTaskId,
     required this.taskId,
     required super.role,
@@ -72,6 +76,7 @@ class AgentMessageChunk extends Message {
   AgentMessageChunk({
     required super.sessionId,
     super.agentId,
+    required super.originalTaskId,
     required super.parentTaskId,
     required this.taskId,
     required super.role,

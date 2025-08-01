@@ -43,6 +43,7 @@ class AutoToolAgent extends ToolAgent {
 
   Future<String> execute({
     required String userInput,
+    required String originalTaskId,
     String? parentTaskId,
     required String functionName,
     required AutoMessageSender messageSender,
@@ -64,6 +65,7 @@ class AutoToolAgent extends ToolAgent {
       await messageSender.sendFunctionCallStart(taskId, functionCall);
       await super.userToAgent(
         contentList: [Content(type: ContentType.TEXT, message: userInput)],
+        originalTaskId: originalTaskId,
         parentTaskId: parentTaskId,
         fetchTaskId: fetchTaskId,
       );

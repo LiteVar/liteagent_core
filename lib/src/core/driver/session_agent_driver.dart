@@ -38,6 +38,11 @@ class SessionAgentDriver extends AgentDriver {
 
   @override
   Future<ToolReturn> call(FunctionCall functionCall) async {
+      return ToolReturn(id: functionCall.id, result: { "error": "Not Support call, use agentCall instead" });
+  }
+
+  @override
+  Future<ToolReturn> callAgent(FunctionCall functionCall, String originalTaskId) async {
     try {
       String prompt = functionCall.arguments[promptKey];
       NamedSessionAgent namedSessionAgent = namedSessionAgents.where((agentModel) => agentModel.name == functionCall.name).first;
@@ -53,7 +58,7 @@ class SessionAgentDriver extends AgentDriver {
 
       agentMessageListeners.forEach((void Function(AgentMessage) agentMessageListener) => namedSessionAgent.agent.agentSession.addAgentMessageListener(agentMessageListener));
 
-      await namedSessionAgent.agent.userToAgent(contentList: [content], parentTaskId: this.parentTaskId);
+      await namedSessionAgent.agent.userToAgent(contentList: [content], originalTaskId: originalTaskId, parentTaskId: this.parentTaskId);
 
       AgentMessage agentMessage = await completer.future;
       String result = agentMessage.content as String;

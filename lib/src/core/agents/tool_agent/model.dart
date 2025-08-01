@@ -48,10 +48,11 @@ class FunctionCallType {
 class FunctionCallParam {
   String sessionId;
   String taskId;
+  String originalTaskId;
   String? type;
   int index;
   FunctionCall functionCall;
-  FunctionCallParam({required this.sessionId, required this.taskId, this.type, required this.index, required this.functionCall});
+  FunctionCallParam({required this.sessionId, required this.taskId, required this.originalTaskId, this.type, required this.index, required this.functionCall});
 }
 
 class ClientOpenTool {

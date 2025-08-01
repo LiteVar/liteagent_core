@@ -5,7 +5,7 @@ import 'reflector_agent.dart';
 
 abstract class Reflector {
   //Evaluate message match request or not, return score 0-10 in int type;
-  Future<ReflectScore> reflect(List<Content> contentList, String message);
+  Future<ReflectScore> reflect(List<Content> contentList, String message, String originalTaskId);
 }
 
 class AgentReflector implements Reflector {
@@ -15,7 +15,7 @@ class AgentReflector implements Reflector {
   AgentReflector({required this.agent, required this.subscribeCompletions});
 
   @override
-  Future<ReflectScore> reflect(List<Content> contentList, String message) async {
-    return agent.evaluate(contentList, message, this.subscribeCompletions);
+  Future<ReflectScore> reflect(List<Content> contentList, String message, String originalTaskId) async {
+    return agent.evaluate(contentList, message, originalTaskId, this.subscribeCompletions);
   }
 }

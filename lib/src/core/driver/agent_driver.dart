@@ -38,5 +38,6 @@ abstract class AgentDriver extends ToolDriver {
       listener(agentMessage);
     }
   }
-
+  
+  Future<ToolReturn> callAgent(FunctionCall functionCall, String originalTaskId);
 }

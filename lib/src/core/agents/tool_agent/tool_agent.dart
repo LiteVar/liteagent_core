@@ -102,7 +102,7 @@ class ToolAgent extends TextAgent {
         },
           onDone: () {},
           onError: (e) {
-            pushException(agentMessage.sessionId, agentMessage.taskId, e.toString());
+            pushException(agentMessage.sessionId, agentMessage.taskId, agentMessage.originalTaskId, e.toString());
           }
         );
       } else {
@@ -111,7 +111,7 @@ class ToolAgent extends TextAgent {
         dispatcherMap.dispatch(nextCommand);
       }
     } on LLMException catch(e) {
-      pushException(agentMessage.sessionId, agentMessage.taskId, jsonEncode(e.toJson()));
+      pushException(agentMessage.sessionId, agentMessage.taskId, agentMessage.originalTaskId, jsonEncode(e.toJson()));
     }
   }
 
@@ -120,9 +120,10 @@ class ToolAgent extends TextAgent {
     if(agentMessage.type == ToolMessageType.TOOL_CALLS) {
       List<FunctionCall> functionCallList = agentMessage.content as List<FunctionCall>;
       List<Map<String, dynamic>> functionCallJsonList = functionCallList.map((functionCall)=>functionCall.toJson()).toList();
-      Reflection reflection = await toolReflectionManager.reflect(agentMessage.type, jsonEncode(functionCallJsonList));
+      Reflection reflection = await toolReflectionManager.reflect(agentMessage.type, jsonEncode(functionCallJsonList), agentMessage.originalTaskId);
       AgentMessage reflectionMessage = AgentMessage(
           sessionId: agentMessage.sessionId,
+          originalTaskId: agentMessage.originalTaskId,
           parentTaskId: agentMessage.parentTaskId,
           taskId: agentMessage.taskId,
           role: TextRoleType.REFLECTION,
@@ -151,7 +152,8 @@ class ToolAgent extends TextAgent {
     void Function(FunctionCall functionCall) listenClientFunctionCall = (FunctionCall functionCall) {
       AgentMessage clientMessage = AgentMessage(
           sessionId: agentMessage.sessionId,
-          parentTaskId: agentMessage.parentTaskId,
+          originalTaskId: agentMessage.originalTaskId,
+            parentTaskId: agentMessage.parentTaskId,
           taskId: agentMessage.taskId,
           role: ToolRoleType.AGENT,
           to: ToolRoleType.CLIENT,
@@ -170,7 +172,7 @@ class ToolAgent extends TextAgent {
     for (FunctionCall functionCall in functionCallList) {
       int toolIndex = toolDriverList.indexWhere((toolDriver) => toolDriver.hasFunction(functionCall.name));
       if(toolIndex >= 0) {
-        FunctionCallParam functionCallParam = FunctionCallParam(sessionId: agentMessage.sessionId, taskId: agentMessage.taskId, type: FunctionCallType.TOOL, index: toolIndex,functionCall: functionCall);
+        FunctionCallParam functionCallParam = FunctionCallParam(sessionId: agentMessage.sessionId, taskId: agentMessage.taskId, originalTaskId: agentMessage.originalTaskId, type: FunctionCallType.TOOL, index: toolIndex,functionCall: functionCall);
         toolPipeLine.addJob(functionCallParam);
       }
     }
@@ -179,6 +181,7 @@ class ToolAgent extends TextAgent {
     toolPipeLine.run(_requestTool, onComplete: () async {
       AgentMessage toolDoneMessage = AgentMessage(
         sessionId: agentMessage.sessionId,
+        originalTaskId: agentMessage.originalTaskId,
         parentTaskId: agentMessage.parentTaskId,
         taskId: agentMessage.taskId,
         role: ToolRoleType.TOOL,
@@ -198,6 +201,7 @@ class ToolAgent extends TextAgent {
         ToolReturn toolReturn = await toolDriver.call(functionCallParam.functionCall);
         AgentMessage toolMessage = AgentMessage(
             sessionId: functionCallParam.sessionId,
+            originalTaskId: functionCallParam.originalTaskId,
             parentTaskId: super.parentTaskId,
             taskId: functionCallParam.taskId,
             role: ToolRoleType.TOOL,
@@ -224,6 +228,7 @@ class ToolAgent extends TextAgent {
           toClient,
           AgentMessage(
             sessionId: agentMessage.sessionId,
+            originalTaskId: agentMessage.originalTaskId,
             taskId: agentMessage.taskId,
             parentTaskId: agentMessage.parentTaskId,
             role: ToolRoleType.AGENT,

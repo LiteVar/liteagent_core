@@ -84,7 +84,7 @@ class MultiAgent extends ToolAgent {
         },
           onDone: () {},
           onError: (e) {
-            pushException(agentMessage.sessionId, agentMessage.taskId, e.toString());
+            pushException(agentMessage.sessionId, agentMessage.taskId, agentMessage.originalTaskId, e.toString());
           }
         );
       } else {
@@ -93,7 +93,7 @@ class MultiAgent extends ToolAgent {
         dispatcherMap.dispatch(nextCommand);
       }
     } on LLMException catch(e) {
-      pushException(agentMessage.sessionId, agentMessage.taskId, jsonEncode(e.toJson()));
+      pushException(agentMessage.sessionId, agentMessage.taskId, agentMessage.originalTaskId, jsonEncode(e.toJson()));
     }
   }
 
@@ -123,6 +123,7 @@ class MultiAgent extends ToolAgent {
       if(_separatedFunctionCallList.toolFunctionCalls.isNotEmpty) {
         AgentMessage toolMessage = AgentMessage(
             sessionId: agentMessage.sessionId,
+            originalTaskId: agentMessage.originalTaskId,
             parentTaskId: agentMessage.parentTaskId,
             taskId: agentMessage.taskId,
             role: MultiAgentRoleType.AGENT,
@@ -137,6 +138,7 @@ class MultiAgent extends ToolAgent {
       if(_separatedFunctionCallList.subAgentFunctionCalls.isNotEmpty) {
         AgentMessage subAgentMessage = AgentMessage(
             sessionId: agentMessage.sessionId,
+            originalTaskId: agentMessage.originalTaskId,
             parentTaskId: agentMessage.parentTaskId,
             taskId: agentMessage.taskId,
             role: MultiAgentRoleType.AGENT,
@@ -195,7 +197,7 @@ class MultiAgent extends ToolAgent {
     for (FunctionCall functionCall in functionCallList) {
       int subAgentIndex = subAgentDriverList.indexWhere((toolDriver) => toolDriver.hasFunction(functionCall.name));
       if(subAgentIndex >= 0) {
-        FunctionCallParam functionCallParam = FunctionCallParam(sessionId: agentMessage.sessionId, taskId: agentMessage.taskId, type: FunctionCallType.SUBAGENT, index: subAgentIndex,functionCall: functionCall);
+        FunctionCallParam functionCallParam = FunctionCallParam(sessionId: agentMessage.sessionId, taskId: agentMessage.taskId, originalTaskId: agentMessage.originalTaskId, type: FunctionCallType.SUBAGENT, index: subAgentIndex,functionCall: functionCall);
         toolPipeLine.addJob(functionCallParam);
       }
     }
@@ -204,6 +206,7 @@ class MultiAgent extends ToolAgent {
     toolPipeLine.run(_requestSubAgent, onComplete: () async {
       AgentMessage subAgentDoneMessage = AgentMessage(
         sessionId: agentMessage.sessionId,
+        originalTaskId: agentMessage.originalTaskId,
         parentTaskId: agentMessage.parentTaskId,
         taskId: agentMessage.taskId,
         role: MultiAgentRoleType.SUBAGENT,
@@ -224,9 +227,10 @@ class MultiAgent extends ToolAgent {
         agentDriver.addAgentMessageListener((AgentMessage agentMessage){
           agentSession.addListenAgentMessage(agentMessage);
         });
-        ToolReturn toolReturn = await agentDriver.call(functionCallParam.functionCall);
+        ToolReturn toolReturn = await agentDriver.callAgent(functionCallParam.functionCall, functionCallParam.originalTaskId);
         AgentMessage toolMessage = AgentMessage(
           sessionId: functionCallParam.sessionId,
+          originalTaskId: functionCallParam.originalTaskId,
           parentTaskId: this.parentTaskId,
           taskId: functionCallParam.taskId,
           role: MultiAgentRoleType.SUBAGENT,
@@ -253,6 +257,7 @@ class MultiAgent extends ToolAgent {
         toClient,
         AgentMessage(
           sessionId: agentMessage.sessionId,
+          originalTaskId: agentMessage.originalTaskId,
           parentTaskId: agentMessage.parentTaskId,
           taskId: agentMessage.taskId,
           role: MultiAgentRoleType.AGENT,

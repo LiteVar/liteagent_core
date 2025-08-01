@@ -27,15 +27,16 @@ abstract class SessionAgent {
   }) :  pipeline = PipelineAsync(taskPipelineStrategy),
         timeout = Timeout(timeoutSeconds);
 
-  Future<void> userToAgent({required List<Content> contentList, bool? stream, String? parentTaskId, void Function(String taskId)? fetchTaskId}) async {
+  Future<void> userToAgent({required List<Content> contentList, bool? stream, String? originalTaskId, String? parentTaskId, void Function(String taskId)? fetchTaskId}) async {
     this.agentSession.isStream = stream??false;
     this.parentTaskId = parentTaskId;
     String taskId = uniqueId();
     if(fetchTaskId != null) fetchTaskId(taskId);
     dispatcherMap.create(taskId);
+    originalTaskId = originalTaskId??taskId;
 
     pipeline.addJob(ContentsTask(taskId: taskId, contentList: contentList));
-    AddStatusAsync statusAsync = await pipeline.runAsync(_userToAgent, asyncId: taskId);
+    AddStatusAsync statusAsync = await pipeline.runAsync(_userToAgent, asyncId: taskId, originalTaskId: originalTaskId);
 
     switch(statusAsync.addStatus) {
       case AddStatus.REJECT: {
@@ -44,6 +45,7 @@ abstract class SessionAgent {
           toClient,
           AgentMessage(
             sessionId: sessionId,
+            originalTaskId: originalTaskId,
             parentTaskId: this.parentTaskId,
             taskId: taskId,
             role: SessionRoleType.AGENT,
@@ -58,11 +60,12 @@ abstract class SessionAgent {
     }
   }
 
-  Future<void> _userToAgent(ContentsTask contentsTask) async {
+  Future<void> _userToAgent(ContentsTask contentsTask, String originalTaskId) async {
     Command clientCommand = Command(
       toClient,
       AgentMessage(
         sessionId: sessionId,
+        originalTaskId: originalTaskId,
         parentTaskId: this.parentTaskId,
         taskId: contentsTask.taskId,
         role: SessionRoleType.AGENT,
@@ -74,6 +77,7 @@ abstract class SessionAgent {
 
     AgentMessage contentMessage = AgentMessage(
       sessionId: sessionId,
+      originalTaskId: originalTaskId,
       parentTaskId: parentTaskId,
       taskId: contentsTask.taskId,
       role: SessionRoleType.USER,
@@ -95,6 +99,7 @@ abstract class SessionAgent {
     if (systemPrompt != null && systemPrompt!.isNotEmpty) {
       AgentMessage systemMessage = AgentMessage(
         sessionId: sessionMessage.sessionId,
+        originalTaskId: sessionMessage.originalTaskId,
         parentTaskId: this.parentTaskId,
         taskId: sessionMessage.taskId,
         role: SessionRoleType.SYSTEM,
@@ -114,10 +119,11 @@ abstract class SessionAgent {
     agentSession.addListenAgentMessage(sessionMessage);
   }
 
-  void stop({String? taskId = null}) {
+  void stop({String? taskId = null, String? originalTaskId}) {
     if(taskId == null) {
       AgentMessageBase stopMessage = AgentMessageBase(
         sessionId: sessionId,
+        originalTaskId: originalTaskId??"",
         role: SessionRoleType.AGENT,
         to: SessionRoleType.CLIENT,
         type: SessionMessageType.TASK_STATUS,
@@ -125,16 +131,17 @@ abstract class SessionAgent {
       );
       dispatcherMap.stopAll(toClient, stopMessage);
     } else {
-      _stop(taskId);
+      _stop(taskId, originalTaskId??"");
     }
   }
 
-  void _stop(String taskId) {
+  void _stop(String taskId, String originalTaskId) {
     pipeline.completeAsync(taskId);
     Command clientCommand = Command(
       toClient,
       AgentMessage(
         sessionId: sessionId,
+        originalTaskId: originalTaskId,
         parentTaskId: parentTaskId,
         taskId: taskId,
         role: SessionRoleType.AGENT,

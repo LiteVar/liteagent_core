@@ -98,6 +98,7 @@ class ExecutionManager {
 
       final resultContent = await agent.execute(
         userInput: "execute task",
+        originalTaskId: taskId,
         parentTaskId: taskId,
         functionName: node.name,
         messageSender: messageSender,

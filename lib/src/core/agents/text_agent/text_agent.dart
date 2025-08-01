@@ -56,9 +56,10 @@ class TextAgent extends SessionAgent {
   }
 
   Future<void> toReflection(AgentMessage agentMessage) async {
-    Reflection reflection = await reflectionManager.reflect(agentMessage.type, agentMessage.content as String);
+    Reflection reflection = await reflectionManager.reflect(agentMessage.type, agentMessage.content as String, agentMessage.originalTaskId);
     AgentMessage reflectionMessage = AgentMessage(
         sessionId: agentMessage.sessionId,
+        originalTaskId: agentMessage.originalTaskId,
         parentTaskId: this.parentTaskId,
         taskId: agentMessage.taskId,
         role: TextRoleType.REFLECTION,
@@ -81,6 +82,7 @@ class TextAgent extends SessionAgent {
     pipeline.completeAsync(sessionMessage.taskId);
     AgentMessage clientMessage = AgentMessage(
         sessionId: sessionMessage.sessionId,
+        originalTaskId: sessionMessage.originalTaskId,
         parentTaskId: this.parentTaskId,
         taskId: sessionMessage.taskId,
         role: TextRoleType.AGENT,
@@ -124,7 +126,7 @@ class TextAgent extends SessionAgent {
           onDone: () {
           },
           onError: (e) {
-            pushException(agentMessage.sessionId, agentMessage.taskId, e.toString());
+            pushException(agentMessage.sessionId, agentMessage.taskId, agentMessage.originalTaskId, e.toString());
           }
         );
       } else {
@@ -133,14 +135,15 @@ class TextAgent extends SessionAgent {
         dispatcherMap.dispatch(nextCommand);
       }
     } on LLMException catch(e) {
-      pushException(agentMessage.sessionId, agentMessage.taskId, jsonEncode(e.toJson()));
+      pushException(agentMessage.sessionId, agentMessage.taskId, agentMessage.originalTaskId, jsonEncode(e.toJson()));
     }
   }
 
-  void pushException(String sessionId, String taskId, String exceptionMessage) {
+  void pushException(String sessionId, String taskId, String originalTaskId, String exceptionMessage) {
     pipeline.completeAsync(taskId);
     AgentMessage agentMessage = AgentMessage(
         sessionId: sessionId,
+        originalTaskId: originalTaskId,
         parentTaskId: this.parentTaskId,
         taskId: taskId,
         role: TextRoleType.AGENT,

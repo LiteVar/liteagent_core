@@ -17,6 +17,7 @@ class UserMessageHandler extends AgentMessageHandler {
     List<Content> userContentList = agentMessage.content as List<Content>;
     AgentMessage newAgentMessage = AgentMessage(
       sessionId: agentMessage.sessionId,
+      originalTaskId: agentMessage.originalTaskId,
       parentTaskId: agentMessage.parentTaskId,
       taskId: agentMessage.taskId,
       role: TextRoleType.AGENT,
@@ -47,6 +48,7 @@ class LLMMessageHandler extends AgentMessageHandler {
       if(reflectionManager.shouldReflect) {
         AgentMessage reflectionMessage = AgentMessage(
             sessionId: agentMessage.sessionId,
+            originalTaskId: agentMessage.originalTaskId,
             parentTaskId: agentMessage.parentTaskId,
             taskId: agentMessage.taskId,
             role: TextRoleType.AGENT,
@@ -58,6 +60,7 @@ class LLMMessageHandler extends AgentMessageHandler {
       } else {
         AgentMessage agentUserMessage = AgentMessage(
             sessionId: agentMessage.sessionId,
+            originalTaskId: agentMessage.originalTaskId,
             parentTaskId: agentMessage.parentTaskId,
             taskId: agentMessage.taskId,
             role: TextRoleType.AGENT,
@@ -70,6 +73,7 @@ class LLMMessageHandler extends AgentMessageHandler {
     } else if (agentMessage.type == TextMessageType.IMAGE_URL) {
       AgentMessage agentUserMessage = AgentMessage(
           sessionId: agentMessage.sessionId,
+          originalTaskId: agentMessage.originalTaskId,
           parentTaskId: agentMessage.parentTaskId,
           taskId: agentMessage.taskId,
           role: TextRoleType.AGENT,
@@ -81,6 +85,7 @@ class LLMMessageHandler extends AgentMessageHandler {
       if(reflectionManager.shouldReflect) {
         AgentMessage reflectionMessage = AgentMessage(
             sessionId: agentMessage.sessionId,
+            originalTaskId: agentMessage.originalTaskId,
             parentTaskId: agentMessage.parentTaskId,
             taskId: agentMessage.taskId,
             role: TextRoleType.AGENT,
@@ -92,6 +97,7 @@ class LLMMessageHandler extends AgentMessageHandler {
       } else {
         AgentMessage agentUserMessage = AgentMessage(
             sessionId: agentMessage.sessionId,
+            originalTaskId: agentMessage.originalTaskId,
             parentTaskId: agentMessage.parentTaskId,
             taskId: agentMessage.taskId,
             role: TextRoleType.AGENT,
@@ -121,6 +127,7 @@ class TextReflectionMessageHandler extends AgentMessageHandler {
     if(reflection.isPass || reflection.count == reflection.maxCount) {
       AgentMessage agentUserMessage = AgentMessage(
         sessionId: agentMessage.sessionId,
+        originalTaskId: agentMessage.originalTaskId,
         parentTaskId: agentMessage.parentTaskId,
         taskId: agentMessage.taskId,
         role: TextRoleType.AGENT,
@@ -133,6 +140,7 @@ class TextReflectionMessageHandler extends AgentMessageHandler {
       List<Content> userContentList = reflectionManager.userContentList;
       AgentMessage newAgentMessage = AgentMessage(
         sessionId: agentMessage.sessionId,
+        originalTaskId: agentMessage.originalTaskId,
         parentTaskId: agentMessage.parentTaskId,
         taskId: agentMessage.taskId,
         role: TextRoleType.AGENT,

@@ -43,6 +43,7 @@ class AutoSummarizer {
     try {
       final resultContent = await summarizerAgent!.execute(
         userInput: "generate summary",
+        originalTaskId: taskId,
         parentTaskId: taskId,
         functionName: 'summarizer',
         messageSender: messageSender,

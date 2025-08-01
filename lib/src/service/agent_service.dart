@@ -224,10 +224,13 @@ class AgentService {
       void Function(String sessionId, String taskId, AgentMessageChunkDto agentMessageChunkDto)? listenChunk,
       List<String>? subAgentSessionList
   }) {
+
     agentSession.addAgentMessageListener((AgentMessage agentMessage) {
       AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
-      _recordAgentMessage(agentSession.sessionId, taskId, agentMessageDto);
-      listen(agentSession.sessionId, taskId, agentMessageDto);
+      if (agentMessage.originalTaskId == taskId || agentMessage.originalTaskId.isEmpty) {
+        _recordAgentMessage(agentSession.sessionId, taskId, agentMessageDto);
+        listen(agentSession.sessionId, taskId, agentMessageDto);
+      }
     });
     if(listenChunk != null) {
       agentSession.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
@@ -241,8 +244,10 @@ class AgentService {
         if(subSessionAgent != null) {
           subSessionAgent.agentSession.addAgentMessageListener((AgentMessage agentMessage) {
             AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
-            _recordAgentMessage(subSessionId, taskId, agentMessageDto);
-            listen(subSessionId, taskId, agentMessageDto);
+            if (agentMessage.originalTaskId == taskId || agentMessage.originalTaskId.isEmpty) {
+              _recordAgentMessage(subSessionId, taskId, agentMessageDto);
+              listen(subSessionId, taskId, agentMessageDto);
+            }
           });
           if(listenChunk != null) {
             subSessionAgent.agentSession.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {

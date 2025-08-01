@@ -45,6 +45,7 @@ class AutoTaskPlanner {
     try {
       return await plannerAgent!.execute(
         userInput: userCommand,
+        originalTaskId: taskId,
         parentTaskId: taskId,
         functionName: 'planner',
         messageSender: messageSender,

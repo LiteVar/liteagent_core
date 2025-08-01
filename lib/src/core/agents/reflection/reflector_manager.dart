@@ -22,10 +22,10 @@ class ReflectorManager {
     currCount = currCount + 1;
   }
 
-  Future<Reflection> reflect(String messageType, String message) async {
+  Future<Reflection> reflect(String messageType, String message, String originalTaskId) async {
     List<ReflectScore> reflectScoreList = [];
     for(Reflector reflector in reflectorList) {
-      ReflectScore currResult = await reflector.reflect(userContentList, message);
+      ReflectScore currResult = await reflector.reflect(userContentList, message, originalTaskId);
       reflectScoreList.add(currResult);
       if(currResult.score < passScore) {
         MessageScore messageScore = MessageScore(contentList: userContentList, messageType: messageType, message: message, reflectScoreList: reflectScoreList);

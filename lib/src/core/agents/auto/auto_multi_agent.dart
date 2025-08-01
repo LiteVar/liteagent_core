@@ -35,6 +35,8 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
   final List<IndexedLLMConfig> indexedLLMConfigs = [];
 
   final List<IndexedFunction> indexedFunctions = [];
+
+  String originalTaskId = "";
     
   AutoMultiAgent({
     required super.sessionId,
@@ -81,12 +83,13 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
   }
 
   @override
-  Future<void> userToAgent({required List<Content> contentList, bool? stream, String? parentTaskId, void Function(String taskId)? fetchTaskId}) async {
+  Future<void> userToAgent({required List<Content> contentList, bool? stream, String? originalTaskId, String? parentTaskId, void Function(String taskId)? fetchTaskId}) async {
     this.parentTaskId = parentTaskId;
     String taskId = uniqueId();
     if(fetchTaskId != null) fetchTaskId(taskId);
     dispatcherMap.create(taskId);
-   
+    originalTaskId = originalTaskId??taskId;
+
     try {
       _executeAutoMode(taskId, contentList);
     } catch (e, s) {
@@ -95,7 +98,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
   }
 
   @override
-  void stop({String? taskId}) {
+  void stop({String? originalTaskId, String? taskId}) {
     try {
       taskPlanner.stop();
       nodeExecutor.stop();
@@ -104,7 +107,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
       print('stop error');
     }
     
-    super.stop(taskId: taskId);
+    super.stop(originalTaskId: originalTaskId, taskId: taskId);
   }
 
   @override
@@ -220,6 +223,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
 
     AgentMessage clientMessage = AgentMessage(
       sessionId: sessionId,
+      originalTaskId: originalTaskId,
       parentTaskId: parentTaskId,
       taskId: taskId,
       role: SessionRoleType.AGENT,
@@ -231,6 +235,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
 
     AgentMessage userMessage = AgentMessage(
       sessionId: sessionId,
+      originalTaskId: originalTaskId,
       parentTaskId: parentTaskId,
       taskId: taskId,
       role: SessionRoleType.USER,
@@ -244,6 +249,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
   Future<void> _sendDoneMessage(String taskId, String finalResult) async {
     AgentMessage userMessage = AgentMessage(
       sessionId: sessionId,
+      originalTaskId: originalTaskId,
       parentTaskId: parentTaskId,
       taskId: taskId,
       role: SessionRoleType.AGENT,
@@ -255,6 +261,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
 
     AgentMessage clientMessage = AgentMessage(
       sessionId: sessionId,
+      originalTaskId: originalTaskId,
       parentTaskId: parentTaskId,
       taskId: taskId,
       role: SessionRoleType.AGENT,
@@ -274,6 +281,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
   Future<void> sendFunctionCallStart(String taskId, FunctionCall call) async {
     AgentMessage subAgentMessage = AgentMessage(
       sessionId: sessionId,
+      originalTaskId: originalTaskId,
       parentTaskId: parentTaskId,
       taskId: taskId,
       role: MultiAgentRoleType.AGENT,
@@ -285,6 +293,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
 
     AgentMessage clientMessage = AgentMessage(
       sessionId: sessionId,
+      originalTaskId: originalTaskId,
       parentTaskId: parentTaskId,
       taskId: taskId,
       role: MultiAgentRoleType.AGENT,
@@ -299,6 +308,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
   Future<void> sendFunctionCallDone(String taskId, FunctionCall call, String result) async {
     AgentMessage subAgentReturnMessage = AgentMessage(
       sessionId: sessionId,
+      originalTaskId: originalTaskId,
       parentTaskId: parentTaskId,
       taskId: taskId,
       role: MultiAgentRoleType.SUBAGENT,
@@ -310,6 +320,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
 
     AgentMessage subAgentStatusMessage = AgentMessage(
       sessionId: sessionId,
+      originalTaskId: originalTaskId,
       parentTaskId: parentTaskId,
       taskId: taskId,
       role: MultiAgentRoleType.SUBAGENT,

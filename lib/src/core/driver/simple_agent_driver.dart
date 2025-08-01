@@ -38,6 +38,11 @@ class SimpleAgentDriver extends AgentDriver {
 
   @override
   Future<ToolReturn> call(FunctionCall functionCall) async {
+      return ToolReturn(id: functionCall.id, result: { "error": "Not Support call, use callAgent instead" });
+  }
+
+  @override
+  Future<ToolReturn> callAgent(FunctionCall functionCall, String originalTaskId) async {
     try {
       String prompt = functionCall.arguments[promptKey];
       NamedSimpleAgent agentModel = namedSimpleAgents.where((agentModel) => agentModel.name == functionCall.name).first;
@@ -46,7 +51,7 @@ class SimpleAgentDriver extends AgentDriver {
       SimpleAgent simpleAgent = agentModel.agent;
       simpleAgent.addAgentMessageListeners(this.agentMessageListeners);
       
-      AgentMessage agentMessage = await simpleAgent.userToAgent(contentList: [content], parentTaskId: super.parentTaskId);
+      AgentMessage agentMessage = await simpleAgent.userToAgent(contentList: [content], originalTaskId: originalTaskId, parentTaskId: super.parentTaskId);
 
       broadcastAgentMessages(agentMessage);
 

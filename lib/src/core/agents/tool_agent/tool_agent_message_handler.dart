@@ -25,6 +25,7 @@ class LLMFunctionCallingMessageHandler extends AgentMessageHandler {
       if(reflectionManager.shouldReflect) {
         AgentMessage reflectionMessage = AgentMessage(
           sessionId: agentMessage.sessionId,
+          originalTaskId: agentMessage.originalTaskId,
           parentTaskId: agentMessage.parentTaskId,
           taskId: agentMessage.taskId,
           role: ToolRoleType.AGENT,
@@ -36,6 +37,7 @@ class LLMFunctionCallingMessageHandler extends AgentMessageHandler {
       } else {
           AgentMessage agentToolMessage = AgentMessage(
             sessionId: agentMessage.sessionId,
+            originalTaskId: agentMessage.originalTaskId,
             parentTaskId: agentMessage.parentTaskId,
             taskId: agentMessage.taskId,
             role: ToolRoleType.AGENT,
@@ -48,6 +50,7 @@ class LLMFunctionCallingMessageHandler extends AgentMessageHandler {
     } else if (agentMessage.type == ToolMessageType.TEXT || agentMessage.type == ToolMessageType.IMAGE_URL) {
       AgentMessage agentUserMessage = AgentMessage(
         sessionId: agentMessage.sessionId,
+        originalTaskId: agentMessage.originalTaskId,
         parentTaskId: agentMessage.parentTaskId,
         taskId: agentMessage.taskId,
         role: ToolRoleType.AGENT,
@@ -72,6 +75,7 @@ class ToolMessageHandler extends AgentMessageHandler {
       // If TOOL return result, add the result message
       AgentMessage agentLLMMessage = AgentMessage(
         sessionId: agentMessage.sessionId,
+        originalTaskId: agentMessage.originalTaskId,
         parentTaskId: agentMessage.parentTaskId,
         taskId: agentMessage.taskId,
         role: ToolRoleType.AGENT,
@@ -88,6 +92,7 @@ class ToolMessageHandler extends AgentMessageHandler {
       if (taskStatus.status == ToolStatusType.DONE) {
         AgentMessage agentToolMessage = AgentMessage(
           sessionId: agentMessage.sessionId,
+          originalTaskId: agentMessage.originalTaskId,
           parentTaskId: agentMessage.parentTaskId,
           taskId: agentMessage.taskId,
           role: ToolRoleType.AGENT,
@@ -120,6 +125,7 @@ class ToolReflectionMessageHandler extends AgentMessageHandler {
       List<FunctionCall> functionCallList = jsonList.map((json)=>FunctionCall.fromJson(json)).toList();
       AgentMessage agentUserMessage = AgentMessage(
         sessionId: agentMessage.sessionId,
+        originalTaskId: agentMessage.originalTaskId,
         parentTaskId: agentMessage.parentTaskId,
         taskId: agentMessage.taskId,
         role: ToolRoleType.AGENT,
@@ -132,6 +138,7 @@ class ToolReflectionMessageHandler extends AgentMessageHandler {
       List<Content> userContentList = toolReflectionManager.userContentList;
       AgentMessage newAgentMessage = AgentMessage(
         sessionId: agentMessage.sessionId,
+        originalTaskId: agentMessage.originalTaskId,
         parentTaskId: agentMessage.parentTaskId,
         taskId: agentMessage.taskId,
         role: ToolRoleType.AGENT,

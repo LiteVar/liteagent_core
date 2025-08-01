@@ -18,7 +18,7 @@ class ReflectorAgent {
 
   ReflectorAgent({required this.llmExecutor, required this.systemPrompt, required this.sessionId, this.parentTaskId});
 
-  Future<ReflectScore> evaluate(List<Content> contentList, String message, void Function(Completions? completions) subscribeCompletions) async {
+  Future<ReflectScore> evaluate(List<Content> contentList, String message, String originalTaskId, void Function(Completions? completions) subscribeCompletions) async {
 
     String userMessage = jsonEncode(contentList.map((content)=>content.toJson()).toList());
 
@@ -50,6 +50,7 @@ class ReflectorAgent {
     if(systemPrompt.isNotEmpty) {
       AgentMessage systemMessage = AgentMessage(
         sessionId: sessionId,
+        originalTaskId: originalTaskId,
         parentTaskId: parentTaskId,
         taskId: taskId,
         role: TextRoleType.DEVELOPER,
@@ -62,6 +63,7 @@ class ReflectorAgent {
 
     AgentMessage reflectMessage = AgentMessage(
       sessionId: sessionId,
+      originalTaskId: originalTaskId,
       parentTaskId: parentTaskId,
       taskId: taskId,
       role: TextRoleType.AGENT,

@@ -42,6 +42,7 @@ class DispatcherMap {
       if(dispatcher.isListening()) {
         AgentMessage currAgentMessage = AgentMessage(
           sessionId: message.sessionId,
+          originalTaskId: message.originalTaskId,
           parentTaskId: message.parentTaskId,
           taskId: taskId,
           role: message.role,

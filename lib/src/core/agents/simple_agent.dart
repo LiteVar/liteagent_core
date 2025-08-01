@@ -24,14 +24,16 @@ class SimpleAgent {
     this.agentMessageListeners.addAll(agentMessageListeners);
   }
 
-  Future<AgentMessage> userToAgent({required List<Content> contentList, String? parentTaskId}) async {
+  Future<AgentMessage> userToAgent({required List<Content> contentList, String? originalTaskId, String? parentTaskId}) async {
     String taskId = uniqueId();
+    originalTaskId = originalTaskId??taskId;
 
     List<AgentMessage> agentLlmMessageList = [];
 
     if(systemPrompt != null && systemPrompt!.isNotEmpty) {
       AgentMessage systemMessage = AgentMessage(
         sessionId: sessionId,
+        originalTaskId: originalTaskId,
         parentTaskId: parentTaskId,
         taskId: taskId,
         role: TextRoleType.DEVELOPER,
@@ -45,6 +47,7 @@ class SimpleAgent {
 
     AgentMessage userMessage = AgentMessage(
       sessionId: sessionId,
+      originalTaskId: originalTaskId,
       parentTaskId: parentTaskId,
       taskId: taskId,
       role: TextRoleType.AGENT,
