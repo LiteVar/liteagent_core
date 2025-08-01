@@ -20,10 +20,7 @@ class AgentSession {
     taskDoneAgentMessageList = [];
   }
 
-  void resetListener() { 
-    _agentMessageListenerList = []; 
-    _agentMessageChunkListenerList = [];
-  }
+  void resetListener() { _agentMessageListenerList = []; }
 
   void addAgentMessageListener(void Function(AgentMessage) agentMessageListener) {
     _agentMessageListenerList.add(agentMessageListener);

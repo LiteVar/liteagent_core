@@ -224,8 +224,6 @@ class AgentService {
       void Function(String sessionId, String taskId, AgentMessageChunkDto agentMessageChunkDto)? listenChunk,
       List<String>? subAgentSessionList
   }) {
-
-    agentSession.resetListener();
     agentSession.addAgentMessageListener((AgentMessage agentMessage) {
       AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
       _recordAgentMessage(agentSession.sessionId, taskId, agentMessageDto);
@@ -241,7 +239,6 @@ class AgentService {
       subAgentSessionList.forEach((subSessionId) {
         SessionAgent? subSessionAgent = sessionAgents[subSessionId];
         if(subSessionAgent != null) {
-          subSessionAgent.agentSession.resetListener();
           subSessionAgent.agentSession.addAgentMessageListener((AgentMessage agentMessage) {
             AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
             _recordAgentMessage(subSessionId, taskId, agentMessageDto);
