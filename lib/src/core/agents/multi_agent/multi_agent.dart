@@ -33,6 +33,7 @@ class MultiAgent extends ToolAgent {
     String taskPipelineStrategy   = PipelineStrategyType.PARALLEL,
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
     required this.subAgentDriverList,
+    bool? enableThinking,
   }) : super(
     sessionId: sessionId,
     toolDriverList: toolDriverList,
@@ -43,6 +44,7 @@ class MultiAgent extends ToolAgent {
     timeoutSeconds: timeoutSeconds,
     taskPipelineStrategy: taskPipelineStrategy,
     toolPipelineStrategy: toolPipelineStrategy,
+    enableThinking: enableThinking,
   ) {
 
     manager.registerHandler(role: MultiAgentRoleType.USER, handler: UserMessageHandler(toolReflectionManager, toLLM));  //override TextAgent User handler, for save List<Content>
@@ -75,7 +77,7 @@ class MultiAgent extends ToolAgent {
     try {
       List<AgentMessage> agentLLMMessageList = prepareAgentLLMMessageList(agentMessage);
       if(super.agentSession.isStream) {
-        Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(llmConfig).requestByStream(agentMessageList: agentLLMMessageList, functionModelList: functionModelList, listenChunk: listenChunk);
+        Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(llmConfig).requestByStream(agentMessageList: agentLLMMessageList, functionModelList: functionModelList, enableThinking: enableThinking, listenChunk: listenChunk);
         agentMessageStream.listen((newAgentMessage) {
           Command nextCommand = Command(toAgent, newAgentMessage);
           dispatcherMap.dispatch(nextCommand);
@@ -86,7 +88,7 @@ class MultiAgent extends ToolAgent {
           }
         );
       } else {
-        AgentMessage llmMessage = await OpenAIExecutor(llmConfig).request(agentMessageList: agentLLMMessageList, functionModelList: functionModelList);
+        AgentMessage llmMessage = await OpenAIExecutor(llmConfig).request(agentMessageList: agentLLMMessageList, functionModelList: functionModelList, enableThinking: enableThinking);
         Command nextCommand = Command(toAgent, llmMessage);
         dispatcherMap.dispatch(nextCommand);
       }

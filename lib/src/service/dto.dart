@@ -60,6 +60,7 @@ class CapabilityDto extends SimpleCapabilityDto {
   String? toolPipelineStrategy;
   bool? auto;
   List<LLMConfigDto>? llmConfigList;
+  bool? enableThinking;
 
   CapabilityDto({
     required super.llmConfig,
@@ -73,6 +74,7 @@ class CapabilityDto extends SimpleCapabilityDto {
     this.toolPipelineStrategy,
     this.auto,
     this.llmConfigList,
+    this.enableThinking,
   });
 
   factory CapabilityDto.fromJson(Map<String, dynamic> json) => _$CapabilityDtoFromJson(json);
@@ -162,6 +164,7 @@ class AgentMessageDto {
   String to;
   String type;
   dynamic content;
+  String? reasoningContent;
 
   @JsonKey(includeIfNull: false)
   CompletionsDto? completions; //When role is llm, this is current llm calling token usage
@@ -177,8 +180,9 @@ class AgentMessageDto {
     required this.to,
     required this.type,
     required this.content,
+    this.reasoningContent,
     this.completions,
-    required this.createTime
+    required this.createTime,
   });
 
   factory AgentMessageDto.fromJson(Map<String, dynamic> json) => _$AgentMessageDtoFromJson(json);
@@ -208,8 +212,10 @@ class AgentMessageDto {
       to: agentMessage.to,
       type: agentMessage.type,
       content: message,
+      reasoningContent: agentMessage.reasoningContent,
       completions: agentMessage.completions == null ? null : CompletionsDto.fromModel(agentMessage.completions!),
-      createTime: agentMessage.createTime);
+      createTime: agentMessage.createTime,
+    );
   }
 }
 

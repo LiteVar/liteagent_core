@@ -24,7 +24,7 @@ class OpenAIUtil {
     }
   }
 
-  Future<ChatCompletion> chat({required List<OpenAIChatCompletionChoiceMessageModel> messageList, List<OpenAIToolModel>? toolList, ResponseFormat? responseFormat}) async {
+  Future<ChatCompletion> chat({required List<OpenAIChatCompletionChoiceMessageModel> messageList, List<OpenAIToolModel>? toolList, ResponseFormat? responseFormat, bool? enableThinking}) async {
     Map<String, dynamic>? responseFormatJson = null;
     if(responseFormat != null) responseFormatJson = responseFormat.toJson();
     OpenAIChatCompletionModel chatCompletion = await OpenAI.instance.chat.create(
@@ -36,6 +36,7 @@ class OpenAIUtil {
       temperature: llmConfig.temperature,
       maxTokens: llmConfig.maxTokens,
       topP: llmConfig.topP,
+      enableThinking: enableThinking,
     );
 
     TokenUsage tokenUsage = TokenUsage(
@@ -49,7 +50,7 @@ class OpenAIUtil {
     return ChatCompletion(message: chatCompletion.choices.first.message, completions: completions);
   }
 
-  Future<Stream<ChatCompletionDelta>> chatByStream({required List<OpenAIChatCompletionChoiceMessageModel> messageList, List<OpenAIToolModel>? toolList, ResponseFormat? responseFormat}) async {
+  Future<Stream<ChatCompletionDelta>> chatByStream({required List<OpenAIChatCompletionChoiceMessageModel> messageList, List<OpenAIToolModel>? toolList, ResponseFormat? responseFormat, bool? enableThinking}) async {
     Map<String, dynamic>? responseFormatJson = null;
     if(responseFormat != null) responseFormatJson = responseFormat.toJson();
     Stream<OpenAIStreamChatCompletionModel> chatCompletionStream = await OpenAI.instance.chat.createStream(
@@ -61,6 +62,7 @@ class OpenAIUtil {
       temperature: llmConfig.temperature,
       maxTokens: llmConfig.maxTokens,
       topP: llmConfig.topP,
+      enableThinking: enableThinking,
       streamOptions: {"include_usage": true}
     );
 

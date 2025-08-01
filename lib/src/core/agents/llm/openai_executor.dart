@@ -20,7 +20,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
     OpenAI.apiKey = llmConfig.apiKey;
   }
 
-  Future<AgentMessage> request({required List<AgentMessage> agentMessageList, List<FunctionModel>? functionModelList, ResponseFormat? responseFormat}) async {
+  Future<AgentMessage> request({required List<AgentMessage> agentMessageList, List<FunctionModel>? functionModelList, ResponseFormat? responseFormat, bool? enableThinking}) async {
     AgentMessage agentMessage = agentMessageList.lastWhere((agentMessage)=> agentMessage.role == AgentRoleType.AGENT);
     _sessionId = agentMessage.sessionId;
     _parentTaskId = agentMessage.parentTaskId;
@@ -39,7 +39,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
     List<OpenAIToolModel>? tools = functionModelList?.map((FunctionModel functionModel) => _buildOpenAIToolModel(functionModel)).toList();
 
     try {
-      ChatCompletion chatCompletion = await super.chat(messageList: requestMessageList, toolList: tools, responseFormat: responseFormat);
+      ChatCompletion chatCompletion = await super.chat(messageList: requestMessageList, toolList: tools, responseFormat: responseFormat, enableThinking: enableThinking);
 
       AgentMessage agentMessage = _toAgentMessage(
           chatCompletion.message,
@@ -52,7 +52,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
     }
   }
 
-  Future<Stream<AgentMessage>> requestByStream({required List<AgentMessage> agentMessageList, List<FunctionModel>? functionModelList, ResponseFormat? responseFormat, void Function(AgentMessageChunk)? listenChunk}) async {
+  Future<Stream<AgentMessage>> requestByStream({required List<AgentMessage> agentMessageList, List<FunctionModel>? functionModelList, ResponseFormat? responseFormat, bool? enableThinking, void Function(AgentMessageChunk)? listenChunk}) async {
     AgentMessage agentMessage = agentMessageList.lastWhere((agentMessage)=> agentMessage.role == AgentRoleType.AGENT);
     _sessionId = agentMessage.sessionId;
     _taskId = agentMessage.taskId;
@@ -70,29 +70,39 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
     List<OpenAIToolModel>? tools = functionModelList?.map((FunctionModel functionModel) => _buildOpenAIToolModel(functionModel)).toList();
 
     try {
-      Stream<ChatCompletionDelta> chatCompletionDeltaStream = await super.chatByStream(messageList: requestMessageList, toolList: tools, responseFormat: responseFormat);
+      Stream<ChatCompletionDelta> chatCompletionDeltaStream = await super.chatByStream(messageList: requestMessageList, toolList: tools, responseFormat: responseFormat, enableThinking: enableThinking);
 
       StreamController<AgentMessage> agentMessageStreamController = StreamController<AgentMessage>();
 
       DeltaAccumulation textAccumulation = _buildTextAccumulation(listenChunk, agentMessageStreamController);
       DeltaAccumulation functionCallAccumulation = _buildFunctionCallAccumulation(agentMessageStreamController);
+      DeltaAccumulation reasoningAccumulation = _buildReasoningAccumulation(listenChunk, agentMessageStreamController);
       String finishReasonCache = "";
 
       chatCompletionDeltaStream.listen((chatCompletionDelta) {
         if(chatCompletionDelta.finishReason == FinishReasonType.LENGTH) throw LLMException(message: "The generation exceeded max_tokens or the conversation exceeded the max context length.");
         if(chatCompletionDelta.finishReason == FinishReasonType.CONTENT_FILTER) throw LLMException(message: "the content filtering system detects harmful content");
         finishReasonCache = chatCompletionDelta.finishReason??finishReasonCache;
+        
+        // TOTO: check if reasoning is finished
+        if(chatCompletionDelta.delta?.reasoningContent != null) {
+          AgentMessageChunk? reasoningChunk = _reasoningDeltaToAgentMessageChunk(chatCompletionDelta);
+          if(reasoningChunk != null && listenChunk != null) listenChunk(reasoningChunk);
+          reasoningAccumulation.appendDelta(chatCompletionDelta);
+        }
+
         if(chatCompletionDelta.delta?.toolCalls != null || chatCompletionDelta.finishReason == FinishReasonType.TOOL_CALLS || (finishReasonCache == FinishReasonType.TOOL_CALLS && chatCompletionDelta.completions != null)) {
           functionCallAccumulation.appendDelta(chatCompletionDelta);
         } else if(chatCompletionDelta.delta?.content != null ||  chatCompletionDelta.finishReason == FinishReasonType.STOP || (finishReasonCache == FinishReasonType.STOP && chatCompletionDelta.completions != null)) {
           AgentMessageChunk? agentMessageChunk = _chunkDeltaToAgentMessageChunk(chatCompletionDelta);
           if(agentMessageChunk != null && listenChunk != null) listenChunk(agentMessageChunk);
           textAccumulation.appendDelta(chatCompletionDelta);
-        }
+        } 
       },
         onDone: () {
           textAccumulation.close();
           functionCallAccumulation.close();
+          reasoningAccumulation.close();
           agentMessageStreamController.close();
         },
         onError: (e) {
@@ -129,6 +139,35 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
         to: AgentRoleType.AGENT,
         type: AgentMessageType.TEXT,
         content: text,
+        completions: completions
+      );
+      agentMessageStreamController.add(agentMessage);
+    });
+  }
+
+  ReasoningAccumulation _buildReasoningAccumulation(void Function(AgentMessageChunk)? listenChunk, StreamController<AgentMessage> agentMessageStreamController) {
+    return ReasoningAccumulation((reasoning, Completions? completions) {
+      if( listenChunk != null) {
+        AgentMessageChunk chunkDoneMessageChunk = AgentMessageChunk(
+          sessionId: _sessionId,
+          parentTaskId: _parentTaskId,
+          taskId: _taskId,
+          role: AgentRoleType.LLM,
+          to: AgentRoleType.AGENT,
+          type: ReasoningMessageType.TASK_STATUS,
+          part: TaskStatus(status: ReasoningStatusType.CHUNK_DONE, taskId: _taskId)
+        );
+        listenChunk(chunkDoneMessageChunk);
+      }
+
+      AgentMessage agentMessage = AgentMessage(
+        sessionId: _sessionId,
+        parentTaskId: _parentTaskId,
+        taskId: _taskId,
+        role: AgentRoleType.LLM,
+        to: AgentRoleType.AGENT,
+        type: AgentMessageType.REASONING,
+        content: reasoning,
         completions: completions
       );
       agentMessageStreamController.add(agentMessage);
@@ -334,9 +373,10 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
 
   AgentMessage _toAgentMessage(OpenAIChatCompletionChoiceMessageModel openAIChatCompletionChoiceMessageModel, {Completions? completions}) {
     dynamic message;
+    String? reasoningContent = openAIChatCompletionChoiceMessageModel.reasoningContent;
 
     if (openAIChatCompletionChoiceMessageModel.haveToolCalls && openAIChatCompletionChoiceMessageModel.toolCalls!.isNotEmpty) {
-      return _toFunctionCallList(openAIChatCompletionChoiceMessageModel.toolCalls!, completions);
+      return _toFunctionCallList(openAIChatCompletionChoiceMessageModel.toolCalls!, reasoningContent, completions);
     }
 
     message = openAIChatCompletionChoiceMessageModel.content?.first.text;
@@ -347,12 +387,13 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
       role: AgentRoleType.LLM,
       to: AgentRoleType.AGENT,
       type: AgentMessageType.TEXT,
+      reasoningContent: reasoningContent,
       content: message,
       completions: completions
     );
   }
 
-  AgentMessage _toFunctionCallList(List<OpenAIResponseToolCall> toolCalls, Completions? completions) {
+  AgentMessage _toFunctionCallList(List<OpenAIResponseToolCall> toolCalls, String? reasoningContent, Completions? completions) {
     List<FunctionCall> functionCallList = toolCalls.map((OpenAIResponseToolCall openAIResponseToolCall) {
       String id = openAIResponseToolCall.id!;
       String name = openAIResponseToolCall.function.name!;
@@ -366,6 +407,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
       role: AgentRoleType.LLM,
       to: AgentRoleType.AGENT,
       type: AgentMessageType.TOOL_CALLS,
+      reasoningContent: reasoningContent,
       content: functionCallList,
       completions: completions
     );
@@ -382,6 +424,22 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
         to: AgentRoleType.AGENT,
         type: AgentMessageType.TEXT,
         part: text
+      );
+    }
+    return null;
+  }
+
+  AgentMessageChunk? _reasoningDeltaToAgentMessageChunk(ChatCompletionDelta chatCompletionDelta) {
+    String reasoningContent = chatCompletionDelta.delta?.reasoningContent??"";
+    if(reasoningContent.isNotEmpty) {
+      return AgentMessageChunk(
+        sessionId: _sessionId,
+        parentTaskId: _parentTaskId,
+        taskId: _taskId,
+        role: AgentRoleType.LLM,
+        to: AgentRoleType.AGENT,
+        type: AgentMessageType.REASONING,
+        part: reasoningContent
       );
     }
     return null;
@@ -427,6 +485,22 @@ class TextAccumulation extends DeltaAccumulation<String> {
     if(delta.finishReason == null) {
       accumulation += delta.delta?.content?.first?.text??"";
     } else if(delta.finishReason == FinishReasonType.STOP) {
+      super._finished = true;
+    }
+    super.appendDelta(delta);
+  }
+}
+
+class ReasoningAccumulation extends DeltaAccumulation<String> {
+  ReasoningAccumulation(super.onComplete) {
+    accumulation = "";
+  }
+  
+  @override
+  void appendDelta(ChatCompletionDelta delta) {
+    if(delta.delta?.reasoningContent != null) {
+      accumulation += delta.delta?.reasoningContent??"";
+    } else if(delta.finishReason == FinishReasonType.STOP || delta.delta?.content?.first?.text != null) {
       super._finished = true;
     }
     super.appendDelta(delta);

@@ -14,9 +14,11 @@ import '../session_agent/model.dart';
 import '../session_agent/session_agent.dart';
 import 'text_agent_message_handler.dart';
 import 'model.dart';
+import '../llm/model.dart';
 
 class TextAgent extends SessionAgent {
   LLMConfig llmConfig;
+  bool? enableThinking;
   ReflectorManager reflectionManager = ReflectorManager();
   Completions? currAgentReflectorCompletions;
   AgentMessageHandlerManager manager = AgentMessageHandlerManager();
@@ -28,7 +30,8 @@ class TextAgent extends SessionAgent {
     String? super.systemPrompt,
     super.timeoutSeconds = 600,
     List<ReflectPrompt> textReflectPromptList = const [],
-    super.taskPipelineStrategy
+    super.taskPipelineStrategy,
+    this.enableThinking
   }) {
     textReflectPromptList.forEach((reflectPrompt){
       ReflectorAgent reflectorAgent = ReflectorAgent(llmExecutor: OpenAIExecutor(reflectPrompt.llmConfig), systemPrompt: reflectPrompt.prompt, sessionId: this.sessionId, parentTaskId: this.parentTaskId);
@@ -112,7 +115,7 @@ class TextAgent extends SessionAgent {
     List<AgentMessage> agentLLMMessageList = prepareAgentLLMMessageList(agentMessage);
     try {
       if(super.agentSession.isStream) {
-        Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(llmConfig).requestByStream(agentMessageList: agentLLMMessageList, listenChunk: listenChunk);
+        Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(llmConfig).requestByStream(agentMessageList: agentLLMMessageList, enableThinking: enableThinking, listenChunk: listenChunk);
 
         agentMessageStream.listen((newAgentMessage) {
           Command nextCommand = Command(toAgent, newAgentMessage);
@@ -125,7 +128,7 @@ class TextAgent extends SessionAgent {
           }
         );
       } else {
-        AgentMessage newAgentMessage = await OpenAIExecutor(llmConfig).request(agentMessageList: agentLLMMessageList);
+        AgentMessage newAgentMessage = await OpenAIExecutor(llmConfig).request(agentMessageList: agentLLMMessageList, enableThinking: enableThinking);
         Command nextCommand = Command(toAgent, newAgentMessage);
         dispatcherMap.dispatch(nextCommand);
       }
@@ -149,10 +152,10 @@ class TextAgent extends SessionAgent {
   }
 
   void listenChunk(AgentMessageChunk agentMessageChunk){
-    if(agentMessageChunk.type == TextMessageType.TEXT) {
+    if(agentMessageChunk.type == TextMessageType.TEXT || agentMessageChunk.type == ReasoningMessageType.REASONING) {
       agentMessageChunk.role = TextRoleType.AGENT;
       agentMessageChunk.to = TextRoleType.USER;
-    } else if(agentMessageChunk.type == TextMessageType.TASK_STATUS) {
+    } else if(agentMessageChunk.type == TextMessageType.TASK_STATUS || agentMessageChunk.type == ReasoningMessageType.TASK_STATUS) {
       agentMessageChunk.role = TextRoleType.AGENT;
       agentMessageChunk.to = TextRoleType.CLIENT;
     }

@@ -63,6 +63,9 @@ void listen(String originalSessionId, String taskId, AgentMessageDto agentMessag
   if (agentMessageDto.to == ToolRoleType.CLIENT) to = client;
   if (agentMessageDto.to == ToolRoleType.REFLECTION) to = reflection;
 
+  if (agentMessageDto.reasoningContent != null) {
+    print("#oriSid:${originalSessionId};parentTaskId:${agentMessageDto.parentTaskId};sid:${agentMessageDto.sessionId};taskId:${agentMessageDto.taskId}# $role -> $to: [reasoning]: ${agentMessageDto.reasoningContent}");
+  }
   if (role.isNotEmpty && to.isNotEmpty) {
     print("#oriSid:${originalSessionId};parentTaskId:${agentMessageDto.parentTaskId};sid:${agentMessageDto.sessionId};taskId:${agentMessageDto.taskId}# $role -> $to: [${agentMessageDto.type}] ${message.replaceAll("\n", "\\n")}");
   }
@@ -75,9 +78,9 @@ void listenChunk(String sessionId, String taskId, AgentMessageChunkDto agentMess
   String client = "🧩🔗CLIENT";
 
   String part = "";
-  if (agentMessageChunkDto.type == ToolMessageType.TEXT)
+  if (agentMessageChunkDto.type == TextMessageType.TEXT || agentMessageChunkDto.type == ReasoningMessageType.REASONING)
     part = agentMessageChunkDto.part as String;
-  if (agentMessageChunkDto.type == AgentMessageType.TASK_STATUS) {
+  if (agentMessageChunkDto.type == TextMessageType.TASK_STATUS || agentMessageChunkDto.type == ReasoningMessageType.TASK_STATUS) {
     part = jsonEncode(agentMessageChunkDto.part as TaskStatusDto);
   }
 

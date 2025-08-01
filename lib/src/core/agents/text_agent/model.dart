@@ -40,6 +40,15 @@ class TextStatusType {
   static const String CHUNK_DONE = "chunkDone";
 }
 
+class ReasoningMessageType {
+  static const String REASONING = AgentMessageType.REASONING; //String
+  static const String TASK_STATUS = AgentMessageType.TASK_STATUS; //TaskStatus
+}
+
+class ReasoningStatusType {
+  static const String CHUNK_DONE = "reasoningChunkDone";
+}
+
 // class Reflection {
 //   final ReflectResult result;
 //   Completions? completions;

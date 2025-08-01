@@ -35,6 +35,7 @@ class ToolAgent extends TextAgent {
     List<ReflectPrompt> toolReflectPromptList = const[],
     super.taskPipelineStrategy,
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
+    super.enableThinking,
   }) {
     toolReflectPromptList.forEach((reflectPrompt){
       ReflectorAgent reflectorAgent = ReflectorAgent(llmExecutor: OpenAIExecutor(reflectPrompt.llmConfig), systemPrompt: reflectPrompt.prompt, sessionId: this.sessionId, parentTaskId: this.parentTaskId);
@@ -94,7 +95,7 @@ class ToolAgent extends TextAgent {
     try {
       List<AgentMessage> agentLLMMessageList = prepareAgentLLMMessageList(agentMessage);
       if(super.agentSession.isStream) {
-        Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(llmConfig).requestByStream(agentMessageList: agentLLMMessageList, functionModelList: functionModelList, listenChunk: listenChunk);
+        Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(llmConfig).requestByStream(agentMessageList: agentLLMMessageList, functionModelList: functionModelList, enableThinking: enableThinking, listenChunk: listenChunk);
         agentMessageStream.listen((newAgentMessage) {
           Command nextCommand = Command(toAgent, newAgentMessage);
           dispatcherMap.dispatch(nextCommand);
@@ -105,7 +106,7 @@ class ToolAgent extends TextAgent {
           }
         );
       } else {
-        AgentMessage llmMessage = await OpenAIExecutor(llmConfig).request(agentMessageList: agentLLMMessageList, functionModelList: functionModelList);
+        AgentMessage llmMessage = await OpenAIExecutor(llmConfig).request(agentMessageList: agentLLMMessageList, functionModelList: functionModelList, enableThinking: enableThinking);
         Command nextCommand = Command(toAgent, llmMessage);
         dispatcherMap.dispatch(nextCommand);
       }

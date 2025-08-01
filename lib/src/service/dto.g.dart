@@ -69,6 +69,7 @@ CapabilityDto _$CapabilityDtoFromJson(Map<String, dynamic> json) =>
       llmConfigList: (json['llmConfigList'] as List<dynamic>?)
           ?.map((e) => LLMConfigDto.fromJson(e as Map<String, dynamic>))
           .toList(),
+      enableThinking: json['enableThinking'] as bool?,
     );
 
 Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
@@ -94,6 +95,7 @@ Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
       if (instance.llmConfigList?.map((e) => e.toJson()).toList()
           case final value?)
         'llmConfigList': value,
+      if (instance.enableThinking case final value?) 'enableThinking': value,
     };
 
 OpenSpecDto _$OpenSpecDtoFromJson(Map<String, dynamic> json) => OpenSpecDto(
@@ -146,6 +148,7 @@ AgentMessageDto _$AgentMessageDtoFromJson(Map<String, dynamic> json) =>
       to: json['to'] as String,
       type: json['type'] as String,
       content: json['content'],
+      reasoningContent: json['reasoningContent'] as String?,
       completions: json['completions'] == null
           ? null
           : CompletionsDto.fromJson(
@@ -163,6 +166,8 @@ Map<String, dynamic> _$AgentMessageDtoToJson(AgentMessageDto instance) =>
       'to': instance.to,
       'type': instance.type,
       if (instance.content case final value?) 'content': value,
+      if (instance.reasoningContent case final value?)
+        'reasoningContent': value,
       if (instance.completions?.toJson() case final value?)
         'completions': value,
       'createTime': instance.createTime.toIso8601String(),

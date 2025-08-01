@@ -87,6 +87,7 @@ class AgentService {
           timeoutSeconds: capabilityDto.timeoutSeconds,
           taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
           toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL,
+          enableThinking: capabilityDto.enableThinking,
           llmConfigList: llmConfigList,
         );
         sessionAgents[sessionId] = autoMultiAgent;
@@ -98,7 +99,8 @@ class AgentService {
         systemPrompt: systemPrompt,
         textReflectPromptList: reflectPromptList??[],
         timeoutSeconds: capabilityDto.timeoutSeconds,
-        taskPipelineStrategy: capabilityDto.taskPipelineStrategy
+        taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
+        enableThinking: capabilityDto.enableThinking
       );
       sessionAgents[sessionId] = textAgent;
     } else if(agentDriverList == null) {  // ToolAgent
@@ -114,7 +116,8 @@ class AgentService {
         toolReflectPromptList: reflectPromptList??[],
         timeoutSeconds: capabilityDto.timeoutSeconds,
         taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
-        toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL
+        toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL,
+        enableThinking: capabilityDto.enableThinking
       );
       sessionAgents[sessionId] = toolAgent;
     } else {  // MultiAgent
@@ -131,7 +134,8 @@ class AgentService {
           toolReflectPromptList: reflectPromptList??[],
           timeoutSeconds: capabilityDto.timeoutSeconds,
           taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
-          toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL
+          toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL,
+          enableThinking: capabilityDto.enableThinking
       );
       sessionAgents[sessionId] = toolAgent;
     }

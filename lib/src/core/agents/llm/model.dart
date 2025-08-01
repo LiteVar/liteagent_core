@@ -30,4 +30,5 @@ class AgentMessageType {
   static const String REFLECTION = "reflection"; //Reflection
   static const String TASK_STATUS = "taskStatus"; //TaskStatus
   static const String FUNCTION_CALL = "functionCall"; //FunctionCall
+  static const String REASONING = "reasoning"; //String
 }

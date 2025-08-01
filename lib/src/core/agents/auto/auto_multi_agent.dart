@@ -47,6 +47,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
     super.toolReflectPromptList,
     super.taskPipelineStrategy,
     super.toolPipelineStrategy,
+    super.enableThinking,
     List<LLMConfig>? llmConfigList,
   }) {
     _initializeIndexedLLMConfigs(llmConfigList);

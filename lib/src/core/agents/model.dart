@@ -20,6 +20,7 @@ class Message {
 
 class AgentMessageBase extends Message {
   dynamic content;
+  String? reasoningContent;
   AgentMessageBase({
     required super.sessionId,
     super.agentId,
@@ -27,7 +28,8 @@ class AgentMessageBase extends Message {
     required super.role,
     required super.to,
     required super.type,
-    required this.content
+    required this.content,
+    this.reasoningContent
   });
 }
 
@@ -43,6 +45,7 @@ class AgentMessage extends AgentMessageBase {
     required super.to,
     required super.type,
     required super.content,
+    super.reasoningContent,
     this.completions
   });
 }
