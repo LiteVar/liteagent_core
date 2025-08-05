@@ -218,7 +218,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
   }
 
   OpenAIFunctionProperty _toOpenAIFunctionProperty(String name, String? description, Schema schema, bool required) {
-    switch (schema.type) {
+    switch (schema.type.toLowerCase()) {
       case DataType.BOOLEAN:
         return OpenAIFunctionProperty.boolean(
           name: name,
