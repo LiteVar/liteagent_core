@@ -234,7 +234,9 @@ class AgentService {
     });
     if(listenChunk != null) {
       agentSession.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
-        listenChunk(agentSession.sessionId, taskId, AgentMessageChunkDto.fromModel(agentMessageChunk));
+        if (agentMessageChunk.originalTaskId == taskId || agentMessageChunk.originalTaskId.isEmpty) {
+          listenChunk(agentSession.sessionId, taskId, AgentMessageChunkDto.fromModel(agentMessageChunk));
+        }
       });
     }
 
@@ -251,7 +253,9 @@ class AgentService {
           });
           if(listenChunk != null) {
             subSessionAgent.agentSession.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
-              listenChunk(subSessionId, taskId, AgentMessageChunkDto.fromModel(agentMessageChunk));
+              if (agentMessageChunk.originalTaskId == taskId || agentMessageChunk.originalTaskId.isEmpty) {
+                listenChunk(subSessionId, taskId, AgentMessageChunkDto.fromModel(agentMessageChunk));
+              }
             });
           }
         }
