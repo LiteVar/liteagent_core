@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:opentool_dart/opentool_dart.dart';
 import '../../driver/agent_driver.dart';
 import '../../driver/client_driver.dart';
+import '../../driver/tool_driver.dart';
 import '../llm/exception.dart';
 import '../llm/openai_executor.dart';
 import '../model.dart';

@@ -100,7 +100,7 @@ Future<List<OpenSpecDto>> _buildOpenSpecList() async {
   for (String fileName in fileNameList) {
     File file = File("$folder${Platform.pathSeparator}$fileName");
     String jsonString = await file.readAsString();
-    OpenSpecDto openSpecDto = OpenSpecDto(openSpec: jsonString, protocol: Protocol.OPENTOOL, openToolId: "mock-tool");
+    OpenSpecDto openSpecDto = OpenSpecDto(openSpec: jsonString, protocol: Protocol.OPENTOOL);
     openSpecList.add(openSpecDto);
   }
 
@@ -116,8 +116,8 @@ Future<Map<String, OpenToolDriver>> _buildOpenToolDriverMap() async {
   Map<String, OpenToolDriver> opentoolDriverMap = {};
   for (String fileName in fileNameList) {
     String jsonPath = "$folder${Platform.pathSeparator}$fileName";
-    OpenTool openTool = await OpenToolLoader().loadFromFile(jsonPath);
-    OpenToolDriver opentoolDriver = MockDriver().bind(openTool);
+    OpenTool openTool = await OpenToolJsonLoader().loadFromFile(jsonPath);
+    OpenToolDriver opentoolDriver = MockDriver(openTool);
     String opentoolId = fileName.substring(0, fileName.lastIndexOf('.'),);
     opentoolDriverMap[opentoolId] = opentoolDriver;
   }

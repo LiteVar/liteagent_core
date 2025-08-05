@@ -104,7 +104,6 @@ OpenSpecDto _$OpenSpecDtoFromJson(Map<String, dynamic> json) => OpenSpecDto(
           ? null
           : ApiKeyDto.fromJson(json['apiKey'] as Map<String, dynamic>),
       protocol: json['protocol'] as String,
-      openToolId: json['openToolId'] as String?,
     );
 
 Map<String, dynamic> _$OpenSpecDtoToJson(OpenSpecDto instance) =>
@@ -112,7 +111,6 @@ Map<String, dynamic> _$OpenSpecDtoToJson(OpenSpecDto instance) =>
       'openSpec': instance.openSpec,
       if (instance.apiKey?.toJson() case final value?) 'apiKey': value,
       'protocol': instance.protocol,
-      if (instance.openToolId case final value?) 'openToolId': value,
     };
 
 LLMConfigDto _$LLMConfigDtoFromJson(Map<String, dynamic> json) => LLMConfigDto(

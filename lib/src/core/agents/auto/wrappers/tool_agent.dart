@@ -1,6 +1,7 @@
 import 'dart:async';
-import 'package:lite_agent_core_dart/src/core/agents/tool_agent/tool_agent.dart';
-import 'package:opentool_dart/opentool_dart.dart';
+import 'package:opentool_dart/opentool_dart.dart' as ot;
+import '../../../driver/tool_driver.dart';
+import '../../tool_agent/tool_agent.dart';
 import 'function.dart';
 import '../../session_agent/session.dart';
 import '../../session_agent/model.dart';
@@ -33,8 +34,8 @@ class AutoToolAgent extends ToolAgent {
   }
 
   @override
-  Future<List<FunctionModel>> buildFunctionModelList() async {
-    List<FunctionModel> functionModelList = [];
+  Future<List<ot.FunctionModel>> buildFunctionModelList() async {
+    List<ot.FunctionModel> functionModelList = [];
     indexedFunctions.forEach((IndexedFunction indexedFunction) {
       functionModelList.add(indexedFunction.functionModel);
     });
@@ -54,7 +55,7 @@ class AutoToolAgent extends ToolAgent {
 
     _setupMessageListener(agentSession, completer, result, messageSender);
 
-    final functionCall = FunctionCall(id: uniqueId(), name: functionName, arguments: {});
+    final functionCall = ot.FunctionCall(id: uniqueId(), name: functionName, arguments: {});
 
     String taskId = uniqueId();
     void Function(String result) fetchTaskId = (String result) {

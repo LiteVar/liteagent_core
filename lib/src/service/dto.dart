@@ -84,11 +84,10 @@ class CapabilityDto extends SimpleCapabilityDto {
 
 class Protocol {
   static const String OPENAPI = "openapi";
-  static const String OPENMODBUS = "openmodbus";
   static const String JSONRPCHTTP = "jsonrpcHttp";
   static const String OPENTOOL = "opentool";
-  static const String SERIALPORT = "serialport";
-  static const String MCP_STDIO_TOOLS = "mcpStdioTools";
+  static const String MCP_STDIO = "mcpStdio";
+  static const String MCP_HTTP = "mcpHttp";
 }
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
@@ -96,9 +95,9 @@ class OpenSpecDto {
   String openSpec;
   ApiKeyDto? apiKey;
   String protocol;
-  String? openToolId; //When protocol is open tool, this is the tool id
+  // String? openToolId; //When protocol is open tool, this is the tool id
 
-  OpenSpecDto({required this.openSpec, this.apiKey, required this.protocol, this.openToolId});
+  OpenSpecDto({required this.openSpec, this.apiKey, required this.protocol});//, this.openToolId});
 
   factory OpenSpecDto.fromJson(Map<String, dynamic> json) => _$OpenSpecDtoFromJson(json);
 

@@ -1,9 +1,12 @@
+import 'package:lite_agent_core_dart/lite_agent_core.dart';
 import 'package:opentool_dart/opentool_dart.dart';
 
 import 'mock_util.dart';
 
 class MockDriver extends OpenToolDriver {
   MockUtil mockUtil = MockUtil();
+
+  MockDriver(OpenTool opentool): super(opentool);
 
   @override
   Future<ToolReturn> call(FunctionCall functionCall) async{

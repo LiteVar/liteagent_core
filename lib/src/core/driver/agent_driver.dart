@@ -1,6 +1,6 @@
 import 'package:opentool_dart/opentool_dart.dart';
-
 import '../agents/model.dart';
+import 'tool_driver.dart';
 
 abstract class AgentDriver extends ToolDriver {
   String? parentTaskId;

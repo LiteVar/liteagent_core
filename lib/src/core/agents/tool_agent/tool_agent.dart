@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:opentool_dart/opentool_dart.dart';
 import '../../agents/text_agent/text_agent.dart';
 import '../../driver/client_driver.dart';
+import '../../driver/tool_driver.dart';
 import '../llm/exception.dart';
 import '../llm/openai_executor.dart';
 import '../model.dart';
@@ -148,7 +149,7 @@ class ToolAgent extends TextAgent {
   }
 
   Future<ClientDriver> buildClientDriver(AgentMessage agentMessage) async {
-    OpenTool openTool = await OpenToolLoader().load(this.clientOpenTool!.opentool);
+    OpenTool opentool = await OpenToolJsonLoader().load(this.clientOpenTool!.opentool);
     void Function(FunctionCall functionCall) listenClientFunctionCall = (FunctionCall functionCall) {
       AgentMessage clientMessage = AgentMessage(
           sessionId: agentMessage.sessionId,
@@ -163,7 +164,7 @@ class ToolAgent extends TextAgent {
       Command functionCallCommand = Command(toAgent, clientMessage);
       dispatcherMap.dispatch(functionCallCommand);
     };
-    return ClientDriver(listenClientFunctionCall, timeout: clientOpenTool!.timeout??60).bind(openTool) as ClientDriver;
+    return ClientDriver(opentool, listenClientFunctionCall, timeout: clientOpenTool!.timeout??60);
   }
 
   Future<void> requestTools(AgentMessage agentMessage) async {

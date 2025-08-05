@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import '../../driver/tool_driver.dart';
 import '../model.dart';
 import '../session_agent/model.dart';
 import '../session_agent/session.dart';
@@ -9,7 +10,7 @@ import '../pipeline/model.dart';
 import 'planner/planner.dart';
 import 'executor/executor.dart';
 import 'summarizer/summarizer.dart';
-import 'package:opentool_dart/opentool_dart.dart';
+import 'package:opentool_dart/opentool_dart.dart' as ot;
 import '../../util/unique_id_generator.dart';
 import '../../llm/model.dart';
 import 'wrappers/function.dart';
@@ -22,9 +23,9 @@ abstract class AutoMessageSender {
 
   Future<void> sendAgentMessage(AgentMessage message);
 
-  Future<void> sendFunctionCallStart(String taskId, FunctionCall call);
+  Future<void> sendFunctionCallStart(String taskId, ot.FunctionCall call);
 
-  Future<void> sendFunctionCallDone(String taskId, FunctionCall call, String result);
+  Future<void> sendFunctionCallDone(String taskId, ot.FunctionCall call, String result);
 }
 
 class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
@@ -200,9 +201,9 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
     await Future.wait(toolDriverList.map((driver) => driver.init()));
 
     for (ToolDriver toolDriver in toolDriverList) {
-      List<FunctionModel> functionModels = toolDriver.parse();
+      List<ot.FunctionModel> functionModels = toolDriver.parse();
       
-      for (FunctionModel functionModel in functionModels) {
+      for (ot.FunctionModel functionModel in functionModels) {
         indexedFunctions.add(IndexedFunction(
           index: currentIndex,
           functionModel: functionModel,
@@ -329,7 +330,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
   }
 
   @override
-  Future<void> sendFunctionCallStart(String taskId, FunctionCall call) async {
+  Future<void> sendFunctionCallStart(String taskId, ot.FunctionCall call) async {
     AgentMessage subAgentMessage = AgentMessage(
       sessionId: sessionId,
       originalTaskId: originalTaskId,
@@ -356,7 +357,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
   }
 
   @override
-  Future<void> sendFunctionCallDone(String taskId, FunctionCall call, String result) async {
+  Future<void> sendFunctionCallDone(String taskId, ot.FunctionCall call, String result) async {
     AgentMessage subAgentReturnMessage = AgentMessage(
       sessionId: sessionId,
       originalTaskId: originalTaskId,
@@ -365,7 +366,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
       role: MultiAgentRoleType.SUBAGENT,
       to: MultiAgentRoleType.AGENT,
       type: MultiAgentMessageType.TOOL_RETURN,
-      content: ToolReturn(id: call.id, result: {"result": result})
+      content: ot.ToolReturn(id: call.id, result: {"result": result})
     );
     sendAgentMessage(subAgentReturnMessage);
 

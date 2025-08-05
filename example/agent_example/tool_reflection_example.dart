@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:lite_agent_core_dart/lite_agent_core.dart';
 import 'package:lite_agent_core_dart/lite_agent_service.dart';
 import 'package:dotenv/dotenv.dart';
-import 'package:opentool_dart/opentool_dart.dart';
+import 'package:opentool_dart/opentool_dart.dart' as ot;
 import '../custom_driver/mock_driver.dart';
 import '../listener.dart';
 
@@ -51,8 +51,8 @@ Future<List<ToolDriver>> _buildToolDriverList() async {
 
   List<ToolDriver> toolDriverList = [];
   for (String fileName in fileNameList) {
-    OpenTool openTool = await OpenToolLoader().loadFromFile("$folder${Platform.pathSeparator}$fileName");
-    ToolDriver toolDriver = MockDriver().bind(openTool);
+    ot.OpenTool openTool = await ot.OpenToolJsonLoader().loadFromFile("$folder${Platform.pathSeparator}$fileName");
+    ToolDriver toolDriver = MockDriver(openTool);
     toolDriverList.add(toolDriver);
   }
   return toolDriverList;
@@ -92,7 +92,7 @@ Future<String> _buildToolsDescription() async {
 
   String toolsDescription = "# Tools\n\n";
   for (String fileName in fileNameList) {
-    OpenTool openTool = await OpenToolLoader().loadFromFile("$folder${Platform.pathSeparator}$fileName");
+    ot.OpenTool openTool = await ot.OpenToolJsonLoader().loadFromFile("$folder${Platform.pathSeparator}$fileName");
     String jsonString = jsonEncode(openTool.toJson());
     String toolDescription = "## ${openTool.info.title} \n\n```json\n${jsonString}\n```";
     toolsDescription = toolsDescription + toolDescription;

@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'package:opentool_dart/opentool_dart.dart';
+import 'opentool_driver.dart';
 
 class ClientDriver extends OpenToolDriver {
   void Function(FunctionCall functionCall) listenClientFunctionCall;
   int timeout;
   Completer<ToolReturn>? _toolReturnCompleter;
 
-  ClientDriver(this.listenClientFunctionCall, {this.timeout = 60});
+  ClientDriver(OpenTool opentool, this.listenClientFunctionCall, {this.timeout = 60}) : super(opentool);
 
   @override
   Future<ToolReturn> call(FunctionCall functionCall) async {

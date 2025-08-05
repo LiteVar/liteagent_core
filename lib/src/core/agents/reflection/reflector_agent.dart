@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:opentool_dart/opentool_dart.dart';
+import 'package:opentool_dart/opentool_dart.dart' as ot;
 import '../../llm/model.dart';
 import '../../util/unique_id_generator.dart';
 import '../llm/llm_executor.dart';
@@ -79,8 +79,8 @@ class ReflectorAgent {
     AgentMessage llmMessage = await llmExecutor.request(agentMessageList: agentLLMMessageList, functionModelList: reflectionDriver.parse());
     subscribeCompletions(llmMessage.completions);
     if (llmMessage.type == AgentMessageType.TOOL_CALLS) {
-      List<FunctionCall> functionCallList = llmMessage.content as List<FunctionCall>;
-      FunctionCall functionCall = functionCallList.first;
+      List<ot.FunctionCall> functionCallList = llmMessage.content as List<ot.FunctionCall>;
+      ot.FunctionCall functionCall = functionCallList.first;
       try {
         ReflectScore reflectScore = ReflectScore.fromJson(functionCall.arguments);
         return reflectScore;

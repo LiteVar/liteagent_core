@@ -114,8 +114,8 @@ Future<List<ToolDriver>> _buildCustomToolDriverList() async {
   for (String fileName in fileNameList) {
     String jsonPath = "$folder${Platform.pathSeparator}$fileName";
 
-    OpenTool openTool = await OpenToolLoader().loadFromFile(jsonPath);
-    ToolDriver toolDriver = MockDriver().bind(openTool);
+    OpenTool openTool = await OpenToolJsonLoader().loadFromFile(jsonPath);
+    ToolDriver toolDriver = MockDriver(openTool);
 
     toolDriverList.add(toolDriver);
   }
