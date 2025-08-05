@@ -2,7 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 import '../model.dart';
 import '../session_agent/model.dart';
+import '../session_agent/session.dart';
 import '../tool_agent/tool_agent.dart';
+import '../reflection/model.dart';
+import '../pipeline/model.dart';
 import 'planner/planner.dart';
 import 'executor/executor.dart';
 import 'summarizer/summarizer.dart';
@@ -38,7 +41,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
 
   String originalTaskId = "";
     
-  AutoMultiAgent({
+  AutoMultiAgent._internal({
     required super.sessionId,
     required super.toolDriverList,
     super.clientOpenTool,
@@ -46,25 +49,59 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
     required super.agentSession,
     super.systemPrompt,
     super.timeoutSeconds = 3600,
-    super.toolReflectPromptList,
-    super.taskPipelineStrategy,
-    super.toolPipelineStrategy,
+    List<ReflectPrompt> toolReflectPromptList = const [],
+    String taskPipelineStrategy = PipelineStrategyType.PARALLEL,
+    String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
     super.enableThinking,
     List<LLMConfig>? llmConfigList,
-  }) {
-    _initializeIndexedLLMConfigs(llmConfigList);
-    _initializeIndexedFunctions();
+  }) : super(toolReflectPromptList: toolReflectPromptList, taskPipelineStrategy: taskPipelineStrategy, toolPipelineStrategy: toolPipelineStrategy) {
+  }
 
-    print('=== AutoMultiAgent available LLM models ===');
-    for (IndexedLLMConfig indexedLLMConfig in indexedLLMConfigs) {
-      print('${indexedLLMConfig.index}: ${indexedLLMConfig.llmConfig.model} - ${indexedLLMConfig.description ?? "general model"}');
+  static Future<AutoMultiAgent> create({
+    required String sessionId,
+    required List<ToolDriver> toolDriverList,
+    ClientOpenTool? clientOpenTool,
+    required LLMConfig llmConfig,
+    required AgentSession agentSession,
+    String? systemPrompt,
+    int timeoutSeconds = 3600,
+    List<ReflectPrompt> toolReflectPromptList = const [],
+    String taskPipelineStrategy = PipelineStrategyType.PARALLEL,
+    String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
+    bool? enableThinking,
+    List<LLMConfig>? llmConfigList,
+  }) async {
+    try {
+      AutoMultiAgent instance = AutoMultiAgent._internal(
+        sessionId: sessionId,
+        toolDriverList: toolDriverList,
+        clientOpenTool: clientOpenTool,
+        llmConfig: llmConfig,
+        agentSession: agentSession,
+        systemPrompt: systemPrompt,
+        timeoutSeconds: timeoutSeconds,
+        toolReflectPromptList: toolReflectPromptList,
+        taskPipelineStrategy: taskPipelineStrategy,
+        toolPipelineStrategy: toolPipelineStrategy,
+        enableThinking: enableThinking,
+        llmConfigList: llmConfigList,
+      );
+
+      instance._initializeIndexedLLMConfigs(llmConfigList);
+
+      await instance._initializeIndexedFunctions();
+
+      instance._initializeComponents();
+
+      instance._printInitializationInfo();
+
+      return instance;
+    } catch (e) {
+      throw Exception('AutoMultiAgent init error: $e');
     }
+  }
 
-    print('=== AutoMultiAgent available functions ===');
-    for (IndexedFunction indexedFunction in indexedFunctions) {
-      print('${indexedFunction.index}: ${indexedFunction.functionModel.name} - ${indexedFunction.functionModel.description}');
-    }
-
+  void _initializeComponents() {
     taskPlanner = AutoTaskPlanner(
       plannerLLMConfig: llmConfig,
       messageSender: this,
@@ -80,6 +117,18 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
       summarizerLLMConfig: llmConfig,
       messageSender: this,
     );
+  }
+
+  void _printInitializationInfo() {
+    print('=== AutoMultiAgent available LLM models ===');
+    for (IndexedLLMConfig indexedLLMConfig in indexedLLMConfigs) {
+      print('${indexedLLMConfig.index}: ${indexedLLMConfig.llmConfig.model} - ${indexedLLMConfig.description ?? "general model"}');
+    }
+
+    print('=== AutoMultiAgent available functions ===');
+    for (IndexedFunction indexedFunction in indexedFunctions) {
+      print('${indexedFunction.index}: ${indexedFunction.functionModel.name} - ${indexedFunction.functionModel.description}');
+    }
   }
 
   @override
@@ -144,10 +193,12 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
     }
   }
 
-  void _initializeIndexedFunctions() {
+  Future<void> _initializeIndexedFunctions() async {
     indexedFunctions.clear();
     int currentIndex = 0;
     
+    await Future.wait(toolDriverList.map((driver) => driver.init()));
+
     for (ToolDriver toolDriver in toolDriverList) {
       List<FunctionModel> functionModels = toolDriver.parse();
       
@@ -231,7 +282,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
       type: SessionMessageType.TASK_STATUS,
       content: TaskStatus(status: TaskStatusType.START, taskId: taskId)
     );
-    await agentSession.addListenAgentMessage(clientMessage);
+    await sendAgentMessage(clientMessage);
 
     AgentMessage userMessage = AgentMessage(
       sessionId: sessionId,
@@ -243,7 +294,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
       type: SessionMessageType.CONTENT_LIST,
       content: contentList
     );
-    await agentSession.addListenAgentMessage(userMessage);
+    await sendAgentMessage(userMessage);
   }
 
   Future<void> _sendDoneMessage(String taskId, String finalResult) async {
@@ -257,7 +308,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
       type: SessionMessageType.TEXT,
       content: finalResult
     );
-    await agentSession.addListenAgentMessage(userMessage);
+    await sendAgentMessage(userMessage);
 
     AgentMessage clientMessage = AgentMessage(
       sessionId: sessionId,
@@ -269,7 +320,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
       type: SessionMessageType.TASK_STATUS,
       content: TaskStatus(status: TaskStatusType.DONE, taskId: taskId)
     );
-    await agentSession.addListenAgentMessage(clientMessage);
+    await sendAgentMessage(clientMessage);
   }
 
   @override

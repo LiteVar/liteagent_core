@@ -38,7 +38,7 @@ class SessionAgentDriver extends AgentDriver {
 
   @override
   Future<ToolReturn> call(FunctionCall functionCall) async {
-      return ToolReturn(id: functionCall.id, result: { "error": "Not Support call, use agentCall instead" });
+      return ToolReturn(id: functionCall.id, result: { "error": "Not Support call, use callAgent instead" });
   }
 
   @override

@@ -17,6 +17,7 @@ class AgentService {
   Map<String, OpenToolDriver> opentoolDriverMap = {}; /// Map<sessionId, OpenToolDriver>
   Map<String, ClientDriver> clientDriverMap= {}; /// Map<sessionId, ClientDriver>
   List<SessionMessageManageService> agentMessageManageServiceList = [];
+  Set<Message> sentMessages = {};
 
   AgentService({List<ToolDriver> globalToolDriverList = const [], List<SessionMessageManageService> messageManageServiceList = const []}) {
     globalDriverList.addAll(globalToolDriverList);
@@ -77,7 +78,7 @@ class AgentService {
     if (capabilityDto.auto == true) { // AutoAgent
         List<LLMConfig>? llmConfigList = capabilityDto.llmConfigList?.map((llmConfigDto) => llmConfigDto.toModel()).toList();
 
-        AutoMultiAgent autoMultiAgent = AutoMultiAgent(
+        AutoMultiAgent autoMultiAgent = await AutoMultiAgent.create(
           sessionId: sessionId,
           llmConfig: llmConfig,
           agentSession: _buildSession(sessionId),
@@ -227,15 +228,17 @@ class AgentService {
 
     agentSession.addAgentMessageListener((AgentMessage agentMessage) {
       AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
-      if (agentMessage.originalTaskId == taskId || agentMessage.originalTaskId.isEmpty) {
+      if (agentMessage.originalTaskId == taskId || agentMessage.originalTaskId.isEmpty && !sentMessages.contains(agentMessage)) {
         _recordAgentMessage(agentSession.sessionId, taskId, agentMessageDto);
         listen(agentSession.sessionId, taskId, agentMessageDto);
+        sentMessages.add(agentMessage);
       }
     });
     if(listenChunk != null) {
       agentSession.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
-        if (agentMessageChunk.originalTaskId == taskId || agentMessageChunk.originalTaskId.isEmpty) {
+        if (agentMessageChunk.originalTaskId == taskId || agentMessageChunk.originalTaskId.isEmpty && !sentMessages.contains(agentMessageChunk)) {
           listenChunk(agentSession.sessionId, taskId, AgentMessageChunkDto.fromModel(agentMessageChunk));
+          sentMessages.add(agentMessageChunk);
         }
       });
     }
@@ -245,16 +248,18 @@ class AgentService {
         SessionAgent? subSessionAgent = sessionAgents[subSessionId];
         if(subSessionAgent != null) {
           subSessionAgent.agentSession.addAgentMessageListener((AgentMessage agentMessage) {
-            AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
-            if (agentMessage.originalTaskId == taskId || agentMessage.originalTaskId.isEmpty) {
+            if (agentMessage.originalTaskId == taskId && !sentMessages.contains(agentMessage)) {
+              AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
               _recordAgentMessage(subSessionId, taskId, agentMessageDto);
               listen(subSessionId, taskId, agentMessageDto);
+              sentMessages.add(agentMessage);
             }
           });
           if(listenChunk != null) {
             subSessionAgent.agentSession.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
-              if (agentMessageChunk.originalTaskId == taskId || agentMessageChunk.originalTaskId.isEmpty) {
+              if (agentMessageChunk.originalTaskId == taskId && !sentMessages.contains(agentMessageChunk)) {
                 listenChunk(subSessionId, taskId, AgentMessageChunkDto.fromModel(agentMessageChunk));
+                sentMessages.add(agentMessageChunk);
               }
             });
           }
