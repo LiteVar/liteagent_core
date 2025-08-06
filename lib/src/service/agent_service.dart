@@ -4,6 +4,7 @@ import 'package:opentool_dart/opentool_dart.dart';
 import 'package:openapi_dart/openapi_dart.dart';
 import 'package:openmodbus_dart/openmodbus_dart.dart';
 import 'package:openrpc_dart/openrpc_dart.dart';
+import 'dart:collection';
 import '../../lite_agent_core.dart';
 import '../core/agents/auto/auto_multi_agent.dart';
 import 'session_message_manage_service.dart';
@@ -11,13 +12,15 @@ import 'dto.dart';
 import 'exception.dart';
 
 class AgentService {
+  static const int _SENT_MESSAGES_CAPACITY = 500;
+  
   Map<String, SessionAgent> sessionAgents = {}; /// Map<sessionId, SessionAgent>
   Map<String, SimpleAgent> simpleAgents = {}; /// Map<sessionId, SimpleAgent>
   List<ToolDriver> globalDriverList = [];
   Map<String, OpenToolDriver> opentoolDriverMap = {}; /// Map<sessionId, OpenToolDriver>
   Map<String, ClientDriver> clientDriverMap= {}; /// Map<sessionId, ClientDriver>
   List<SessionMessageManageService> agentMessageManageServiceList = [];
-  Set<Message> sentMessages = {};
+  LinkedHashMap<Message, Map<String, bool>> sentMessages = LinkedHashMap<Message, Map<String, bool>>(); /// Map<Message, Map<sessionId, bool>>
 
   AgentService({List<ToolDriver> globalToolDriverList = const [], List<SessionMessageManageService> messageManageServiceList = const []}) {
     globalDriverList.addAll(globalToolDriverList);
@@ -199,6 +202,7 @@ class AgentService {
     if(sessionAgent == null) throw SessionAgentNotFoundException(sessionId: sessionId);
     sessionAgent.clear();
     sessionAgents.remove(sessionId);
+    sentMessages.clear();
   }
 
   Content _convertToContent(ContentDto contentDto) {
@@ -228,17 +232,17 @@ class AgentService {
 
     agentSession.addAgentMessageListener((AgentMessage agentMessage) {
       AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
-      if (agentMessage.originalTaskId == taskId || agentMessage.originalTaskId.isEmpty && !sentMessages.contains(agentMessage)) {
+      if ((agentMessage.originalTaskId == taskId || agentMessage.originalTaskId.isEmpty) && !_isSentMessage(agentMessage, agentSession.sessionId)) {
         _recordAgentMessage(agentSession.sessionId, taskId, agentMessageDto);
         listen(agentSession.sessionId, taskId, agentMessageDto);
-        sentMessages.add(agentMessage);
+        _addToSentMessages(agentMessage, agentSession.sessionId);
       }
     });
     if(listenChunk != null) {
       agentSession.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
-        if (agentMessageChunk.originalTaskId == taskId || agentMessageChunk.originalTaskId.isEmpty && !sentMessages.contains(agentMessageChunk)) {
+        if ((agentMessageChunk.originalTaskId == taskId || agentMessageChunk.originalTaskId.isEmpty) && !_isSentMessage(agentMessageChunk, agentSession.sessionId)) {
           listenChunk(agentSession.sessionId, taskId, AgentMessageChunkDto.fromModel(agentMessageChunk));
-          sentMessages.add(agentMessageChunk);
+          _addToSentMessages(agentMessageChunk, agentSession.sessionId);
         }
       });
     }
@@ -248,18 +252,18 @@ class AgentService {
         SessionAgent? subSessionAgent = sessionAgents[subSessionId];
         if(subSessionAgent != null) {
           subSessionAgent.agentSession.addAgentMessageListener((AgentMessage agentMessage) {
-            if (agentMessage.originalTaskId == taskId && !sentMessages.contains(agentMessage)) {
+            if ((agentMessage.originalTaskId == taskId || agentMessage.originalTaskId.isEmpty) && !_isSentMessage(agentMessage, subSessionId)) {
               AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
               _recordAgentMessage(subSessionId, taskId, agentMessageDto);
               listen(subSessionId, taskId, agentMessageDto);
-              sentMessages.add(agentMessage);
+              _addToSentMessages(agentMessage, subSessionId);
             }
           });
           if(listenChunk != null) {
             subSessionAgent.agentSession.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
-              if (agentMessageChunk.originalTaskId == taskId && !sentMessages.contains(agentMessageChunk)) {
+              if ((agentMessageChunk.originalTaskId == taskId || agentMessageChunk.originalTaskId.isEmpty) && !_isSentMessage(agentMessageChunk, subSessionId)) {
                 listenChunk(subSessionId, taskId, AgentMessageChunkDto.fromModel(agentMessageChunk));
-                sentMessages.add(agentMessageChunk);
+                _addToSentMessages(agentMessageChunk, subSessionId);
               }
             });
           }
@@ -381,6 +385,21 @@ class AgentService {
     agentMessageManageServiceList.forEach((service) {
       service.addMessage(sessionAgentMessageDto);
     });
+  }
+
+  bool _isSentMessage(Message message, String toSessionId) {
+    return sentMessages.containsKey(message) && sentMessages[message]![toSessionId] == true;
+  }
+
+  void _addToSentMessages(Message message, String toSessionId) {
+    if (sentMessages.length >= _SENT_MESSAGES_CAPACITY) {
+      sentMessages.remove(sentMessages.keys.first);
+    }
+    if(!sentMessages.containsKey(message)) {
+      sentMessages[message] = {toSessionId: true};
+    } else {
+      sentMessages[message]![toSessionId] = true;
+    }
   }
 
   void fetchClientDriver(String sessionId, ClientDriver clientDriver) {
