@@ -4,20 +4,25 @@ import 'model.dart';
 
 class OpenAIUtil {
   late LLMConfig llmConfig;
+  late OpenAIClient _client;
 
   OpenAIUtil(this.llmConfig) {
-    OpenAI.baseUrl = llmConfig.baseUrl;
-    OpenAI.apiKey = llmConfig.apiKey;
+    _client = OpenAIClient(
+      apiKey: llmConfig.apiKey,
+      baseUrl: llmConfig.baseUrl,
+      showLogs: false,
+    );
   }
 
   static Future<bool> checkLLMConfig(String baseUrl, String apiKey) async {
     try {
-      OpenAI.baseUrl = baseUrl;
-      OpenAI.apiKey = apiKey;
-      List<OpenAIModelModel> modelList = await OpenAI.instance.model.list();
-      /// Remove model list check
-      // OpenAIModelModel openAIModelModel = modelList.firstWhere((openAIModelModel) => openAIModelModel.id == llmConfig.model);
-      return true;
+      OpenAIClient tempClient = OpenAIClient(
+        apiKey: apiKey,
+        baseUrl: baseUrl,
+        showLogs: false,
+      );
+      bool isConnected = await tempClient.testConnection();
+      return isConnected;
     } catch(e) {
       print(e);
       return false;
@@ -27,7 +32,7 @@ class OpenAIUtil {
   Future<ChatCompletion> chat({required List<OpenAIChatCompletionChoiceMessageModel> messageList, List<OpenAIToolModel>? toolList, ResponseFormat? responseFormat, bool? enableThinking}) async {
     Map<String, dynamic>? responseFormatJson = null;
     if(responseFormat != null) responseFormatJson = responseFormat.toJson();
-    OpenAIChatCompletionModel chatCompletion = await OpenAI.instance.chat.create(
+    OpenAIChatCompletionModel chatCompletion = await _client.chat.create(
       model: llmConfig.model,
       responseFormat: responseFormatJson,
       seed: 6,
@@ -53,7 +58,7 @@ class OpenAIUtil {
   Future<Stream<ChatCompletionDelta>> chatByStream({required List<OpenAIChatCompletionChoiceMessageModel> messageList, List<OpenAIToolModel>? toolList, ResponseFormat? responseFormat, bool? enableThinking}) async {
     Map<String, dynamic>? responseFormatJson = null;
     if(responseFormat != null) responseFormatJson = responseFormat.toJson();
-    Stream<OpenAIStreamChatCompletionModel> chatCompletionStream = await OpenAI.instance.chat.createStream(
+    Stream<OpenAIStreamChatCompletionModel> chatCompletionStream = await _client.chat.createStream(
       model: llmConfig.model,
       responseFormat: responseFormatJson,
       seed: 6,
