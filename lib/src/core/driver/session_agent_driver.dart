@@ -50,8 +50,20 @@ class SessionAgentDriver extends AgentDriver {
 
       Completer<AgentMessage> completer = Completer();
       void Function(AgentMessage) listen = (agentMessage) {
-        if(agentMessage.role == AgentRoleType.AGENT && agentMessage.to == AgentRoleType.USER && agentMessage.sessionId == namedSessionAgent.agent.agentSession.sessionId) {
-          completer.complete(agentMessage);
+        if (agentMessage.sessionId != namedSessionAgent.agent.agentSession.sessionId) {
+          return;
+        }
+        if (agentMessage.role == AgentRoleType.AGENT && agentMessage.to == AgentRoleType.USER) {
+          if (!completer.isCompleted) {
+            completer.complete(agentMessage);
+          }
+        } else if (agentMessage.role == AgentRoleType.AGENT && agentMessage.to == AgentRoleType.CLIENT && agentMessage.type == AgentMessageType.TASK_STATUS) {
+          TaskStatus taskStatus = agentMessage.content as TaskStatus;
+          if (taskStatus.status == TaskStatusType.EXCEPTION) {
+            if (!completer.isCompleted) {
+              completer.complete(agentMessage);
+            }
+          }
         }
       };
       namedSessionAgent.agent.agentSession.addAgentMessageListener(listen);
