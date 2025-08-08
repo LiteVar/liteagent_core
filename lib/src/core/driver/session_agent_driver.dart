@@ -48,21 +48,17 @@ class SessionAgentDriver extends AgentDriver {
       NamedSessionAgent namedSessionAgent = namedSessionAgents.where((agentModel) => agentModel.name == functionCall.name).first;
       Content content = Content(type: ContentType.TEXT, message: prompt);
 
-      Completer<AgentMessage> completer = Completer();
+      Completer<String> completer = Completer();
       void Function(AgentMessage) listen = (agentMessage) {
-        if (agentMessage.sessionId != namedSessionAgent.agent.agentSession.sessionId) {
+        if (agentMessage.sessionId != namedSessionAgent.agent.agentSession.sessionId || completer.isCompleted) {
           return;
         }
         if (agentMessage.role == AgentRoleType.AGENT && agentMessage.to == AgentRoleType.USER) {
-          if (!completer.isCompleted) {
-            completer.complete(agentMessage);
-          }
+          completer.complete(agentMessage.content as String);
         } else if (agentMessage.role == AgentRoleType.AGENT && agentMessage.to == AgentRoleType.CLIENT && agentMessage.type == AgentMessageType.TASK_STATUS) {
           TaskStatus taskStatus = agentMessage.content as TaskStatus;
           if (taskStatus.status == TaskStatusType.EXCEPTION) {
-            if (!completer.isCompleted) {
-              completer.complete(agentMessage);
-            }
+            completer.complete(taskStatus.toJson().toString());
           }
         }
       };
@@ -72,8 +68,7 @@ class SessionAgentDriver extends AgentDriver {
 
       await namedSessionAgent.agent.userToAgent(contentList: [content], originalTaskId: originalTaskId, parentTaskId: this.parentTaskId);
 
-      AgentMessage agentMessage = await completer.future;
-      String result = agentMessage.content as String;
+      String result = await completer.future;
 
       return ToolReturn(id: functionCall.id, result: { resultKey: result });
     } catch(e) {
