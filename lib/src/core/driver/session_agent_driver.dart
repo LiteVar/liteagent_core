@@ -44,19 +44,30 @@ class SessionAgentDriver extends AgentDriver {
   @override
   Future<ToolReturn> callAgent(FunctionCall functionCall, String originalTaskId) async {
     try {
-      String prompt = functionCall.arguments[promptKey];
-      NamedSessionAgent namedSessionAgent = namedSessionAgents.where((agentModel) => agentModel.name == functionCall.name).first;
-      Content content = Content(type: ContentType.TEXT, message: prompt);
+      final String prompt = functionCall.arguments[promptKey];
+      final NamedSessionAgent namedSessionAgent = namedSessionAgents.where((agentModel) => agentModel.name == functionCall.name).first;
+      final Content content = Content(type: ContentType.TEXT, message: prompt);
 
-      Completer<String> completer = Completer();
-      void Function(AgentMessage) listen = (agentMessage) {
-        if (agentMessage.sessionId != namedSessionAgent.agent.agentSession.sessionId || completer.isCompleted) {
+      String taskId = "";
+      void Function(String taskId) fetchTaskId = (String id) {
+        taskId = id;
+      };
+
+      final Completer<String> completer = Completer();
+      bool matches(AgentMessage m) =>
+          m.taskId == taskId &&
+          m.sessionId == namedSessionAgent.agent.agentSession.sessionId &&
+          m.parentTaskId == namedSessionAgent.agent.parentTaskId &&
+          m.originalTaskId == originalTaskId;
+
+      void Function(AgentMessage) listen = (AgentMessage agentMessage) {
+        if (completer.isCompleted || !matches(agentMessage)) {
           return;
         }
         if (agentMessage.role == AgentRoleType.AGENT && agentMessage.to == AgentRoleType.USER) {
           completer.complete(agentMessage.content as String);
         } else if (agentMessage.role == AgentRoleType.AGENT && agentMessage.to == AgentRoleType.CLIENT && agentMessage.type == AgentMessageType.TASK_STATUS) {
-          TaskStatus taskStatus = agentMessage.content as TaskStatus;
+          final TaskStatus taskStatus = agentMessage.content as TaskStatus;
           if (taskStatus.status == TaskStatusType.EXCEPTION) {
             completer.complete(taskStatus.toJson().toString());
           }
@@ -66,7 +77,7 @@ class SessionAgentDriver extends AgentDriver {
 
       agentMessageListeners.forEach((void Function(AgentMessage) agentMessageListener) => namedSessionAgent.agent.agentSession.addAgentMessageListener(agentMessageListener));
 
-      await namedSessionAgent.agent.userToAgent(contentList: [content], originalTaskId: originalTaskId, parentTaskId: this.parentTaskId);
+      await namedSessionAgent.agent.userToAgent(contentList: [content], originalTaskId: originalTaskId, parentTaskId: this.parentTaskId, fetchTaskId: fetchTaskId);
 
       String result = await completer.future;
 
