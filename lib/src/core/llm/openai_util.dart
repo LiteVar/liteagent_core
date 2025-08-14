@@ -6,10 +6,11 @@ class OpenAIUtil {
   late LLMConfig llmConfig;
   late OpenAIClient _client;
 
-  OpenAIUtil(this.llmConfig) {
+  OpenAIUtil(this.llmConfig, {Duration? requestsTimeout}) {
     _client = OpenAIClient(
       apiKey: llmConfig.apiKey,
       baseUrl: llmConfig.baseUrl,
+      requestsTimeOut: requestsTimeout,
       showLogs: false,
     );
   }

@@ -14,7 +14,6 @@ import '../session_agent/model.dart';
 import '../session_agent/session_agent.dart';
 import 'text_agent_message_handler.dart';
 import 'model.dart';
-import '../llm/model.dart';
 
 class TextAgent extends SessionAgent {
   LLMConfig llmConfig;
@@ -34,7 +33,7 @@ class TextAgent extends SessionAgent {
     this.enableThinking
   }) {
     textReflectPromptList.forEach((reflectPrompt){
-      ReflectorAgent reflectorAgent = ReflectorAgent(llmExecutor: OpenAIExecutor(reflectPrompt.llmConfig), systemPrompt: reflectPrompt.prompt, sessionId: this.sessionId, parentTaskId: this.parentTaskId);
+      ReflectorAgent reflectorAgent = ReflectorAgent(llmExecutor: OpenAIExecutor(reflectPrompt.llmConfig, requestsTimeout: timeout.timeoutDuration), systemPrompt: reflectPrompt.prompt, sessionId: this.sessionId, parentTaskId: this.parentTaskId);
       AgentReflector agentReflector = AgentReflector(agent: reflectorAgent, subscribeCompletions: subscribeCompletions);
       reflectionManager.addReflector(agentReflector);
     });
@@ -117,7 +116,7 @@ class TextAgent extends SessionAgent {
     List<AgentMessage> agentLLMMessageList = prepareAgentLLMMessageList(agentMessage);
     try {
       if(super.agentSession.isStream) {
-        Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(llmConfig).requestByStream(agentMessageList: agentLLMMessageList, enableThinking: enableThinking, listenChunk: listenChunk);
+        Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(llmConfig, requestsTimeout: timeout.timeoutDuration).requestByStream(agentMessageList: agentLLMMessageList, enableThinking: enableThinking, listenChunk: listenChunk);
 
         agentMessageStream.listen((newAgentMessage) {
           Command nextCommand = Command(toAgent, newAgentMessage);
@@ -130,7 +129,7 @@ class TextAgent extends SessionAgent {
           }
         );
       } else {
-        AgentMessage newAgentMessage = await OpenAIExecutor(llmConfig).request(agentMessageList: agentLLMMessageList, enableThinking: enableThinking);
+        AgentMessage newAgentMessage = await OpenAIExecutor(llmConfig, requestsTimeout: timeout.timeoutDuration).request(agentMessageList: agentLLMMessageList, enableThinking: enableThinking);
         Command nextCommand = Command(toAgent, newAgentMessage);
         dispatcherMap.dispatch(nextCommand);
       }

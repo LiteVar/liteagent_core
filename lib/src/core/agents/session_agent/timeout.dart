@@ -5,8 +5,10 @@ class Timeout {
   Timer? _timer;
   Timeout(this.timeoutSeconds);
 
+  Duration get timeoutDuration => Duration(seconds: timeoutSeconds);
+
   void start(void Function() func) {
-    _timer = Timer(Duration(seconds: timeoutSeconds), () {
+    _timer = Timer(timeoutDuration, () {
       func();
     });
   }

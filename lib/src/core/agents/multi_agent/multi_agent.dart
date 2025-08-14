@@ -77,7 +77,7 @@ class MultiAgent extends ToolAgent {
     try {
       List<AgentMessage> agentLLMMessageList = prepareAgentLLMMessageList(agentMessage);
       if(super.agentSession.isStream) {
-        Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(llmConfig).requestByStream(agentMessageList: agentLLMMessageList, functionModelList: functionModelList, enableThinking: enableThinking, listenChunk: listenChunk);
+        Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(llmConfig, requestsTimeout: timeout.timeoutDuration).requestByStream(agentMessageList: agentLLMMessageList, functionModelList: functionModelList, enableThinking: enableThinking, listenChunk: listenChunk);
         agentMessageStream.listen((newAgentMessage) {
           Command nextCommand = Command(toAgent, newAgentMessage);
           dispatcherMap.dispatch(nextCommand);
@@ -88,7 +88,7 @@ class MultiAgent extends ToolAgent {
           }
         );
       } else {
-        AgentMessage llmMessage = await OpenAIExecutor(llmConfig).request(agentMessageList: agentLLMMessageList, functionModelList: functionModelList, enableThinking: enableThinking);
+        AgentMessage llmMessage = await OpenAIExecutor(llmConfig, requestsTimeout: timeout.timeoutDuration).request(agentMessageList: agentLLMMessageList, functionModelList: functionModelList, enableThinking: enableThinking);
         Command nextCommand = Command(toAgent, llmMessage);
         dispatcherMap.dispatch(nextCommand);
       }
