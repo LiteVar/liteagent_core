@@ -10,7 +10,7 @@ class OpenAIUtil {
     _client = OpenAIClient(
       apiKey: llmConfig.apiKey,
       baseUrl: llmConfig.baseUrl,
-      requestsTimeOut: requestsTimeout,
+      requestsTimeOut: requestsTimeout ?? const Duration(seconds: 300),
       showLogs: false,
     );
   }
