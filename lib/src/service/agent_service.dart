@@ -1,12 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:opentool_dart/opentool_dart.dart';
+import 'package:lite_agent_core_dart/lite_agent_core.dart';
+import 'package:opentool_dart/opentool_dart.dart' as ot;
 import 'package:openapi_dart/openapi_dart.dart';
-import 'package:openmodbus_dart/openmodbus_dart.dart';
 import 'package:openrpc_dart/openrpc_dart.dart';
 import 'dart:collection';
-import '../../lite_agent_core.dart';
-import '../core/agents/auto/auto_multi_agent.dart';
 import 'session_message_manage_service.dart';
 import 'dto.dart';
 import 'exception.dart';
@@ -284,32 +281,17 @@ class AgentService {
         }
         ToolDriver openAPIDriver = OpenAPIDriver(openAPI, authorization: authorization);
         toolDriverList.add(openAPIDriver);
-      } else if (openSpecDto.protocol == Protocol.OPENMODBUS) {
-        OpenModbus openModbus = await OpenModbusLoader().load(openSpecDto.openSpec);
-        ToolDriver openModbusDriver = OpenModbusDriver(openModbus);
-        toolDriverList.add(openModbusDriver);
       } else if (openSpecDto.protocol == Protocol.JSONRPCHTTP) {
         OpenRPC openRPC = await OpenRPCLoader().load(openSpecDto.openSpec);
         ToolDriver jsonrpcHttpDriver = JsonRPCDriver(openRPC);
         toolDriverList.add(jsonrpcHttpDriver);
       } else if (openSpecDto.protocol == Protocol.OPENTOOL) {
-        if(openSpecDto.openToolId == null) throw OpenToolIdNotFoundException(openToolId: "NULL");
-        OpenToolDriver? opentoolDriver = await opentoolDriverMap[openSpecDto.openToolId!];
-        if(opentoolDriver != null) {
-          OpenTool openTool = await OpenToolLoader().load(openSpecDto.openSpec);
-          toolDriverList.add(opentoolDriver.bind(openTool));
-        } else {
-          throw OpenToolIdNotFoundException(openToolId: openSpecDto.openToolId!);
-        }
-      } else if (openSpecDto.protocol == Protocol.SERIALPORT) {
-        SerialPortDriver serialPortDriver = SerialPortDriver();
-        toolDriverList.add(serialPortDriver);
-      } else if (openSpecDto.protocol == Protocol.MCP_STDIO_TOOLS) {
-        OpenMCP openMCP = OpenMCP.fromJson(jsonDecode(openSpecDto.openSpec));
-        McpStdioDriver mcpStdioDriver = McpStdioDriver(openMCP);
-        toolDriverList.add(mcpStdioDriver);
+        ot.OpenTool opentool = await ot.OpenToolJsonLoader().load(openSpecDto.openSpec);
+        OpenToolDriver? opentoolDriver = OpenToolClientDriver(opentool);
+        toolDriverList.add(opentoolDriver);
       }
     }
+
     return toolDriverList;
   }
 
@@ -406,7 +388,7 @@ class AgentService {
     clientDriverMap[sessionId] = clientDriver;
   }
 
-  void clientDriverCallback(String sessionId, ToolReturn toolReturn) {
+  void clientDriverCallback(String sessionId, ot.ToolReturn toolReturn) {
     ClientDriver? clientDriver = clientDriverMap[sessionId];
     if(clientDriver == null) {
       throw SessionAgentNotFoundException(sessionId: sessionId);

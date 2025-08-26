@@ -38,6 +38,7 @@ export 'src/core/driver/mcp/stdio/mcp_stdio_driver.dart';
 export 'src/core/driver/mcp/stdio/mcp_stdio.dart';
 export 'src/core/driver/mcp/http/mcp_http_driver.dart';
 export 'src/core/driver/mcp/http/mcp_http.dart';
+export 'src/core/driver/opentool_client_driver.dart';
 export 'src/core/driver/model.dart';
 export 'src/core/llm/model.dart';
 export 'src/core/llm/openai_util.dart';

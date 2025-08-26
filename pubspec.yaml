@@ -16,13 +16,9 @@ dependencies:
     path: /Users/jan/Projects/dart_openai_sdk
 
   # OpenSpec support
-  opentool_dart: # ^0.6.1
-    path: /Users/jan/Projects/opentool-hub/opentool-dart
+  opentool_dart: ^1.1.0
   openapi_dart: ^0.2.0
   openrpc_dart: ^0.2.0
-#  openmodbus_dart: ^0.2.0
-#  opendyn_dart: ^0.1.0
-#  libserialport: ^0.3.0+1
   mcp_dart: ^0.5.3
 
 dev_dependencies:
