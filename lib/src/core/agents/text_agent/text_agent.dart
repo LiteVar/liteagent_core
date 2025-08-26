@@ -14,7 +14,6 @@ import '../session_agent/model.dart';
 import '../session_agent/session_agent.dart';
 import 'text_agent_message_handler.dart';
 import 'model.dart';
-import '../llm/model.dart';
 
 class TextAgent extends SessionAgent {
   LLMConfig llmConfig;

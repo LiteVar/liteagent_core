@@ -6,6 +6,7 @@ class Timeout {
   Timeout(this.timeoutSeconds);
 
   void start(void Function() func) {
+    clear();
     _timer = Timer(Duration(seconds: timeoutSeconds), () {
       func();
     });

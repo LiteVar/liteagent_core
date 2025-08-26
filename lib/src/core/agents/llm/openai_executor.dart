@@ -15,10 +15,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
   String? _parentTaskId;
   late String _taskId;
 
-  OpenAIExecutor(super.llmConfig) {
-    OpenAI.baseUrl = llmConfig.baseUrl;
-    OpenAI.apiKey = llmConfig.apiKey;
-  }
+  OpenAIExecutor(super.llmConfig, {Duration? requestsTimeout}) : super(requestsTimeout: requestsTimeout);
 
   Future<AgentMessage> request({required List<AgentMessage> agentMessageList, List<FunctionModel>? functionModelList, ResponseFormat? responseFormat, bool? enableThinking}) async {
     AgentMessage agentMessage = agentMessageList.lastWhere((agentMessage)=> agentMessage.role == AgentRoleType.AGENT);

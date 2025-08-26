@@ -1,25 +1,29 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:lite_agent_core_dart/lite_agent_core.dart';
-import 'package:lite_agent_core_dart/src/core/driver/opentool_client_driver.dart';
-import 'package:opentool_dart/opentool_dart.dart' as ot;
+import 'package:opentool_dart/opentool_dart.dart';
 import 'package:openapi_dart/openapi_dart.dart';
+import 'package:openmodbus_dart/openmodbus_dart.dart';
 import 'package:openrpc_dart/openrpc_dart.dart';
+import 'dart:collection';
+import '../../lite_agent_core.dart';
+import '../core/agents/auto/auto_multi_agent.dart';
 import 'session_message_manage_service.dart';
 import 'dto.dart';
 import 'exception.dart';
 
 class AgentService {
+  static const int _SENT_MESSAGES_CAPACITY = 500;
+  
   Map<String, SessionAgent> sessionAgents = {}; /// Map<sessionId, SessionAgent>
   Map<String, SimpleAgent> simpleAgents = {}; /// Map<sessionId, SimpleAgent>
-  // List<ToolDriver> globalDriverList = [];
-  // Map<String, OpenToolDriver> opentoolDriverMap = {}; /// Map<sessionId, OpenToolDriver>
+  List<ToolDriver> globalDriverList = [];
+  Map<String, OpenToolDriver> opentoolDriverMap = {}; /// Map<sessionId, OpenToolDriver>
   Map<String, ClientDriver> clientDriverMap= {}; /// Map<sessionId, ClientDriver>
   List<SessionMessageManageService> agentMessageManageServiceList = [];
-  Set<Message> sentMessages = {};
+  LinkedHashMap<Message, Map<String, bool>> sentMessages = LinkedHashMap<Message, Map<String, bool>>(); /// Map<Message, Map<sessionId, bool>>
 
-  AgentService({List<SessionMessageManageService> messageManageServiceList = const []}) {//List<ToolDriver> globalToolDriverList = const [], List<SessionMessageManageService> messageManageServiceList = const []}) {
-    // globalDriverList.addAll(globalToolDriverList);
+  AgentService({List<ToolDriver> globalToolDriverList = const [], List<SessionMessageManageService> messageManageServiceList = const []}) {
+    globalDriverList.addAll(globalToolDriverList);
     agentMessageManageServiceList.addAll(messageManageServiceList);
   }
 
@@ -60,7 +64,7 @@ class AgentService {
     LLMConfig llmConfig = capabilityDto.llmConfig.toModel();
     List<ReflectPrompt>? reflectPromptList = capabilityDto.reflectPromptList?.map((reflectPromptDto) => ReflectPrompt(llmConfig: reflectPromptDto.llmConfig.toModel(), prompt: reflectPromptDto.prompt)).toList();
 
-    // if(opentoolDriverMap != null) opentoolDriverMap.forEach((key, value) { this.opentoolDriverMap[key] = value;});
+    if(opentoolDriverMap != null) opentoolDriverMap.forEach((key, value) { this.opentoolDriverMap[key] = value;});
     // if(capabilityDto.clientOpenTool != null && listenClientFunctionCall != null) {
     //   OpenTool clientOpenTool = await OpenToolLoader().load(capabilityDto.clientOpenTool!.opentool);
     //
@@ -68,29 +72,29 @@ class AgentService {
     // }
 
     List<ToolDriver> toolDriverList = [];
-    // toolDriverList.addAll(globalDriverList);
+    toolDriverList.addAll(globalDriverList);
     toolDriverList.addAll(await _buildToolDriverList(capabilityDto.openSpecList));
     if(customToolDriverList != null) toolDriverList.addAll(customToolDriverList);
 
     List<AgentDriver>? agentDriverList = await _buildAgentDriverList(capabilityDto.sessionList, sessionId);
 
     if (capabilityDto.auto == true) { // AutoAgent
-      List<LLMConfig>? llmConfigList = capabilityDto.llmConfigList?.map((llmConfigDto) => llmConfigDto.toModel()).toList();
+        List<LLMConfig>? llmConfigList = capabilityDto.llmConfigList?.map((llmConfigDto) => llmConfigDto.toModel()).toList();
 
-      AutoMultiAgent autoMultiAgent = await AutoMultiAgent.create(
-        sessionId: sessionId,
-        llmConfig: llmConfig,
-        agentSession: _buildSession(sessionId),
-        toolDriverList: toolDriverList,
-        systemPrompt: systemPrompt,
-        toolReflectPromptList: reflectPromptList ?? const[],
-        timeoutSeconds: capabilityDto.timeoutSeconds,
-        taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
-        toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL,
-        enableThinking: capabilityDto.enableThinking,
-        llmConfigList: llmConfigList,
-      );
-      sessionAgents[sessionId] = autoMultiAgent;
+        AutoMultiAgent autoMultiAgent = await AutoMultiAgent.create(
+          sessionId: sessionId,
+          llmConfig: llmConfig,
+          agentSession: _buildSession(sessionId),
+          toolDriverList: toolDriverList,
+          systemPrompt: systemPrompt,
+          toolReflectPromptList: reflectPromptList ?? const[],
+          timeoutSeconds: capabilityDto.timeoutSeconds,
+          taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
+          toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL,
+          enableThinking: capabilityDto.enableThinking,
+          llmConfigList: llmConfigList,
+        );
+        sessionAgents[sessionId] = autoMultiAgent;
     } else if(toolDriverList.isEmpty && agentDriverList == null && capabilityDto.clientOpenTool == null) { // TextAgent
       SessionAgent textAgent = TextAgent(
         sessionId: sessionId,
@@ -124,18 +128,18 @@ class AgentService {
       ClientOpenTool? clientOpenTool = null;
       if(capabilityDto.clientOpenTool != null) clientOpenTool = ClientOpenTool(opentool: capabilityDto.clientOpenTool!.opentool, timeout: capabilityDto.clientOpenTool!.timeout, fetchClientDriver: this.fetchClientDriver);
       SessionAgent toolAgent = MultiAgent(
-        sessionId: sessionId,
-        llmConfig: llmConfig,
-        agentSession: _buildSession(sessionId),
-        toolDriverList: toolDriverList,
-        subAgentDriverList: agentDriverList,
-        clientOpenTool: clientOpenTool,
-        systemPrompt: systemPrompt,
-        toolReflectPromptList: reflectPromptList??[],
-        timeoutSeconds: capabilityDto.timeoutSeconds,
-        taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
-        toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL,
-        enableThinking: capabilityDto.enableThinking
+          sessionId: sessionId,
+          llmConfig: llmConfig,
+          agentSession: _buildSession(sessionId),
+          toolDriverList: toolDriverList,
+          subAgentDriverList: agentDriverList,
+          clientOpenTool: clientOpenTool,
+          systemPrompt: systemPrompt,
+          toolReflectPromptList: reflectPromptList??[],
+          timeoutSeconds: capabilityDto.timeoutSeconds,
+          taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
+          toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL,
+          enableThinking: capabilityDto.enableThinking
       );
       sessionAgents[sessionId] = toolAgent;
     }
@@ -198,6 +202,7 @@ class AgentService {
     if(sessionAgent == null) throw SessionAgentNotFoundException(sessionId: sessionId);
     sessionAgent.clear();
     sessionAgents.remove(sessionId);
+    sentMessages.clear();
   }
 
   Content _convertToContent(ContentDto contentDto) {
@@ -206,6 +211,16 @@ class AgentService {
 
   AgentSession _buildSession(String sessionId) {
     AgentSession agentSession = AgentSession(sessionId: sessionId);
+    // agentSession.addAgentMessageListener((AgentMessage agentMessage) {
+    //   AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
+    //   _recordAgentMessage(sessionId, agentMessageDto);
+    //   listen(sessionId, agentMessageDto);
+    // });
+    // if(listenChunk != null) {
+    //   agentSession.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
+    //     listenChunk(sessionId, AgentMessageChunkDto.fromModel(agentMessageChunk));
+    //   });
+    // }
     return agentSession;
   }
 
@@ -217,17 +232,17 @@ class AgentService {
 
     agentSession.addAgentMessageListener((AgentMessage agentMessage) {
       AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
-      if (agentMessage.originalTaskId == taskId || agentMessage.originalTaskId.isEmpty && !sentMessages.contains(agentMessage)) {
+      if ((agentMessage.originalTaskId == taskId || agentMessage.originalTaskId.isEmpty) && !_isSentMessage(agentMessage, agentSession.sessionId)) {
         _recordAgentMessage(agentSession.sessionId, taskId, agentMessageDto);
         listen(agentSession.sessionId, taskId, agentMessageDto);
-        sentMessages.add(agentMessage);
+        _addToSentMessages(agentMessage, agentSession.sessionId);
       }
     });
     if(listenChunk != null) {
       agentSession.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
-        if (agentMessageChunk.originalTaskId == taskId || agentMessageChunk.originalTaskId.isEmpty && !sentMessages.contains(agentMessageChunk)) {
+        if ((agentMessageChunk.originalTaskId == taskId || agentMessageChunk.originalTaskId.isEmpty) && !_isSentMessage(agentMessageChunk, agentSession.sessionId)) {
           listenChunk(agentSession.sessionId, taskId, AgentMessageChunkDto.fromModel(agentMessageChunk));
-          sentMessages.add(agentMessageChunk);
+          _addToSentMessages(agentMessageChunk, agentSession.sessionId);
         }
       });
     }
@@ -237,18 +252,18 @@ class AgentService {
         SessionAgent? subSessionAgent = sessionAgents[subSessionId];
         if(subSessionAgent != null) {
           subSessionAgent.agentSession.addAgentMessageListener((AgentMessage agentMessage) {
-            if (agentMessage.originalTaskId == taskId && !sentMessages.contains(agentMessage)) {
+            if ((agentMessage.originalTaskId == taskId || agentMessage.originalTaskId.isEmpty) && !_isSentMessage(agentMessage, subSessionId)) {
               AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
               _recordAgentMessage(subSessionId, taskId, agentMessageDto);
               listen(subSessionId, taskId, agentMessageDto);
-              sentMessages.add(agentMessage);
+              _addToSentMessages(agentMessage, subSessionId);
             }
           });
           if(listenChunk != null) {
             subSessionAgent.agentSession.addAgentMessageChunkListener((AgentMessageChunk agentMessageChunk) {
-              if (agentMessageChunk.originalTaskId == taskId && !sentMessages.contains(agentMessageChunk)) {
+              if ((agentMessageChunk.originalTaskId == taskId || agentMessageChunk.originalTaskId.isEmpty) && !_isSentMessage(agentMessageChunk, subSessionId)) {
                 listenChunk(subSessionId, taskId, AgentMessageChunkDto.fromModel(agentMessageChunk));
-                sentMessages.add(agentMessageChunk);
+                _addToSentMessages(agentMessageChunk, subSessionId);
               }
             });
           }
@@ -269,33 +284,30 @@ class AgentService {
         }
         ToolDriver openAPIDriver = OpenAPIDriver(openAPI, authorization: authorization);
         toolDriverList.add(openAPIDriver);
+      } else if (openSpecDto.protocol == Protocol.OPENMODBUS) {
+        OpenModbus openModbus = await OpenModbusLoader().load(openSpecDto.openSpec);
+        ToolDriver openModbusDriver = OpenModbusDriver(openModbus);
+        toolDriverList.add(openModbusDriver);
       } else if (openSpecDto.protocol == Protocol.JSONRPCHTTP) {
         OpenRPC openRPC = await OpenRPCLoader().load(openSpecDto.openSpec);
         ToolDriver jsonrpcHttpDriver = JsonRPCDriver(openRPC);
         toolDriverList.add(jsonrpcHttpDriver);
       } else if (openSpecDto.protocol == Protocol.OPENTOOL) {
-        ot.OpenTool opentool = await ot.OpenToolJsonLoader().load(openSpecDto.openSpec);
-        String? apiKey = openSpecDto.apiKey?.apiKey;
-        OpenToolClientDriver openToolClientDriver = OpenToolClientDriver(opentool, apiKey: apiKey);
-        toolDriverList.add(openToolClientDriver);
-
-        // if(openSpecDto.openToolId == null) throw OpenToolIdNotFoundException(openToolId: "NULL");
-        // OpenToolDriver? opentoolDriver = await opentoolDriverMap[openSpecDto.openToolId!];
-        // if(opentoolDriver != null) {
-        //   ot.OpenTool openTool = await ot.OpenToolJsonLoader().load(openSpecDto.openSpec);
-        //   toolDriverList.add(opentoolDriver.bind(openTool));
-        // } else {
-        //   throw OpenToolIdNotFoundException(openToolId: openSpecDto.openToolId!);
-        // }
-
-      } else if (openSpecDto.protocol == Protocol.MCP_STDIO) {
-        McpStdio mcpStdio = McpStdio.fromJson(jsonDecode(openSpecDto.openSpec));
-        McpStdioDriver mcpStdioDriver = McpStdioDriver(mcpStdio);
+        if(openSpecDto.openToolId == null) throw OpenToolIdNotFoundException(openToolId: "NULL");
+        OpenToolDriver? opentoolDriver = await opentoolDriverMap[openSpecDto.openToolId!];
+        if(opentoolDriver != null) {
+          OpenTool openTool = await OpenToolLoader().load(openSpecDto.openSpec);
+          toolDriverList.add(opentoolDriver.bind(openTool));
+        } else {
+          throw OpenToolIdNotFoundException(openToolId: openSpecDto.openToolId!);
+        }
+      } else if (openSpecDto.protocol == Protocol.SERIALPORT) {
+        SerialPortDriver serialPortDriver = SerialPortDriver();
+        toolDriverList.add(serialPortDriver);
+      } else if (openSpecDto.protocol == Protocol.MCP_STDIO_TOOLS) {
+        OpenMCP openMCP = OpenMCP.fromJson(jsonDecode(openSpecDto.openSpec));
+        McpStdioDriver mcpStdioDriver = McpStdioDriver(openMCP);
         toolDriverList.add(mcpStdioDriver);
-      } else if (openSpecDto.protocol == Protocol.MCP_HTTP) {
-        McpHttp mcpHttp = McpHttp.fromJson(jsonDecode(openSpecDto.openSpec));
-        McpHttpDriver mcpHttpDriver = McpHttpDriver(mcpHttp);
-        toolDriverList.add(mcpHttpDriver);
       }
     }
     return toolDriverList;
@@ -375,11 +387,26 @@ class AgentService {
     });
   }
 
+  bool _isSentMessage(Message message, String toSessionId) {
+    return sentMessages.containsKey(message) && sentMessages[message]![toSessionId] == true;
+  }
+
+  void _addToSentMessages(Message message, String toSessionId) {
+    if (sentMessages.length >= _SENT_MESSAGES_CAPACITY) {
+      sentMessages.remove(sentMessages.keys.first);
+    }
+    if(!sentMessages.containsKey(message)) {
+      sentMessages[message] = {toSessionId: true};
+    } else {
+      sentMessages[message]![toSessionId] = true;
+    }
+  }
+
   void fetchClientDriver(String sessionId, ClientDriver clientDriver) {
     clientDriverMap[sessionId] = clientDriver;
   }
 
-  void clientDriverCallback(String sessionId, ot.ToolReturn toolReturn) {
+  void clientDriverCallback(String sessionId, ToolReturn toolReturn) {
     ClientDriver? clientDriver = clientDriverMap[sessionId];
     if(clientDriver == null) {
       throw SessionAgentNotFoundException(sessionId: sessionId);
