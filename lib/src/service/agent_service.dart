@@ -287,7 +287,14 @@ class AgentService {
         toolDriverList.add(jsonrpcHttpDriver);
       } else if (openSpecDto.protocol == Protocol.OPENTOOL) {
         ot.OpenTool opentool = await ot.OpenToolJsonLoader().load(openSpecDto.openSpec);
-        OpenToolDriver? opentoolDriver = OpenToolClientDriver(opentool);
+        if( opentool.server == null && openSpecDto.serverUrl != null) {
+          opentool.server = ot.ServerConfig(url: openSpecDto.serverUrl!, description: "");
+        }
+        String? apiKey;
+        if (openSpecDto.apiKey != null) {
+          apiKey = convertToAuthorization(openSpecDto.apiKey!.type, openSpecDto.apiKey!.apiKey);
+        }
+        OpenToolDriver? opentoolDriver = OpenToolClientDriver(opentool, apiKey: apiKey);
         toolDriverList.add(opentoolDriver);
       }
     }

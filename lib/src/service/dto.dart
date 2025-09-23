@@ -93,11 +93,12 @@ class Protocol {
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
 class OpenSpecDto {
   String openSpec;
-  ApiKeyDto? apiKey;
   String protocol;
+  String? serverUrl;
+  ApiKeyDto? apiKey;
   // String? openToolId; //When protocol is open tool, this is the tool id
 
-  OpenSpecDto({required this.openSpec, this.apiKey, required this.protocol});//, this.openToolId});
+  OpenSpecDto({required this.openSpec, required this.protocol, this.apiKey, this.serverUrl});
 
   factory OpenSpecDto.fromJson(Map<String, dynamic> json) => _$OpenSpecDtoFromJson(json);
 

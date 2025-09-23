@@ -100,17 +100,19 @@ Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
 
 OpenSpecDto _$OpenSpecDtoFromJson(Map<String, dynamic> json) => OpenSpecDto(
       openSpec: json['openSpec'] as String,
+      protocol: json['protocol'] as String,
       apiKey: json['apiKey'] == null
           ? null
           : ApiKeyDto.fromJson(json['apiKey'] as Map<String, dynamic>),
-      protocol: json['protocol'] as String,
+      serverUrl: json['serverUrl'] as String?,
     );
 
 Map<String, dynamic> _$OpenSpecDtoToJson(OpenSpecDto instance) =>
     <String, dynamic>{
       'openSpec': instance.openSpec,
-      if (instance.apiKey?.toJson() case final value?) 'apiKey': value,
       'protocol': instance.protocol,
+      if (instance.serverUrl case final value?) 'serverUrl': value,
+      if (instance.apiKey?.toJson() case final value?) 'apiKey': value,
     };
 
 LLMConfigDto _$LLMConfigDtoFromJson(Map<String, dynamic> json) => LLMConfigDto(
