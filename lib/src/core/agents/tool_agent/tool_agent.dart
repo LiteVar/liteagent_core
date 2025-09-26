@@ -4,6 +4,7 @@ import 'package:opentool_dart/opentool_dart.dart';
 import '../../agents/text_agent/text_agent.dart';
 import '../../driver/client_driver.dart';
 import '../../driver/tool_driver.dart';
+import '../../driver/opentool_client_driver.dart';
 import '../llm/exception.dart';
 import '../llm/openai_executor.dart';
 import '../model.dart';
@@ -199,16 +200,30 @@ class ToolAgent extends TextAgent {
     try {
       if(functionCallParam.type == null || functionCallParam.type == FunctionCallType.TOOL) {
         ToolDriver toolDriver = toolDriverList[functionCallParam.index];
-        ToolReturn toolReturn = await toolDriver.call(functionCallParam.functionCall);
+        ToolReturn toolReturn;
+
+        if(toolDriver is OpenToolClientDriver &&
+          toolDriver.opentool.functions.firstWhere((function) => function.name == functionCallParam.functionCall.name).stream != null) {
+          final completer = Completer<ToolReturn>();
+          toolDriver.streamCall(functionCallParam.functionCall, (String event, ToolReturn toolReturn) {
+            if(event == EventType.DONE || event == EventType.ERROR) {
+              completer.complete(toolReturn);
+            }
+          });
+          toolReturn = await completer.future;
+        } else {
+          toolReturn = await toolDriver.call(functionCallParam.functionCall);
+        }
+
         AgentMessage toolMessage = AgentMessage(
-            sessionId: functionCallParam.sessionId,
-            originalTaskId: functionCallParam.originalTaskId,
-            parentTaskId: super.parentTaskId,
-            taskId: functionCallParam.taskId,
-            role: ToolRoleType.TOOL,
-            to: ToolRoleType.AGENT,
-            type: ToolMessageType.TOOL_RETURN,
-            content: toolReturn
+          sessionId: functionCallParam.sessionId,
+          originalTaskId: functionCallParam.originalTaskId,
+          parentTaskId: super.parentTaskId,
+          taskId: functionCallParam.taskId,
+          role: ToolRoleType.TOOL,
+          to: ToolRoleType.AGENT,
+          type: ToolMessageType.TOOL_RETURN,
+          content: toolReturn
         );
         Command command = Command(toAgent, toolMessage);
         dispatcherMap.dispatch(command);
