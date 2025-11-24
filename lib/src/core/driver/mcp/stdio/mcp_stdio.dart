@@ -5,9 +5,13 @@ part 'mcp_stdio.g.dart';
 class McpStdio {
   String command;
   List<String> args;
+  @JsonKey(name: 'env')
+  Map<String, String>? environment;
 
-  McpStdio({required this.command, required this.args});
+
+  McpStdio({required this.command, required this.args, this.environment});
 
   factory McpStdio.fromJson(Map<String, dynamic> json) => _$McpStdioFromJson(json);
   Map<String, dynamic> toJson() => _$McpStdioToJson(this);
 }
+
