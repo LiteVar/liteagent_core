@@ -33,7 +33,7 @@ class McpHttpDriver extends ToolDriver {
   }
 
   factory McpHttpDriver.fromMcpHttpString(String mcpHttpString) {
-    McpHttp mcpHttp = McpHttp.fromJson(jsonDecode(mcpHttpString));
+    McpHttp mcpHttp = McpHttp.fromJson((jsonDecode(mcpHttpString).values.first as Map<String, dynamic>));
     return McpHttpDriver(mcpHttp);
   }
 

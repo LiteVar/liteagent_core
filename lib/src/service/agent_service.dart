@@ -285,6 +285,12 @@ class AgentService {
         OpenRPC openRPC = await OpenRPCLoader().load(openSpecDto.openSpec);
         ToolDriver jsonrpcHttpDriver = JsonRPCDriver(openRPC);
         toolDriverList.add(jsonrpcHttpDriver);
+      } else if (openSpecDto.protocol == Protocol.MCP_STDIO) {
+        McpStdioDriver mcpStdioDriver = McpStdioDriver.fromMcpStdioString(openSpecDto.openSpec);
+        toolDriverList.add(mcpStdioDriver);
+      } else if (openSpecDto.protocol == Protocol.MCP_HTTP) {
+        McpHttpDriver mcpHttpDriver = McpHttpDriver.fromMcpHttpString(openSpecDto.openSpec);
+        toolDriverList.add(mcpHttpDriver);
       } else if (openSpecDto.protocol == Protocol.OPENTOOL) {
         ot.OpenTool opentool = await ot.OpenToolJsonLoader().load(openSpecDto.openSpec);
         if( opentool.server == null && openSpecDto.serverUrl != null) {

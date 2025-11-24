@@ -32,7 +32,7 @@ class McpStdioDriver extends ToolDriver {
   }
 
   factory McpStdioDriver.fromMcpStdioString(String mcpStdioString) {
-    McpStdio openMcp = McpStdio.fromJson(jsonDecode(mcpStdioString));
+    McpStdio openMcp = McpStdio.fromJson((jsonDecode(mcpStdioString).values.first as Map<String, dynamic>));
     return McpStdioDriver(openMcp);
   }
 
