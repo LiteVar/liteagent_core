@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'package:lite_agent_core_dart/lite_agent_core.dart';
-
 import '../model.dart';
 
 class AgentSession {

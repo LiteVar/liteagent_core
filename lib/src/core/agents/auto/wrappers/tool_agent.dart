@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:opentool_dart/opentool_dart.dart' as ot;
+import 'package:opentool_dart/opentool_client.dart' as ot;
 import '../../../driver/tool_driver.dart';
 import '../../tool_agent/tool_agent.dart';
 import 'function.dart';

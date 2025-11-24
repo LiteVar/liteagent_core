@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:dart_openai_sdk/dart_openai_sdk.dart';
-import 'package:opentool_dart/opentool_dart.dart';
+import 'package:opentool_dart/opentool_client.dart';
 import '../text_agent/model.dart';
 import 'exception.dart';
 import '../../llm/openai_util.dart';

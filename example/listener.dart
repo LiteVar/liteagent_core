@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:lite_agent_core_dart/lite_agent_core.dart';
-import 'package:lite_agent_core_dart/lite_agent_service.dart';
-import 'package:opentool_dart/opentool_dart.dart';
+import 'package:liteagent_core_dart/liteagent_core.dart';
+import 'package:liteagent_core_dart/liteagent_service.dart';
+import 'package:opentool_dart/opentool_client.dart';
 
 void listen(String originalSessionId, String taskId, AgentMessageDto agentMessageDto) {
   String system = "🖥DEVEL ";

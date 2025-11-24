@@ -1,7 +1,7 @@
 import '../tool_driver.dart';
 import 'http_util.dart';
 import 'package:openapi_dart/openapi_dart.dart';
-import 'package:opentool_dart/opentool_dart.dart' as ot;
+import 'package:opentool_dart/opentool_client.dart' as ot;
 
 class OpenAPIDriver extends ToolDriver {
   OpenAPI openAPI;

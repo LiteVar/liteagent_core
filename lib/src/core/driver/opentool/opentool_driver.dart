@@ -1,6 +1,5 @@
-import 'package:opentool_dart/opentool_dart.dart';
-
-import 'tool_driver.dart';
+import 'package:opentool_dart/opentool_client.dart';
+import '../tool_driver.dart';
 
 abstract class OpenToolDriver extends ToolDriver {
   OpenTool opentool;

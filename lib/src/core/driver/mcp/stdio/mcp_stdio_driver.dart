@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:mcp_dart/mcp_dart.dart';
-import 'package:opentool_dart/opentool_dart.dart' as ot;
+import 'package:opentool_dart/opentool_client.dart' as ot;
 import '../mcp_base_driver.dart';
 import 'mcp_stdio.dart';
 

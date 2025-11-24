@@ -1,4 +1,4 @@
-import 'package:opentool_dart/opentool_dart.dart';
+import 'package:opentool_dart/opentool_schema.dart';
 import '../../../driver/tool_driver.dart';
 
 class IndexedFunction {

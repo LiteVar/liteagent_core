@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:opentool_dart/opentool_dart.dart';
+import 'package:opentool_dart/opentool_client.dart';
 import '../../agents/text_agent/text_agent.dart';
-import '../../driver/client_driver.dart';
+import '../../driver/opentool/opentool_callback_driver.dart';
 import '../../driver/tool_driver.dart';
-import '../../driver/opentool_client_driver.dart';
+import '../../driver/opentool/opentool_client_driver.dart';
 import '../llm/exception.dart';
 import '../llm/openai_executor.dart';
 import '../model.dart';
@@ -88,7 +88,7 @@ class ToolAgent extends TextAgent {
     await Future.wait(toolDriverList.map((driver) => driver.init()));
     List<FunctionModel> functionModelList = await buildFunctionModelList();
     if(this.clientOpenTool != null && this.clientOpenTool!.fetchClientDriver != null) {
-      ClientDriver clientDriver = await buildClientDriver(agentMessage);
+      OpenToolCallbackDriver clientDriver = await buildClientDriver(agentMessage);
       toolDriverList.add(clientDriver);
       this.clientOpenTool!.fetchClientDriver!(agentMessage.sessionId, clientDriver);
       functionModelList.addAll(clientDriver.parse());
@@ -149,7 +149,7 @@ class ToolAgent extends TextAgent {
     return functionModelList;
   }
 
-  Future<ClientDriver> buildClientDriver(AgentMessage agentMessage) async {
+  Future<OpenToolCallbackDriver> buildClientDriver(AgentMessage agentMessage) async {
     OpenTool opentool = await OpenToolJsonLoader().load(this.clientOpenTool!.opentool);
     void Function(FunctionCall functionCall) listenClientFunctionCall = (FunctionCall functionCall) {
       AgentMessage clientMessage = AgentMessage(
@@ -165,7 +165,7 @@ class ToolAgent extends TextAgent {
       Command functionCallCommand = Command(toAgent, clientMessage);
       dispatcherMap.dispatch(functionCallCommand);
     };
-    return ClientDriver(opentool, listenClientFunctionCall, timeout: clientOpenTool!.timeout??60);
+    return OpenToolCallbackDriver(opentool, listenClientFunctionCall, timeout: clientOpenTool!.timeout??60);
   }
 
   Future<void> requestTools(AgentMessage agentMessage) async {

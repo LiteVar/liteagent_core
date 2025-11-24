@@ -1,4 +1,4 @@
-import 'package:opentool_dart/opentool_dart.dart';
+import 'package:opentool_dart/opentool_client.dart';
 
 import 'opentool_driver.dart';
 
@@ -15,7 +15,7 @@ class OpenToolClientDriver extends OpenToolDriver {
     bool ssl = uri.scheme == "https";
     String host = uri.host;
     int port = uri.port;
-    client = OpenToolClient(isSSL: ssl, host: host, port: port, apiKey: apiKey);
+    client = OpenToolClient(isSSL: ssl, toolHost: host, toolPort: port, toolApiKey: apiKey);
   }
 
   @override

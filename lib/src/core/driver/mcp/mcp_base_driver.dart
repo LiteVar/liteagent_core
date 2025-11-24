@@ -1,5 +1,5 @@
 import 'package:mcp_dart/mcp_dart.dart';
-import 'package:opentool_dart/opentool_dart.dart' as ot;
+import 'package:opentool_dart/opentool_client.dart' as ot;
 import '../tool_driver.dart';
 
 /// MCP驱动器的基类，提供公共的Schema解析逻辑

@@ -1,4 +1,4 @@
-import 'package:lite_agent_core_dart/lite_agent_core.dart';
+import 'package:liteagent_core_dart/liteagent_core.dart';
 import 'dto.dart';
 import 'exception.dart';
 

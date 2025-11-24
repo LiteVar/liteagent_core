@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:dotenv/dotenv.dart';
-import 'package:lite_agent_core_dart/lite_agent_core.dart';
-import 'package:lite_agent_core_dart/lite_agent_service.dart';
+import 'package:liteagent_core_dart/liteagent_core.dart';
+import 'package:liteagent_core_dart/liteagent_service.dart';
 import '../listener.dart';
 
 /// [IMPORTANT] Prepare:

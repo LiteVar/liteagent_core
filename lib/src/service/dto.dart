@@ -1,6 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:opentool_dart/opentool_dart.dart';
-import '../../lite_agent_core.dart';
+import 'package:liteagent_core_dart/liteagent_core.dart';
+import 'package:opentool_dart/opentool_client.dart';
 import 'exception.dart';
 
 part 'dto.g.dart';

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:opentool_dart/opentool_dart.dart';
+import 'package:opentool_dart/opentool_client.dart';
 import '../agents/model.dart';
 import '../agents/session_agent/model.dart';
 import '../agents/simple_agent.dart';

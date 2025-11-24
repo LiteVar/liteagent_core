@@ -1,5 +1,5 @@
-import 'package:lite_agent_core_dart/lite_agent_core.dart';
-import 'package:opentool_dart/opentool_dart.dart';
+import 'package:liteagent_core_dart/liteagent_core.dart';
+import 'package:opentool_dart/opentool_client.dart';
 
 import 'mock_util.dart';
 

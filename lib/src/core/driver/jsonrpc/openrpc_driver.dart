@@ -1,5 +1,5 @@
 import 'package:openrpc_dart/openrpc_dart.dart';
-import 'package:opentool_dart/opentool_dart.dart' as ot;
+import 'package:opentool_dart/opentool_client.dart' as ot;
 import '../tool_driver.dart';
 
 abstract class OpenRPCDriver extends ToolDriver {

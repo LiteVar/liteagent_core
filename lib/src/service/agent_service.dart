@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:lite_agent_core_dart/lite_agent_core.dart';
-import 'package:opentool_dart/opentool_dart.dart' as ot;
+import 'package:liteagent_core_dart/liteagent_core.dart';
+import 'package:opentool_dart/opentool_client.dart' as ot;
 import 'package:openapi_dart/openapi_dart.dart';
 import 'package:openrpc_dart/openrpc_dart.dart';
 import 'dart:collection';
@@ -10,12 +10,12 @@ import 'exception.dart';
 
 class AgentService {
   static const int _SENT_MESSAGES_CAPACITY = 500;
-  
+
   Map<String, SessionAgent> sessionAgents = {}; /// Map<sessionId, SessionAgent>
   Map<String, SimpleAgent> simpleAgents = {}; /// Map<sessionId, SimpleAgent>
   List<ToolDriver> globalDriverList = [];
   Map<String, OpenToolDriver> opentoolDriverMap = {}; /// Map<sessionId, OpenToolDriver>
-  Map<String, ClientDriver> clientDriverMap= {}; /// Map<sessionId, ClientDriver>
+  Map<String, OpenToolCallbackDriver> clientDriverMap= {}; /// Map<sessionId, ClientDriver>
   List<SessionMessageManageService> agentMessageManageServiceList = [];
   LinkedHashMap<Message, Map<String, bool>> sentMessages = LinkedHashMap<Message, Map<String, bool>>(); /// Map<Message, Map<sessionId, bool>>
 
@@ -34,9 +34,9 @@ class AgentService {
     LLMConfig llmConfig = simpleCapabilityDto.llmConfig.toModel();
 
     SimpleAgent simpleAgent = SimpleAgent(
-      llmConfig: llmConfig,
-      systemPrompt: systemPrompt,
-      responseFormat: ResponseFormat(type: ResponseFormatType.TEXT)
+        llmConfig: llmConfig,
+        systemPrompt: systemPrompt,
+        responseFormat: ResponseFormat(type: ResponseFormatType.TEXT)
     );
 
     simpleAgents[sessionId] = simpleAgent;
@@ -49,8 +49,8 @@ class AgentService {
     SimpleAgent? simpleAgent = simpleAgents[sessionId];
     if(simpleAgent == null) throw SessionAgentNotFoundException(sessionId: sessionId);
     List<Content> userMessageList = userTaskDto.content
-      .map((userMessageDto) => _convertToContent(userMessageDto))
-      .toList();
+        .map((userMessageDto) => _convertToContent(userMessageDto))
+        .toList();
     AgentMessage agentMessage = await simpleAgent.userToAgent(contentList: userMessageList);
     return AgentMessageDto.fromModel(agentMessage);
   }
@@ -76,49 +76,49 @@ class AgentService {
     List<AgentDriver>? agentDriverList = await _buildAgentDriverList(capabilityDto.sessionList, sessionId);
 
     if (capabilityDto.auto == true) { // AutoAgent
-        List<LLMConfig>? llmConfigList = capabilityDto.llmConfigList?.map((llmConfigDto) => llmConfigDto.toModel()).toList();
+      List<LLMConfig>? llmConfigList = capabilityDto.llmConfigList?.map((llmConfigDto) => llmConfigDto.toModel()).toList();
 
-        AutoMultiAgent autoMultiAgent = await AutoMultiAgent.create(
-          sessionId: sessionId,
-          llmConfig: llmConfig,
-          agentSession: _buildSession(sessionId),
-          toolDriverList: toolDriverList,
-          systemPrompt: systemPrompt,
-          toolReflectPromptList: reflectPromptList ?? const[],
-          timeoutSeconds: capabilityDto.timeoutSeconds,
-          taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
-          toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL,
-          enableThinking: capabilityDto.enableThinking,
-          llmConfigList: llmConfigList,
-        );
-        sessionAgents[sessionId] = autoMultiAgent;
-    } else if(toolDriverList.isEmpty && agentDriverList == null && capabilityDto.clientOpenTool == null) { // TextAgent
-      SessionAgent textAgent = TextAgent(
+      AutoMultiAgent autoMultiAgent = await AutoMultiAgent.create(
         sessionId: sessionId,
         llmConfig: llmConfig,
         agentSession: _buildSession(sessionId),
+        toolDriverList: toolDriverList,
         systemPrompt: systemPrompt,
-        textReflectPromptList: reflectPromptList??[],
+        toolReflectPromptList: reflectPromptList ?? const[],
         timeoutSeconds: capabilityDto.timeoutSeconds,
         taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
-        enableThinking: capabilityDto.enableThinking
+        toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL,
+        enableThinking: capabilityDto.enableThinking,
+        llmConfigList: llmConfigList,
+      );
+      sessionAgents[sessionId] = autoMultiAgent;
+    } else if(toolDriverList.isEmpty && agentDriverList == null && capabilityDto.clientOpenTool == null) { // TextAgent
+      SessionAgent textAgent = TextAgent(
+          sessionId: sessionId,
+          llmConfig: llmConfig,
+          agentSession: _buildSession(sessionId),
+          systemPrompt: systemPrompt,
+          textReflectPromptList: reflectPromptList??[],
+          timeoutSeconds: capabilityDto.timeoutSeconds,
+          taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
+          enableThinking: capabilityDto.enableThinking
       );
       sessionAgents[sessionId] = textAgent;
     } else if(agentDriverList == null) {  // ToolAgent
       ClientOpenTool? clientOpenTool = null;
       if(capabilityDto.clientOpenTool != null) clientOpenTool = ClientOpenTool(opentool: capabilityDto.clientOpenTool!.opentool, timeout: capabilityDto.clientOpenTool!.timeout, fetchClientDriver: this.fetchClientDriver);
       SessionAgent toolAgent = ToolAgent(
-        sessionId: sessionId,
-        llmConfig: llmConfig,
-        agentSession: _buildSession(sessionId),
-        toolDriverList: toolDriverList,
-        clientOpenTool: clientOpenTool,
-        systemPrompt: systemPrompt,
-        toolReflectPromptList: reflectPromptList??[],
-        timeoutSeconds: capabilityDto.timeoutSeconds,
-        taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
-        toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL,
-        enableThinking: capabilityDto.enableThinking
+          sessionId: sessionId,
+          llmConfig: llmConfig,
+          agentSession: _buildSession(sessionId),
+          toolDriverList: toolDriverList,
+          clientOpenTool: clientOpenTool,
+          systemPrompt: systemPrompt,
+          toolReflectPromptList: reflectPromptList??[],
+          timeoutSeconds: capabilityDto.timeoutSeconds,
+          taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
+          toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL,
+          enableThinking: capabilityDto.enableThinking
       );
       sessionAgents[sessionId] = toolAgent;
     } else {  // MultiAgent
@@ -150,7 +150,7 @@ class AgentService {
       void Function(String sessionId, String taskId, AgentMessageDto agentMessageDto) listen,
       {
         void Function(String sessionId, String taskId,
-        AgentMessageChunkDto agentMessageChunkDto)? listenChunk,
+            AgentMessageChunkDto agentMessageChunkDto)? listenChunk,
         void Function(String taskId)? getTaskId
       }) async {
     SessionAgent? sessionAgent = sessionAgents[sessionId];
@@ -222,10 +222,10 @@ class AgentService {
   }
 
   void _updateSession(AgentSession agentSession, String taskId,
-    void Function(String sessionId, String taskId, AgentMessageDto agentMessageDto) listen, {
-      void Function(String sessionId, String taskId, AgentMessageChunkDto agentMessageChunkDto)? listenChunk,
-      List<String>? subAgentSessionList
-  }) {
+      void Function(String sessionId, String taskId, AgentMessageDto agentMessageDto) listen, {
+        void Function(String sessionId, String taskId, AgentMessageChunkDto agentMessageChunkDto)? listenChunk,
+        List<String>? subAgentSessionList
+      }) {
 
     agentSession.addAgentMessageListener((AgentMessage agentMessage) {
       AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
@@ -397,12 +397,12 @@ class AgentService {
     }
   }
 
-  void fetchClientDriver(String sessionId, ClientDriver clientDriver) {
+  void fetchClientDriver(String sessionId, OpenToolCallbackDriver clientDriver) {
     clientDriverMap[sessionId] = clientDriver;
   }
 
   void clientDriverCallback(String sessionId, ot.ToolReturn toolReturn) {
-    ClientDriver? clientDriver = clientDriverMap[sessionId];
+    OpenToolCallbackDriver? clientDriver = clientDriverMap[sessionId];
     if(clientDriver == null) {
       throw SessionAgentNotFoundException(sessionId: sessionId);
     }

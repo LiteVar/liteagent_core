@@ -1,5 +1,5 @@
-import 'package:opentool_dart/opentool_dart.dart';
-import '../../driver/client_driver.dart';
+import 'package:opentool_dart/opentool_client.dart';
+import '../../driver/opentool/opentool_callback_driver.dart';
 import '../llm/model.dart';
 import '../text_agent/model.dart';
 
@@ -58,7 +58,7 @@ class FunctionCallParam {
 class ClientOpenTool {
   String opentool;
   int? timeout;
-  void Function(String sessionId, ClientDriver clientDriver)? fetchClientDriver;
+  void Function(String sessionId, OpenToolCallbackDriver clientDriver)? fetchClientDriver;
 
   ClientOpenTool({required this.opentool, this.timeout, this.fetchClientDriver});
 }

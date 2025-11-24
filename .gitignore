@@ -9,3 +9,4 @@ pubspec.lock
 lite_agent_core_dart.iml
 example/.env
 .cursor/
+AGENTS.md

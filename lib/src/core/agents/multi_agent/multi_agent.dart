@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:opentool_dart/opentool_dart.dart';
+import 'package:opentool_dart/opentool_client.dart';
 import '../../driver/agent_driver.dart';
-import '../../driver/client_driver.dart';
+import '../../driver/opentool/opentool_callback_driver.dart';
 import '../../driver/tool_driver.dart';
 import '../llm/exception.dart';
 import '../llm/openai_executor.dart';
@@ -64,7 +64,7 @@ class MultiAgent extends ToolAgent {
     await Future.wait(toolDriverList.map((driver) => driver.init()));
     List<FunctionModel> functionModelList = await buildFunctionModelList();
     if(this.clientOpenTool != null && this.clientOpenTool!.fetchClientDriver != null) {
-      ClientDriver clientDriver = await buildClientDriver(agentMessage);
+      OpenToolCallbackDriver clientDriver = await buildClientDriver(agentMessage);
       toolDriverList.add(clientDriver);
       this.clientOpenTool!.fetchClientDriver!(agentMessage.sessionId, clientDriver);
       functionModelList.addAll(clientDriver.parse());

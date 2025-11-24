@@ -10,7 +10,7 @@ import '../pipeline/model.dart';
 import 'planner/planner.dart';
 import 'executor/executor.dart';
 import 'summarizer/summarizer.dart';
-import 'package:opentool_dart/opentool_dart.dart' as ot;
+import 'package:opentool_dart/opentool_client.dart' as ot;
 import '../../util/unique_id_generator.dart';
 import '../../llm/model.dart';
 import 'wrappers/function.dart';

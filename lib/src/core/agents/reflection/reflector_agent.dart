@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:opentool_dart/opentool_dart.dart' as ot;
+import 'package:opentool_dart/opentool_client.dart' as ot;
 import '../../llm/model.dart';
 import '../../util/unique_id_generator.dart';
 import '../llm/llm_executor.dart';

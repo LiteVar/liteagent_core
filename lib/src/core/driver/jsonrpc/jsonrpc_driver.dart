@@ -1,4 +1,4 @@
-import 'package:opentool_dart/opentool_dart.dart' as ot;
+import 'package:opentool_dart/opentool_client.dart' as ot;
 import 'jsonrpc_http_util.dart';
 import 'package:openrpc_dart/openrpc_dart.dart';
 import 'openrpc_driver.dart';

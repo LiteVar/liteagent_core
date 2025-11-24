@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:opentool_dart/opentool_dart.dart';
+import 'package:opentool_dart/opentool_client.dart';
 import '../model.dart';
 import '../reflection/reflector_manager.dart';
 import '../session_agent/agent_message_handler.dart';
