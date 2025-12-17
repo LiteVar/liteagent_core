@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:opentool_daemon/opentool_daemon_utils.dart';
+
 import '../../driver/tool_driver.dart';
 import '../model.dart';
 import '../session_agent/model.dart';
@@ -11,7 +13,6 @@ import 'planner/planner.dart';
 import 'executor/executor.dart';
 import 'summarizer/summarizer.dart';
 import 'package:opentool_dart/opentool_client.dart' as ot;
-import '../../util/unique_id_generator.dart';
 import '../../llm/model.dart';
 import 'wrappers/function.dart';
 import 'models/node.dart';
@@ -45,11 +46,12 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
   AutoMultiAgent._internal({
     required super.sessionId,
     required super.toolDriverList,
-    super.clientOpenTool,
+    super.callbackOpenTool,
     required super.llmConfig,
     required super.agentSession,
     super.systemPrompt,
     super.timeoutSeconds = 3600,
+    super.streamCallTimeoutSeconds,
     List<ReflectPrompt> toolReflectPromptList = const [],
     String taskPipelineStrategy = PipelineStrategyType.PARALLEL,
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
@@ -61,11 +63,12 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
   static Future<AutoMultiAgent> create({
     required String sessionId,
     required List<ToolDriver> toolDriverList,
-    ClientOpenTool? clientOpenTool,
+    CallbackOpenTool? clientOpenTool,
     required LLMConfig llmConfig,
     required AgentSession agentSession,
     String? systemPrompt,
     int timeoutSeconds = 3600,
+    int streamCallTimeoutSeconds = 60,
     List<ReflectPrompt> toolReflectPromptList = const [],
     String taskPipelineStrategy = PipelineStrategyType.PARALLEL,
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
@@ -76,11 +79,12 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
       AutoMultiAgent instance = AutoMultiAgent._internal(
         sessionId: sessionId,
         toolDriverList: toolDriverList,
-        clientOpenTool: clientOpenTool,
+        callbackOpenTool: clientOpenTool,
         llmConfig: llmConfig,
         agentSession: agentSession,
         systemPrompt: systemPrompt,
         timeoutSeconds: timeoutSeconds,
+        streamCallTimeoutSeconds: streamCallTimeoutSeconds,
         toolReflectPromptList: toolReflectPromptList,
         taskPipelineStrategy: taskPipelineStrategy,
         toolPipelineStrategy: toolPipelineStrategy,

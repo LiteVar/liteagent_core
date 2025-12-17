@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
-import '../../util/unique_id_generator.dart';
+import 'package:opentool_daemon/opentool_daemon_utils.dart';
 import 'model.dart';
 
 /// Support job for parallel, serial, reject strategy

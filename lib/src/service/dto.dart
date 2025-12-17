@@ -52,7 +52,7 @@ class SimpleCapabilityDto {
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
 class CapabilityDto extends SimpleCapabilityDto {
   List<OpenSpecDto>? openSpecList;
-  ClientOpenToolDto? clientOpenTool;
+  CallbackOpenToolDto? callbackOpenTool;
   List<SessionNameDto>? sessionList;
   List<ReflectPromptDto>? reflectPromptList;
   int timeoutSeconds;
@@ -66,7 +66,7 @@ class CapabilityDto extends SimpleCapabilityDto {
     required super.llmConfig,
     required super.systemPrompt,
     this.openSpecList,
-    this.clientOpenTool,
+    this.callbackOpenTool,
     this.sessionList,
     this.reflectPromptList,
     this.timeoutSeconds = 3600,
@@ -568,13 +568,13 @@ class SessionAgentMessageDto {
 }
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
-class ClientOpenToolDto {
+class CallbackOpenToolDto {
   String opentool;
   int? timeout;
 
-  ClientOpenToolDto({required this.opentool, this.timeout});
+  CallbackOpenToolDto({required this.opentool, this.timeout});
 
-  factory ClientOpenToolDto.fromJson(Map<String, dynamic> json) => _$ClientOpenToolDtoFromJson(json);
+  factory CallbackOpenToolDto.fromJson(Map<String, dynamic> json) => _$CallbackOpenToolDtoFromJson(json);
 
-  Map<String, dynamic> toJson() => _$ClientOpenToolDtoToJson(this);
+  Map<String, dynamic> toJson() => _$CallbackOpenToolDtoToJson(this);
 }

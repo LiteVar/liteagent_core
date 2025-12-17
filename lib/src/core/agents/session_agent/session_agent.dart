@@ -1,5 +1,5 @@
 import 'dart:async';
-import '../../util/unique_id_generator.dart';
+import 'package:opentool_daemon/opentool_daemon_utils.dart';
 import '../model.dart';
 import '../pipeline/model.dart';
 import '../pipeline/pipeline.dart';

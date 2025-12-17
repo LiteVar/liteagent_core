@@ -55,10 +55,10 @@ class FunctionCallParam {
   FunctionCallParam({required this.sessionId, required this.taskId, required this.originalTaskId, this.type, required this.index, required this.functionCall});
 }
 
-class ClientOpenTool {
+class CallbackOpenTool {
   String opentool;
   int? timeout;
   void Function(String sessionId, OpenToolCallbackDriver clientDriver)? fetchClientDriver;
 
-  ClientOpenTool({required this.opentool, this.timeout, this.fetchClientDriver});
+  CallbackOpenTool({required this.opentool, this.timeout, this.fetchClientDriver});
 }

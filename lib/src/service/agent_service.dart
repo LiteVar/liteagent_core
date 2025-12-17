@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:liteagent_core_dart/liteagent_core.dart';
+import 'package:opentool_daemon/opentool_daemon_utils.dart';
 import 'package:opentool_dart/opentool_client.dart' as ot;
 import 'package:openapi_dart/openapi_dart.dart';
 import 'package:openrpc_dart/openrpc_dart.dart';
@@ -92,7 +93,7 @@ class AgentService {
         llmConfigList: llmConfigList,
       );
       sessionAgents[sessionId] = autoMultiAgent;
-    } else if(toolDriverList.isEmpty && agentDriverList == null && capabilityDto.clientOpenTool == null) { // TextAgent
+    } else if(toolDriverList.isEmpty && agentDriverList == null && capabilityDto.callbackOpenTool == null) { // TextAgent
       SessionAgent textAgent = TextAgent(
           sessionId: sessionId,
           llmConfig: llmConfig,
@@ -105,14 +106,14 @@ class AgentService {
       );
       sessionAgents[sessionId] = textAgent;
     } else if(agentDriverList == null) {  // ToolAgent
-      ClientOpenTool? clientOpenTool = null;
-      if(capabilityDto.clientOpenTool != null) clientOpenTool = ClientOpenTool(opentool: capabilityDto.clientOpenTool!.opentool, timeout: capabilityDto.clientOpenTool!.timeout, fetchClientDriver: this.fetchClientDriver);
+      CallbackOpenTool? clientOpenTool = null;
+      if(capabilityDto.callbackOpenTool != null) clientOpenTool = CallbackOpenTool(opentool: capabilityDto.callbackOpenTool!.opentool, timeout: capabilityDto.callbackOpenTool!.timeout, fetchClientDriver: this.fetchClientDriver);
       SessionAgent toolAgent = ToolAgent(
           sessionId: sessionId,
           llmConfig: llmConfig,
           agentSession: _buildSession(sessionId),
           toolDriverList: toolDriverList,
-          clientOpenTool: clientOpenTool,
+          callbackOpenTool: clientOpenTool,
           systemPrompt: systemPrompt,
           toolReflectPromptList: reflectPromptList??[],
           timeoutSeconds: capabilityDto.timeoutSeconds,
@@ -122,8 +123,8 @@ class AgentService {
       );
       sessionAgents[sessionId] = toolAgent;
     } else {  // MultiAgent
-      ClientOpenTool? clientOpenTool = null;
-      if(capabilityDto.clientOpenTool != null) clientOpenTool = ClientOpenTool(opentool: capabilityDto.clientOpenTool!.opentool, timeout: capabilityDto.clientOpenTool!.timeout, fetchClientDriver: this.fetchClientDriver);
+      CallbackOpenTool? clientOpenTool = null;
+      if(capabilityDto.callbackOpenTool != null) clientOpenTool = CallbackOpenTool(opentool: capabilityDto.callbackOpenTool!.opentool, timeout: capabilityDto.callbackOpenTool!.timeout, fetchClientDriver: this.fetchClientDriver);
       SessionAgent toolAgent = MultiAgent(
           sessionId: sessionId,
           llmConfig: llmConfig,

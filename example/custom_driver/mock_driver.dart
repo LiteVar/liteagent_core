@@ -31,8 +31,28 @@ class MockDriver extends OpenToolDriver {
       int id = functionCall.arguments["id"] as int;
       mockUtil.delete(id);
       return ToolReturn(id: functionCall.id, result: {"result": "Delete successfully."});
+    } else if(functionName == "run") {
+      try {
+        mockUtil.run();
+      } catch(e) {
+        throw ToolBreakException(e.toString());
+      }
+      return ToolReturn(id: functionCall.id, result: {"result": "Delete successfully."});
     } else {
       return ToolReturn(id: functionCall.id, result: FunctionNotSupportedException(functionName: functionName).toJson());
+    }
+  }
+
+  @override
+  Future<void> streamCall(FunctionCall functionCall, void Function(String event, Map<String, dynamic>) onStream) async {
+    String functionName = functionCall.name;
+    if(functionName == "sequentiallyRead") {
+      await mockUtil.sequentiallyRead((String data) {
+        onStream(EventType.DATA, {"data": data});
+      });
+      onStream(EventType.DONE, {});
+    } else {
+      onStream(EventType.ERROR, FunctionNotSupportedException(functionName: functionName).toJson());
     }
   }
 }

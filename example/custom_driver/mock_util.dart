@@ -1,3 +1,5 @@
+import 'dart:async';
+
 class MockUtil {
   List<String> storage = ["Hello", "World"];
 
@@ -14,11 +16,22 @@ class MockUtil {
     return storage[id];
   }
 
+  Future<void> sequentiallyRead(void Function(String data) onData) async {
+    for (final data in storage) {
+      onData(data);
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+  }
+
   void update(int id, String text) {
     storage[id] = text;
   }
 
   void delete(int id) {
     storage.removeAt(id);
+  }
+
+  void run() {
+    throw Exception("A fatal error to break this tool.");
   }
 }

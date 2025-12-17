@@ -23,7 +23,8 @@ class OpenToolClientDriver extends OpenToolDriver {
     return await client.call(functionCall);
   }
 
-  Future<void> streamCall(FunctionCall functionCall, void Function(String event, ToolReturn toolReturn) onToolReturn) async {
-    return await client.streamCall(functionCall, onToolReturn);
+  @override
+  Future<void> streamCall(FunctionCall functionCall, void Function(String event, Map<String, dynamic> data) onStream) async {
+    return await client.streamCall(functionCall, onStream);
   }
 }

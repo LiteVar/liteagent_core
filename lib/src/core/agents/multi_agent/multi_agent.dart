@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:opentool_dart/opentool_client.dart';
 import '../../driver/agent_driver.dart';
-import '../../driver/opentool/opentool_callback_driver.dart';
 import '../../driver/tool_driver.dart';
 import '../llm/exception.dart';
 import '../llm/openai_executor.dart';
@@ -30,6 +29,7 @@ class MultiAgent extends ToolAgent {
     required agentSession,
     String? systemPrompt,
     int timeoutSeconds = 3600,
+    int streamCallTimeoutSeconds = 60,
     List<ReflectPrompt> toolReflectPromptList = const[],
     String taskPipelineStrategy   = PipelineStrategyType.PARALLEL,
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
@@ -38,11 +38,12 @@ class MultiAgent extends ToolAgent {
   }) : super(
     sessionId: sessionId,
     toolDriverList: toolDriverList,
-    clientOpenTool: clientOpenTool,
+    callbackOpenTool: clientOpenTool,
     llmConfig: llmConfig,
     agentSession: agentSession,
     systemPrompt: systemPrompt,
     timeoutSeconds: timeoutSeconds,
+    streamCallTimeoutSeconds: streamCallTimeoutSeconds,
     taskPipelineStrategy: taskPipelineStrategy,
     toolPipelineStrategy: toolPipelineStrategy,
     enableThinking: enableThinking,
@@ -61,14 +62,9 @@ class MultiAgent extends ToolAgent {
   Future<void> toLLM(AgentMessage agentMessage) async {
     agentSession.addListenAgentMessage(agentMessage);
 
-    await Future.wait(toolDriverList.map((driver) => driver.init()));
-    List<FunctionModel> functionModelList = await buildFunctionModelList();
-    if(this.clientOpenTool != null && this.clientOpenTool!.fetchClientDriver != null) {
-      OpenToolCallbackDriver clientDriver = await buildClientDriver(agentMessage);
-      toolDriverList.add(clientDriver);
-      this.clientOpenTool!.fetchClientDriver!(agentMessage.sessionId, clientDriver);
-      functionModelList.addAll(clientDriver.parse());
-    }
+    final toolDrivers = await prepareToolDrivers(agentMessage);
+    await Future.wait(toolDrivers.map((driver) => driver.init()));
+    List<FunctionModel> functionModelList = await buildFunctionModelList(toolDrivers);
 
     for (AgentDriver agentDriver in subAgentDriverList) {
       await agentDriver.init();
@@ -98,12 +94,13 @@ class MultiAgent extends ToolAgent {
     }
   }
 
-  SeparatedFunctionCallList _separateFunctionCallList(List<FunctionCall> functionCallList) {
+  SeparatedFunctionCallList _separateFunctionCallList(String originalTaskId, List<FunctionCall> functionCallList) {
     List<FunctionCall> toolFunctionCalls = [];
     List<FunctionCall> subAgentFunctionCalls = [];
+    List<ToolDriver> drivers = getToolDriversForOriginalTask(originalTaskId);
 
     for (FunctionCall functionCall in functionCallList) {
-      int toolIndex = toolDriverList.indexWhere((toolDriver) => toolDriver.hasFunction(functionCall.name));
+      int toolIndex = drivers.indexWhere((toolDriver) => toolDriver.hasFunction(functionCall.name));
       if(toolIndex >= 0) {
         toolFunctionCalls.add(functionCall);
       } else {
@@ -120,7 +117,7 @@ class MultiAgent extends ToolAgent {
   void _partitionFunctionCallMessage(AgentMessage agentMessage) {
     if(agentMessage.type == MultiAgentMessageType.TOOL_CALLS) {
       List<FunctionCall> functionCallList = agentMessage.content as List<FunctionCall>;
-      _separatedFunctionCallList = _separateFunctionCallList(functionCallList);
+      _separatedFunctionCallList = _separateFunctionCallList(agentMessage.originalTaskId, functionCallList);
       if(_separatedFunctionCallList.toolFunctionCalls.isNotEmpty) {
         AgentMessage toolMessage = AgentMessage(
             sessionId: agentMessage.sessionId,

@@ -1,5 +1,4 @@
 import 'dart:async';
-import '../../tool_agent/tool_agent.dart';
 import '../models/node.dart';
 import '../wrappers/function.dart';
 import 'context_builder.dart';
@@ -8,7 +7,7 @@ import '../wrappers/llm.dart';
 import '../auto_multi_agent.dart';
 import 'prompt.dart';
 import '../../session_agent/session.dart';
-import '../../../util/unique_id_generator.dart';
+import 'package:opentool_daemon/opentool_daemon_utils.dart';
 
 /// execution manager
 /// responsible for concurrent execution control and status management

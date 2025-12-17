@@ -39,7 +39,7 @@
     },
     {
       "name": "read",
-      "description": "Read text from storage by id, id start from 0",
+      "description": "Read text from storage by id",
       "parameters": [
         {
           "name": "id",
@@ -56,6 +56,21 @@
           "$ref": "#/schemas/Text"
         },
         "description": "Text find by Id in storage"
+      }
+    },
+    {
+      "name": "sequentiallyRead",
+      "description": "Read text from storage one by one",
+      "parameters": [],
+      "return": null,
+      "stream": {
+        "data": {
+          "name": "text",
+          "schema": {
+            "$ref": "#/schemas/Text"
+          },
+          "description": "Text in storage"
+        }
       }
     },
     {
@@ -94,6 +109,12 @@
           "required": true
         }
       ],
+      "return": null
+    },
+    {
+      "name": "run",
+      "description": "trigger runing",
+      "parameters": [],
       "return": null
     }
   ],

@@ -1,11 +1,11 @@
 import 'dart:async';
+import 'package:opentool_daemon/opentool_daemon_utils.dart';
 import 'package:opentool_dart/opentool_client.dart' as ot;
 import '../../../driver/tool_driver.dart';
 import '../../tool_agent/tool_agent.dart';
 import 'function.dart';
 import '../../session_agent/session.dart';
 import '../../session_agent/model.dart';
-import '../../../util/unique_id_generator.dart';
 import '../../model.dart';
 import '../auto_multi_agent.dart';
 
@@ -18,6 +18,7 @@ class AutoToolAgent extends ToolAgent {
     required super.llmConfig,
     required super.agentSession,
     super.systemPrompt,
+    super.streamCallTimeoutSeconds,
     this.indexedFunctions = const [],
   }) {
     if (indexedFunctions.isNotEmpty) {
@@ -34,10 +35,19 @@ class AutoToolAgent extends ToolAgent {
   }
 
   @override
-  Future<List<ot.FunctionModel>> buildFunctionModelList() async {
+  Future<List<ot.FunctionModel>> buildFunctionModelList([List<ToolDriver>? drivers]) async {
+    if (indexedFunctions.isNotEmpty) {
+      List<ot.FunctionModel> functionModelList = [];
+      indexedFunctions.forEach((IndexedFunction indexedFunction) {
+        functionModelList.add(indexedFunction.functionModel);
+      });
+      return functionModelList;
+    }
+
+    final driverList = drivers ?? toolDriverList;
     List<ot.FunctionModel> functionModelList = [];
-    indexedFunctions.forEach((IndexedFunction indexedFunction) {
-      functionModelList.add(indexedFunction.functionModel);
+    driverList.forEach((ToolDriver toolDriver) {
+      functionModelList.addAll(toolDriver.parse());
     });
     return functionModelList;
   }

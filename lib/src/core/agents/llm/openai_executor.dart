@@ -10,6 +10,8 @@ import '../model.dart';
 import 'llm_executor.dart';
 import 'model.dart';
 
+const String _streamEventsKey = "__streamEvents__";
+
 class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
   late String _sessionId;
   String? _parentTaskId;
@@ -326,10 +328,12 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
     /// AGENT return TOOL or SUBAGENT result
     if ((agentMessage.role == AgentRoleType.TOOL || agentMessage.role == AgentRoleType.SUBAGENT) && agentMessage.type == AgentMessageType.TOOL_RETURN) {
       ToolReturn toolReturn = agentMessage.content as ToolReturn;
+      final streamEvents = toolReturn.result[_streamEventsKey];
+      final toolContent = streamEvents is List ? jsonEncode(streamEvents) : jsonEncode(toolReturn.result);
       return OpenAIChatCompletionChoiceMessageModel(
         role: OpenAIChatMessageRole.tool,
         content: [
-          OpenAIChatCompletionChoiceMessageContentItemModel.text(jsonEncode(toolReturn.result))
+          OpenAIChatCompletionChoiceMessageContentItemModel.text(toolContent)
         ],
       ).asRequestFunctionMessage(toolCallId: toolReturn.id);
     }
