@@ -45,14 +45,17 @@ class OpenToolCallbackDriver extends OpenToolDriver {
 
   /// Stream Call mode
   @override
-  Future<void> streamCall(FunctionCall functionCall, void Function(String event, Map<String, dynamic>) onStream,) async {
-    _streamCallMap[functionCall.id] = StreamController<EventToolReturn>();
+  Future<void> streamCall(
+    FunctionCall functionCall,
+    void Function(String event, ToolReturn toolReturn) onStream,
+  ) async {
+    final streamController = StreamController<EventToolReturn>();
+    _streamCallMap[functionCall.id] = streamController;
 
     /// invoke remote call
     listenCallbackFunctionCall(functionCall);
 
-    _streamCallMap[functionCall.id]!.stream.
-    timeout(
+    streamController.stream.timeout(
       Duration(seconds: timeout),
       onTimeout: (sink) {
         ToolReturn toolReturn = ToolReturn(
@@ -62,20 +65,24 @@ class OpenToolCallbackDriver extends OpenToolDriver {
             "Function `${functionCall.toJson()}` timeout after ${timeout}s."
           },
         );
-        onStream(EventType.ERROR, toolReturn.toJson());
+        onStream(EventType.ERROR, toolReturn);
+        _streamCallMap.remove(functionCall.id);
+        streamController.close();
         sink.close();
       },
     )
-      .listen(
-        (eventToolReturn){
-          onStream(eventToolReturn.event, eventToolReturn.toolReturn.toJson());
-        },
-        onDone: (){
-          onStream(EventType.DONE, {});
-        },
-        onError: (e) {
-          onStream(EventType.ERROR, {"error": e.toString()});
-        }
+        .listen(
+      (eventToolReturn) {
+        onStream(eventToolReturn.event, eventToolReturn.toolReturn);
+      },
+      onDone: () {
+        _streamCallMap.remove(functionCall.id);
+      },
+      onError: (e) {
+        onStream(EventType.ERROR, ToolReturn(id: functionCall.id, result: {"error": e.toString()}));
+        _streamCallMap.remove(functionCall.id);
+        streamController.close();
+      },
     );
   }
 
@@ -91,6 +98,10 @@ class OpenToolCallbackDriver extends OpenToolDriver {
     if(eventToolReturnStreamController != null) {
       EventToolReturn eventToolReturn = EventToolReturn(event: event, toolReturn: toolReturn);
       eventToolReturnStreamController.add(eventToolReturn);
+      if (event == EventType.DONE || event == EventType.ERROR) {
+        _streamCallMap.remove(toolReturn.id);
+        eventToolReturnStreamController.close();
+      }
     }
   }
 }

@@ -227,8 +227,8 @@ class ToolAgent extends TextAgent {
     );
     _resetStreamTimeout(taskState);
 
-    void onStream(String event, Map<String, dynamic> payload) {
-      _handleStreamEvent(taskState, callState, event, payload);
+    void onStream(String event, ToolReturn toolReturn) {
+      _handleStreamEvent(taskState, callState, event, toolReturn);
     }
 
     try {
@@ -246,10 +246,12 @@ class ToolAgent extends TextAgent {
     _StreamCallTaskState taskState,
     _StreamCallState callState,
     String event,
-    Map<String, dynamic> payload,
+    ToolReturn toolReturn,
   ) {
     final eventType = event == "exception" ? EventType.ERROR : event;
-    final dynamic resultPayload = payload.containsKey("result") ? payload["result"] : payload;
+    final rawPayload = toolReturn.result;
+    final dynamic resultPayload =
+        rawPayload.containsKey("result") ? rawPayload["result"] : rawPayload;
 
     if (!callState.hasStart && eventType != EventType.START) {
       _appendStreamEvent(taskState, callState, EventType.START, {});

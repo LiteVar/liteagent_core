@@ -44,15 +44,21 @@ class MockDriver extends OpenToolDriver {
   }
 
   @override
-  Future<void> streamCall(FunctionCall functionCall, void Function(String event, Map<String, dynamic>) onStream) async {
+  Future<void> streamCall(FunctionCall functionCall, void Function(String event, ToolReturn toolReturn) onStream) async {
     String functionName = functionCall.name;
     if(functionName == "sequentiallyRead") {
       await mockUtil.sequentiallyRead((String data) {
-        onStream(EventType.DATA, {"data": data});
+        onStream(EventType.DATA, ToolReturn(id: functionCall.id, result: {"data": data}));
       });
-      onStream(EventType.DONE, {});
+      onStream(EventType.DONE, ToolReturn(id: functionCall.id, result: {}));
     } else {
-      onStream(EventType.ERROR, FunctionNotSupportedException(functionName: functionName).toJson());
+      onStream(
+        EventType.ERROR,
+        ToolReturn(
+          id: functionCall.id,
+          result: FunctionNotSupportedException(functionName: functionName).toJson(),
+        ),
+      );
     }
   }
 }

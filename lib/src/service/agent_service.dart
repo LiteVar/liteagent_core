@@ -410,6 +410,14 @@ class AgentService {
     clientDriver.callback(toolReturn);
   }
 
+  void clientDriverStreamCallback(String sessionId, String event, ot.ToolReturn toolReturn) {
+    OpenToolCallbackDriver? clientDriver = clientDriverMap[sessionId];
+    if (clientDriver == null) {
+      throw SessionAgentNotFoundException(sessionId: sessionId);
+    }
+    clientDriver.streamCallback(event, toolReturn);
+  }
+
   List<String> getSubSessionIds(String rootSessionId) {
     try {
       SessionAgent? rootAgent = sessionAgents[rootSessionId];
