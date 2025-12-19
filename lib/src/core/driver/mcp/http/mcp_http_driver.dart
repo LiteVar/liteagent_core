@@ -9,12 +9,11 @@ class McpHttpDriver extends McpBaseDriver {
   late StreamableHttpClientTransport transport;
   String? sessionId;
 
-  McpHttpDriver(McpHttp mcpHttp, {OAuthClientProvider? authProvider, void Function()? onTransportClose}) {
+  McpHttpDriver(McpHttp mcpHttp,
+      {OAuthClientProvider? authProvider, void Function()? onTransportClose}) {
     Uri url = Uri.parse(mcpHttp.url);
-    StreamableHttpClientTransportOptions httpOptions = StreamableHttpClientTransportOptions(
-        authProvider: authProvider,
-        sessionId: sessionId
-    );
+    StreamableHttpClientTransportOptions httpOptions =
+        StreamableHttpClientTransportOptions(authProvider: authProvider, sessionId: sessionId);
 
     transport = StreamableHttpClientTransport(url, opts: httpOptions);
 
@@ -27,12 +26,13 @@ class McpHttpDriver extends McpBaseDriver {
     };
 
     transport.onclose = () {
-      if(onTransportClose != null) onTransportClose();
+      if (onTransportClose != null) onTransportClose();
     };
   }
 
   factory McpHttpDriver.fromMcpHttpString(String mcpHttpString) {
-    McpHttp mcpHttp = McpHttp.fromJson((jsonDecode(mcpHttpString).values.first as Map<String, dynamic>));
+    McpHttp mcpHttp =
+        McpHttp.fromJson((jsonDecode(mcpHttpString).values.first as Map<String, dynamic>));
     return McpHttpDriver(mcpHttp);
   }
 
@@ -55,7 +55,12 @@ class McpHttpDriver extends McpBaseDriver {
 
   @override
   Future<ot.ToolReturn> call(ot.FunctionCall functionCall) async {
-    CallToolResult callToolResult = await client.callTool(CallToolRequestParams(name: functionCall.name, arguments: functionCall.arguments));
+    CallToolResult callToolResult = await client.callTool(
+      CallToolRequest(
+        name: functionCall.name,
+        arguments: functionCall.arguments,
+      ),
+    );
     return ot.ToolReturn(id: functionCall.id, result: callToolResult.toJson());
   }
 }

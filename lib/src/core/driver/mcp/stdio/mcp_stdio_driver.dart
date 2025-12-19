@@ -27,12 +27,13 @@ class McpStdioDriver extends McpBaseDriver {
     };
 
     transport.onclose = () {
-      if(onTransportClose != null) onTransportClose();
+      if (onTransportClose != null) onTransportClose();
     };
   }
 
   factory McpStdioDriver.fromMcpStdioString(String mcpStdioString) {
-    McpStdio openMcp = McpStdio.fromJson((jsonDecode(mcpStdioString).values.first as Map<String, dynamic>));
+    McpStdio openMcp =
+        McpStdio.fromJson((jsonDecode(mcpStdioString).values.first as Map<String, dynamic>));
     return McpStdioDriver(openMcp);
   }
 
@@ -54,7 +55,12 @@ class McpStdioDriver extends McpBaseDriver {
 
   @override
   Future<ot.ToolReturn> call(ot.FunctionCall functionCall) async {
-    CallToolResult callToolResult = await client.callTool(CallToolRequestParams(name: functionCall.name, arguments: functionCall.arguments));
+    CallToolResult callToolResult = await client.callTool(
+      CallToolRequest(
+        name: functionCall.name,
+        arguments: functionCall.arguments,
+      ),
+    );
     return ot.ToolReturn(id: functionCall.id, result: callToolResult.toJson());
   }
 }
