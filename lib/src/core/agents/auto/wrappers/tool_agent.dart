@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:opentool_daemon/opentool_daemon_utils.dart';
 import 'package:opentool_dart/opentool_client.dart' as ot;
 import '../../../driver/tool_driver.dart';
 import '../../tool_agent/tool_agent.dart';
@@ -8,6 +7,7 @@ import '../../session_agent/session.dart';
 import '../../session_agent/model.dart';
 import '../../model.dart';
 import '../auto_multi_agent.dart';
+import '../../../utils/unique_id_generator.dart';
 
 class AutoToolAgent extends ToolAgent {
 

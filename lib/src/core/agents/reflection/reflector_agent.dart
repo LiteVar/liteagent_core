@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:opentool_daemon/opentool_daemon_utils.dart';
 import 'package:opentool_dart/opentool_client.dart' as ot;
 import '../../llm/model.dart';
 import '../llm/llm_executor.dart';
@@ -9,6 +8,7 @@ import '../session_agent/model.dart';
 import '../text_agent/model.dart';
 import 'model.dart';
 import 'reflector_driver.dart';
+import '../../utils/unique_id_generator.dart';
 
 class ReflectorAgent {
   LLMExecutor llmExecutor;

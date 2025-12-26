@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'package:opentool_daemon/opentool_daemon_utils.dart';
-
 import '../../../llm/model.dart';
 import 'prompt.dart';
 import '../models/node.dart';
 import '../wrappers/tool_agent.dart';
 import '../auto_multi_agent.dart';
 import '../../session_agent/session.dart';
+import '../../../utils/unique_id_generator.dart';
 
 class AutoSummarizer {
 

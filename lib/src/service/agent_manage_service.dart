@@ -1,6 +1,6 @@
-import 'package:opentool_daemon/opentool_daemon_utils.dart';
 import 'dto.dart';
 import 'exception.dart';
+import 'package:liteagent_core_dart/liteagent_core.dart';
 
 abstract class AgentManageService {
   Future<List<AgentInfoDto>> getAgents();

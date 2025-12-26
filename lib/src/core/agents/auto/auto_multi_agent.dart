@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:opentool_daemon/opentool_daemon_utils.dart';
-
 import '../../driver/tool_driver.dart';
 import '../model.dart';
 import '../session_agent/model.dart';
@@ -19,6 +17,7 @@ import 'models/node.dart';
 import 'wrappers/llm.dart';
 import '../multi_agent/model.dart';
 import '../tool_agent/model.dart';
+import '../../utils/unique_id_generator.dart';
 
 abstract class AutoMessageSender {
 

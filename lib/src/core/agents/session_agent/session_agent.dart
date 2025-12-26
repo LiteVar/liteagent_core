@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:opentool_daemon/opentool_daemon_utils.dart';
 import '../model.dart';
 import '../pipeline/model.dart';
 import '../pipeline/pipeline.dart';
@@ -8,6 +7,7 @@ import 'exception.dart';
 import 'model.dart';
 import 'session.dart';
 import 'timeout.dart';
+import '../../utils/unique_id_generator.dart';
 
 abstract class SessionAgent {
   String sessionId;

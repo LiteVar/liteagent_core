@@ -7,7 +7,7 @@ import '../wrappers/llm.dart';
 import '../auto_multi_agent.dart';
 import 'prompt.dart';
 import '../../session_agent/session.dart';
-import 'package:opentool_daemon/opentool_daemon_utils.dart';
+import '../../../utils/unique_id_generator.dart';
 
 /// execution manager
 /// responsible for concurrent execution control and status management

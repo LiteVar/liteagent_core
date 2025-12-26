@@ -5,8 +5,8 @@ import '../wrappers/function.dart';
 import '../wrappers/llm.dart';
 import '../wrappers/tool_agent.dart';
 import '../auto_multi_agent.dart';
-import 'package:opentool_daemon/opentool_daemon_utils.dart';
 import '../../session_agent/session.dart';
+import '../../../utils/unique_id_generator.dart';
 
 class AutoTaskPlanner {
 
