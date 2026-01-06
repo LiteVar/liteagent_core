@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'model.dart';
-import '../../utils/unique_id_generator.dart';
+import 'package:unique_id_dart/unique_id_dart.dart';
 
 /// Support job for parallel, serial, reject strategy
 class Pipeline<T> {

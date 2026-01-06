@@ -3,7 +3,7 @@ import 'llm/openai_executor.dart';
 import 'session_agent/model.dart';
 import 'text_agent/model.dart';
 import 'model.dart';
-import '../utils/unique_id_generator.dart';
+import 'package:unique_id_dart/unique_id_dart.dart';
 
 class SimpleAgent {
   late String sessionId;

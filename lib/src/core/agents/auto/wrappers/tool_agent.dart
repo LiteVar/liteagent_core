@@ -7,7 +7,7 @@ import '../../session_agent/session.dart';
 import '../../session_agent/model.dart';
 import '../../model.dart';
 import '../auto_multi_agent.dart';
-import '../../../utils/unique_id_generator.dart';
+import 'package:unique_id_dart/unique_id_dart.dart';
 
 class AutoToolAgent extends ToolAgent {
 

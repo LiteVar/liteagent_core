@@ -7,7 +7,7 @@ import 'exception.dart';
 import 'model.dart';
 import 'session.dart';
 import 'timeout.dart';
-import '../../utils/unique_id_generator.dart';
+import 'package:unique_id_dart/unique_id_dart.dart';
 
 abstract class SessionAgent {
   String sessionId;

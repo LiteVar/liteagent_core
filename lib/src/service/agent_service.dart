@@ -3,6 +3,7 @@ import 'package:liteagent_core_dart/liteagent_core.dart';
 import 'package:opentool_dart/opentool_client.dart' as ot;
 import 'package:openapi_dart/openapi_dart.dart';
 import 'package:openrpc_dart/openrpc_dart.dart';
+import 'package:unique_id_dart/unique_id_dart.dart';
 import 'dart:collection';
 import 'session_message_manage_service.dart';
 import 'dto.dart';

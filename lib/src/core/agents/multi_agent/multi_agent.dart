@@ -17,9 +17,12 @@ import 'model.dart';
 import 'multi_agent_message_handler.dart';
 
 class MultiAgent extends ToolAgent {
+  static const String _subAgentFunctionName = "callSubAgent";
+  static const String _subAgentNameKey = "agentName";
+  static const String _subAgentFunctionDescription = "Call a sub-agent by name.";
   List<AgentDriver> subAgentDriverList;
   late Pipeline<FunctionCallParam> subAgentPipeLine;
-  late SeparatedFunctionCallList _separatedFunctionCallList;
+  final Map<String, SeparatedFunctionCallList> _separatedFunctionCallMap = {};
 
   MultiAgent({
     required sessionId,
@@ -66,10 +69,8 @@ class MultiAgent extends ToolAgent {
     await Future.wait(toolDrivers.map((driver) => driver.init()));
     List<FunctionModel> functionModelList = await buildFunctionModelList(toolDrivers);
 
-    for (AgentDriver agentDriver in subAgentDriverList) {
-      await agentDriver.init();
-      functionModelList.addAll(agentDriver.parse());
-    }
+    List<FunctionModel> subAgentFunctionModelList = await _buildFunctionModelList(this.subAgentDriverList);
+    functionModelList.addAll(subAgentFunctionModelList);
 
     try {
       List<AgentMessage> agentLLMMessageList = prepareAgentLLMMessageList(agentMessage);
@@ -104,8 +105,7 @@ class MultiAgent extends ToolAgent {
       if(toolIndex >= 0) {
         toolFunctionCalls.add(functionCall);
       } else {
-        int agentIndex = subAgentDriverList.indexWhere((agentDriver) => agentDriver.hasFunction(functionCall.name));
-        if(agentIndex >= 0) {
+        if(functionCall.name == _subAgentFunctionName) {
           subAgentFunctionCalls.add(functionCall);
         }
       }
@@ -114,11 +114,64 @@ class MultiAgent extends ToolAgent {
     return SeparatedFunctionCallList(toolFunctionCalls: toolFunctionCalls, subAgentFunctionCalls: subAgentFunctionCalls, hasToolFunctionCallsDone: toolFunctionCalls.isEmpty, hasSubAgentFunctionCallsDone: subAgentFunctionCalls.isEmpty);
   }
 
+  Future<List<FunctionModel>> _buildFunctionModelList(List<AgentDriver> subAgentDriverList) async{
+    if (subAgentDriverList.isEmpty) {
+      return [];
+    }
+    List<FunctionModel> agentFunctionModelList = [];
+    for (AgentDriver agentDriver in subAgentDriverList) {
+      await agentDriver.init();
+      List<FunctionModel> functionModelList = await agentDriver.parse();
+      agentFunctionModelList.addAll(functionModelList);
+    }
+    if (agentFunctionModelList.isEmpty) {
+      return [];
+    }
+
+    final AgentDriver baseDriver = subAgentDriverList.first;
+    final List<String> agentNameList = [];
+    final List<String> agentNameDescriptions = [];
+    for (final functionModel in agentFunctionModelList) {
+      agentNameList.add(functionModel.name);
+      final String rawDescription = functionModel.description.trim();
+      final String description = rawDescription.isNotEmpty ? rawDescription : functionModel.name;
+      final String shortDescription =
+          baseDriver.truncateWithEllipsis(description, baseDriver.llmFunctionDescriptionMaxLength);
+      agentNameDescriptions.add("${functionModel.name} - $shortDescription");
+    }
+    final String agentNameDescription =
+        "Choose an agent. Available agents: ${agentNameDescriptions.join("; ")}";
+
+    final Parameter agentNameParameter = Parameter(
+      name: _subAgentNameKey,
+      description: agentNameDescription,
+      schema: Schema(type: DataType.STRING, enum_: agentNameList),
+      required: true,
+    );
+    final Parameter promptParameter = Parameter(
+      name: baseDriver.promptKey,
+      description: baseDriver.truncateWithEllipsis(
+        baseDriver.promptDescription,
+        baseDriver.llmFunctionDescriptionMaxLength,
+      ),
+      schema: Schema(type: DataType.STRING),
+      required: true,
+    );
+    final FunctionModel functionModel = FunctionModel(
+      name: _subAgentFunctionName,
+      description: _subAgentFunctionDescription,
+      parameters: [agentNameParameter, promptParameter],
+    );
+    return [functionModel];
+  }
+
   void _partitionFunctionCallMessage(AgentMessage agentMessage) {
     if(agentMessage.type == MultiAgentMessageType.TOOL_CALLS) {
       List<FunctionCall> functionCallList = agentMessage.content as List<FunctionCall>;
-      _separatedFunctionCallList = _separateFunctionCallList(agentMessage.originalTaskId, functionCallList);
-      if(_separatedFunctionCallList.toolFunctionCalls.isNotEmpty) {
+      final SeparatedFunctionCallList separatedFunctionCallList =
+          _separateFunctionCallList(agentMessage.originalTaskId, functionCallList);
+      _separatedFunctionCallMap[agentMessage.taskId] = separatedFunctionCallList;
+      if(separatedFunctionCallList.toolFunctionCalls.isNotEmpty) {
         AgentMessage toolMessage = AgentMessage(
             sessionId: agentMessage.sessionId,
             originalTaskId: agentMessage.originalTaskId,
@@ -127,13 +180,13 @@ class MultiAgent extends ToolAgent {
             role: MultiAgentRoleType.AGENT,
             to: MultiAgentRoleType.TOOL,
             type: MultiAgentMessageType.TOOL_CALLS,
-            content: _separatedFunctionCallList.toolFunctionCalls
+            content: separatedFunctionCallList.toolFunctionCalls
         );
         Command command = Command(toTool, toolMessage);
         dispatcherMap.dispatch(command);
       }
 
-      if(_separatedFunctionCallList.subAgentFunctionCalls.isNotEmpty) {
+      if(separatedFunctionCallList.subAgentFunctionCalls.isNotEmpty) {
         AgentMessage subAgentMessage = AgentMessage(
             sessionId: agentMessage.sessionId,
             originalTaskId: agentMessage.originalTaskId,
@@ -142,7 +195,7 @@ class MultiAgent extends ToolAgent {
             role: MultiAgentRoleType.AGENT,
             to: MultiAgentRoleType.SUBAGENT,
             type: MultiAgentMessageType.TOOL_CALLS,
-            content: _separatedFunctionCallList.subAgentFunctionCalls
+            content: separatedFunctionCallList.subAgentFunctionCalls
         );
         Command command = Command(toSubAgent, subAgentMessage);
         dispatcherMap.dispatch(command);
@@ -152,20 +205,27 @@ class MultiAgent extends ToolAgent {
 
   void onFunctionCallResult(String from, AgentMessage agentMessage) {
     // agentSession.addListenAgentMessage(agentMessage);
-    if(_separatedFunctionCallList.toolFunctionCalls.isNotEmpty &&
+    final SeparatedFunctionCallList? separatedFunctionCallList =
+        _separatedFunctionCallMap[agentMessage.taskId];
+    if (separatedFunctionCallList == null) {
+      return;
+    }
+    if(separatedFunctionCallList.toolFunctionCalls.isNotEmpty &&
         from == MultiAgentRoleType.TOOL &&
         agentMessage.type == MultiAgentMessageType.TASK_STATUS &&
         (agentMessage.content as TaskStatus).status == ToolStatusType.DONE
     ) {
-      _separatedFunctionCallList.hasToolFunctionCallsDone = true;
-    } else if (_separatedFunctionCallList.subAgentFunctionCalls.isNotEmpty &&
+      separatedFunctionCallList.hasToolFunctionCallsDone = true;
+    } else if (separatedFunctionCallList.subAgentFunctionCalls.isNotEmpty &&
         from == MultiAgentRoleType.SUBAGENT &&
         agentMessage.type == MultiAgentMessageType.TASK_STATUS &&
         (agentMessage.content as TaskStatus).status == MultiAgentStatusType.DONE
     ) {
-      _separatedFunctionCallList.hasSubAgentFunctionCallsDone = true;
+      separatedFunctionCallList.hasSubAgentFunctionCallsDone = true;
     }
-    if(_separatedFunctionCallList.hasToolFunctionCallsDone && _separatedFunctionCallList.hasSubAgentFunctionCallsDone) {
+    if(separatedFunctionCallList.hasToolFunctionCallsDone &&
+        separatedFunctionCallList.hasSubAgentFunctionCallsDone) {
+      _separatedFunctionCallMap.remove(agentMessage.taskId);
       Command command = Command(toLLM, agentMessage);
       dispatcherMap.dispatch(command);
     }
@@ -191,17 +251,47 @@ class MultiAgent extends ToolAgent {
 
   Future<void> requestSubAgents(AgentMessage agentMessage) async {
     List<FunctionCall> functionCallList = agentMessage.content as List<FunctionCall>;
+    final String promptKey =
+        subAgentDriverList.isNotEmpty ? subAgentDriverList.first.promptKey : "prompt";
 
     for (FunctionCall functionCall in functionCallList) {
-      int subAgentIndex = subAgentDriverList.indexWhere((toolDriver) => toolDriver.hasFunction(functionCall.name));
-      if(subAgentIndex >= 0) {
-        FunctionCallParam functionCallParam = FunctionCallParam(sessionId: agentMessage.sessionId, taskId: agentMessage.taskId, originalTaskId: agentMessage.originalTaskId, type: FunctionCallType.SUBAGENT, index: subAgentIndex,functionCall: functionCall);
-        toolPipeLine.addJob(functionCallParam);
+      final dynamic agentNameValue = functionCall.arguments[_subAgentNameKey];
+      if (agentNameValue is! String || agentNameValue.trim().isEmpty) {
+        _dispatchSubAgentError(agentMessage, functionCall, "Missing or invalid agentName.");
+        continue;
       }
+      int subAgentIndex = subAgentDriverList
+          .indexWhere((agentDriver) => agentDriver.hasFunction(agentNameValue));
+      if(subAgentIndex < 0) {
+        _dispatchSubAgentError(agentMessage, functionCall, "Unknown agent `$agentNameValue`.");
+        continue;
+      }
+      final Map<String, dynamic> subAgentArguments =
+          Map<String, dynamic>.from(functionCall.arguments);
+      subAgentArguments.remove(_subAgentNameKey);
+      final dynamic promptValue = subAgentArguments[promptKey];
+      if (promptValue is! String || promptValue.isEmpty) {
+        _dispatchSubAgentError(agentMessage, functionCall, "Missing or invalid prompt.");
+        continue;
+      }
+      final FunctionCall subAgentFunctionCall = FunctionCall(
+        id: functionCall.id,
+        name: agentNameValue,
+        arguments: subAgentArguments,
+      );
+      FunctionCallParam functionCallParam = FunctionCallParam(
+        sessionId: agentMessage.sessionId,
+        taskId: agentMessage.taskId,
+        originalTaskId: agentMessage.originalTaskId,
+        type: FunctionCallType.SUBAGENT,
+        index: subAgentIndex,
+        functionCall: subAgentFunctionCall,
+      );
+      subAgentPipeLine.addJob(functionCallParam);
     }
     List<String> functionCallIdList = functionCallList.map((functionCall) => functionCall.id).toList();
 
-    toolPipeLine.run(_requestSubAgent, onComplete: () async {
+    subAgentPipeLine.run(_requestSubAgent, onComplete: () async {
       AgentMessage subAgentDoneMessage = AgentMessage(
         sessionId: agentMessage.sessionId,
         originalTaskId: agentMessage.originalTaskId,
@@ -215,6 +305,21 @@ class MultiAgent extends ToolAgent {
       Command command = Command(toAgent, subAgentDoneMessage);
       dispatcherMap.dispatch(command);
     });
+  }
+
+  void _dispatchSubAgentError(AgentMessage agentMessage, FunctionCall functionCall, String errorMessage) {
+    AgentMessage subAgentErrorMessage = AgentMessage(
+      sessionId: agentMessage.sessionId,
+      originalTaskId: agentMessage.originalTaskId,
+      parentTaskId: agentMessage.parentTaskId,
+      taskId: agentMessage.taskId,
+      role: MultiAgentRoleType.SUBAGENT,
+      to: MultiAgentRoleType.AGENT,
+      type: MultiAgentMessageType.TOOL_RETURN,
+      content: ToolReturn(id: functionCall.id, result: {"error": errorMessage}),
+    );
+    Command command = Command(toAgent, subAgentErrorMessage);
+    dispatcherMap.dispatch(command);
   }
 
   Future<void> _requestSubAgent(FunctionCallParam functionCallParam) async {
@@ -247,7 +352,7 @@ class MultiAgent extends ToolAgent {
   }
 
   Future<void> toSubAgent(AgentMessage agentMessage) async {
-    if(agentMessage.type == ToolMessageType.TOOL_CALLS) {
+    if(agentMessage.type == MultiAgentMessageType.TOOL_CALLS) {
       List<FunctionCall> functionCallList = agentMessage.content as List<FunctionCall>;
       List<String> functionCallIdList = functionCallList.map((functionCall) => functionCall.id).toList();
       agentSession.addListenAgentMessage(agentMessage);

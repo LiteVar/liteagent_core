@@ -17,7 +17,7 @@ import 'models/node.dart';
 import 'wrappers/llm.dart';
 import '../multi_agent/model.dart';
 import '../tool_agent/model.dart';
-import '../../utils/unique_id_generator.dart';
+import 'package:unique_id_dart/unique_id_dart.dart';
 
 abstract class AutoMessageSender {
 

@@ -1,6 +1,6 @@
 import 'dto.dart';
 import 'exception.dart';
-import 'package:liteagent_core_dart/liteagent_core.dart';
+import 'package:unique_id_dart/unique_id_dart.dart';
 
 abstract class AgentManageService {
   Future<List<AgentInfoDto>> getAgents();
