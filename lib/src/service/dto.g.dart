@@ -22,21 +22,12 @@ SessionNameDto _$SessionNameDtoFromJson(Map<String, dynamic> json) =>
       description: json['description'] as String?,
     );
 
-Map<String, dynamic> _$SessionNameDtoToJson(SessionNameDto instance) {
-  final val = <String, dynamic>{
-    'sessionId': instance.sessionId,
-  };
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('name', instance.name);
-  writeNotNull('description', instance.description);
-  return val;
-}
+Map<String, dynamic> _$SessionNameDtoToJson(SessionNameDto instance) =>
+    <String, dynamic>{
+      'sessionId': instance.sessionId,
+      if (instance.name case final value?) 'name': value,
+      if (instance.description case final value?) 'description': value,
+    };
 
 SimpleCapabilityDto _$SimpleCapabilityDtoFromJson(Map<String, dynamic> json) =>
     SimpleCapabilityDto(
@@ -81,34 +72,31 @@ CapabilityDto _$CapabilityDtoFromJson(Map<String, dynamic> json) =>
       enableThinking: json['enableThinking'] as bool?,
     );
 
-Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) {
-  final val = <String, dynamic>{
-    'llmConfig': instance.llmConfig.toJson(),
-    'systemPrompt': instance.systemPrompt,
-  };
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull(
-      'openSpecList', instance.openSpecList?.map((e) => e.toJson()).toList());
-  writeNotNull('callbackOpenTool', instance.callbackOpenTool?.toJson());
-  writeNotNull(
-      'sessionList', instance.sessionList?.map((e) => e.toJson()).toList());
-  writeNotNull('reflectPromptList',
-      instance.reflectPromptList?.map((e) => e.toJson()).toList());
-  val['timeoutSeconds'] = instance.timeoutSeconds;
-  val['taskPipelineStrategy'] = instance.taskPipelineStrategy;
-  writeNotNull('toolPipelineStrategy', instance.toolPipelineStrategy);
-  writeNotNull('auto', instance.auto);
-  writeNotNull(
-      'llmConfigList', instance.llmConfigList?.map((e) => e.toJson()).toList());
-  writeNotNull('enableThinking', instance.enableThinking);
-  return val;
-}
+Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
+    <String, dynamic>{
+      'llmConfig': instance.llmConfig.toJson(),
+      'systemPrompt': instance.systemPrompt,
+      if (instance.openSpecList?.map((e) => e.toJson()).toList()
+          case final value?)
+        'openSpecList': value,
+      if (instance.callbackOpenTool?.toJson() case final value?)
+        'callbackOpenTool': value,
+      if (instance.sessionList?.map((e) => e.toJson()).toList()
+          case final value?)
+        'sessionList': value,
+      if (instance.reflectPromptList?.map((e) => e.toJson()).toList()
+          case final value?)
+        'reflectPromptList': value,
+      'timeoutSeconds': instance.timeoutSeconds,
+      'taskPipelineStrategy': instance.taskPipelineStrategy,
+      if (instance.toolPipelineStrategy case final value?)
+        'toolPipelineStrategy': value,
+      if (instance.auto case final value?) 'auto': value,
+      if (instance.llmConfigList?.map((e) => e.toJson()).toList()
+          case final value?)
+        'llmConfigList': value,
+      if (instance.enableThinking case final value?) 'enableThinking': value,
+    };
 
 OpenSpecDto _$OpenSpecDtoFromJson(Map<String, dynamic> json) => OpenSpecDto(
       openSpec: json['openSpec'] as String,
@@ -119,22 +107,13 @@ OpenSpecDto _$OpenSpecDtoFromJson(Map<String, dynamic> json) => OpenSpecDto(
       serverUrl: json['serverUrl'] as String?,
     );
 
-Map<String, dynamic> _$OpenSpecDtoToJson(OpenSpecDto instance) {
-  final val = <String, dynamic>{
-    'openSpec': instance.openSpec,
-    'protocol': instance.protocol,
-  };
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('serverUrl', instance.serverUrl);
-  writeNotNull('apiKey', instance.apiKey?.toJson());
-  return val;
-}
+Map<String, dynamic> _$OpenSpecDtoToJson(OpenSpecDto instance) =>
+    <String, dynamic>{
+      'openSpec': instance.openSpec,
+      'protocol': instance.protocol,
+      if (instance.serverUrl case final value?) 'serverUrl': value,
+      if (instance.apiKey?.toJson() case final value?) 'apiKey': value,
+    };
 
 LLMConfigDto _$LLMConfigDtoFromJson(Map<String, dynamic> json) => LLMConfigDto(
       baseUrl: json['baseUrl'] as String,
@@ -177,29 +156,22 @@ AgentMessageDto _$AgentMessageDtoFromJson(Map<String, dynamic> json) =>
       createTime: DateTime.parse(json['createTime'] as String),
     );
 
-Map<String, dynamic> _$AgentMessageDtoToJson(AgentMessageDto instance) {
-  final val = <String, dynamic>{
-    'sessionId': instance.sessionId,
-  };
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('agentId', instance.agentId);
-  writeNotNull('parentTaskId', instance.parentTaskId);
-  val['taskId'] = instance.taskId;
-  val['role'] = instance.role;
-  val['to'] = instance.to;
-  val['type'] = instance.type;
-  writeNotNull('content', instance.content);
-  writeNotNull('reasoningContent', instance.reasoningContent);
-  writeNotNull('completions', instance.completions?.toJson());
-  val['createTime'] = instance.createTime.toIso8601String();
-  return val;
-}
+Map<String, dynamic> _$AgentMessageDtoToJson(AgentMessageDto instance) =>
+    <String, dynamic>{
+      'sessionId': instance.sessionId,
+      if (instance.agentId case final value?) 'agentId': value,
+      if (instance.parentTaskId case final value?) 'parentTaskId': value,
+      'taskId': instance.taskId,
+      'role': instance.role,
+      'to': instance.to,
+      'type': instance.type,
+      if (instance.content case final value?) 'content': value,
+      if (instance.reasoningContent case final value?)
+        'reasoningContent': value,
+      if (instance.completions?.toJson() case final value?)
+        'completions': value,
+      'createTime': instance.createTime.toIso8601String(),
+    };
 
 CompletionsDto _$CompletionsDtoFromJson(Map<String, dynamic> json) =>
     CompletionsDto(
@@ -252,20 +224,11 @@ UserTaskDto _$UserTaskDtoFromJson(Map<String, dynamic> json) => UserTaskDto(
       isChunk: json['isChunk'] as bool?,
     );
 
-Map<String, dynamic> _$UserTaskDtoToJson(UserTaskDto instance) {
-  final val = <String, dynamic>{
-    'content': instance.content.map((e) => e.toJson()).toList(),
-  };
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('isChunk', instance.isChunk);
-  return val;
-}
+Map<String, dynamic> _$UserTaskDtoToJson(UserTaskDto instance) =>
+    <String, dynamic>{
+      'content': instance.content.map((e) => e.toJson()).toList(),
+      if (instance.isChunk case final value?) 'isChunk': value,
+    };
 
 SessionTaskDto _$SessionTaskDtoFromJson(Map<String, dynamic> json) =>
     SessionTaskDto(
@@ -273,20 +236,11 @@ SessionTaskDto _$SessionTaskDtoFromJson(Map<String, dynamic> json) =>
       taskId: json['taskId'] as String?,
     );
 
-Map<String, dynamic> _$SessionTaskDtoToJson(SessionTaskDto instance) {
-  final val = <String, dynamic>{
-    'sessionId': instance.sessionId,
-  };
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('taskId', instance.taskId);
-  return val;
-}
+Map<String, dynamic> _$SessionTaskDtoToJson(SessionTaskDto instance) =>
+    <String, dynamic>{
+      'sessionId': instance.sessionId,
+      if (instance.taskId case final value?) 'taskId': value,
+    };
 
 ReflectScoreDto _$ReflectScoreDtoFromJson(Map<String, dynamic> json) =>
     ReflectScoreDto(
@@ -294,20 +248,11 @@ ReflectScoreDto _$ReflectScoreDtoFromJson(Map<String, dynamic> json) =>
       description: json['description'] as String?,
     );
 
-Map<String, dynamic> _$ReflectScoreDtoToJson(ReflectScoreDto instance) {
-  final val = <String, dynamic>{
-    'score': instance.score,
-  };
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('description', instance.description);
-  return val;
-}
+Map<String, dynamic> _$ReflectScoreDtoToJson(ReflectScoreDto instance) =>
+    <String, dynamic>{
+      'score': instance.score,
+      if (instance.description case final value?) 'description': value,
+    };
 
 MessageScoreDto _$MessageScoreDtoFromJson(Map<String, dynamic> json) =>
     MessageScoreDto(
@@ -356,21 +301,12 @@ TaskStatusDto _$TaskStatusDtoFromJson(Map<String, dynamic> json) =>
       description: json['description'] as Map<String, dynamic>?,
     );
 
-Map<String, dynamic> _$TaskStatusDtoToJson(TaskStatusDto instance) {
-  final val = <String, dynamic>{
-    'status': instance.status,
-    'taskId': instance.taskId,
-  };
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('description', instance.description);
-  return val;
-}
+Map<String, dynamic> _$TaskStatusDtoToJson(TaskStatusDto instance) =>
+    <String, dynamic>{
+      'status': instance.status,
+      'taskId': instance.taskId,
+      if (instance.description case final value?) 'description': value,
+    };
 
 ContentDto _$ContentDtoFromJson(Map<String, dynamic> json) => ContentDto(
       type: json['type'] as String,
@@ -411,27 +347,18 @@ AgentMessageChunkDto _$AgentMessageChunkDtoFromJson(
     );
 
 Map<String, dynamic> _$AgentMessageChunkDtoToJson(
-    AgentMessageChunkDto instance) {
-  final val = <String, dynamic>{
-    'sessionId': instance.sessionId,
-  };
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('agentId', instance.agentId);
-  writeNotNull('parentTaskId', instance.parentTaskId);
-  val['taskId'] = instance.taskId;
-  val['role'] = instance.role;
-  val['to'] = instance.to;
-  val['type'] = instance.type;
-  writeNotNull('part', instance.part);
-  val['createTime'] = instance.createTime.toIso8601String();
-  return val;
-}
+        AgentMessageChunkDto instance) =>
+    <String, dynamic>{
+      'sessionId': instance.sessionId,
+      if (instance.agentId case final value?) 'agentId': value,
+      if (instance.parentTaskId case final value?) 'parentTaskId': value,
+      'taskId': instance.taskId,
+      'role': instance.role,
+      'to': instance.to,
+      'type': instance.type,
+      if (instance.part case final value?) 'part': value,
+      'createTime': instance.createTime.toIso8601String(),
+    };
 
 AgentIdDto _$AgentIdDtoFromJson(Map<String, dynamic> json) => AgentIdDto(
       agentId: json['agentId'] as String,
@@ -458,6 +385,12 @@ AgentInfoDto _$AgentInfoDtoFromJson(Map<String, dynamic> json) => AgentInfoDto(
       name: json['name'] as String,
       capability:
           CapabilityDto.fromJson(json['capability'] as Map<String, dynamic>),
+      createTime: json['createTime'] == null
+          ? null
+          : DateTime.parse(json['createTime'] as String),
+      updateTime: json['updateTime'] == null
+          ? null
+          : DateTime.parse(json['updateTime'] as String),
     );
 
 Map<String, dynamic> _$AgentInfoDtoToJson(AgentInfoDto instance) =>
@@ -465,6 +398,10 @@ Map<String, dynamic> _$AgentInfoDtoToJson(AgentInfoDto instance) =>
       'agentId': instance.agentId,
       'name': instance.name,
       'capability': instance.capability.toJson(),
+      if (instance.createTime?.toIso8601String() case final value?)
+        'createTime': value,
+      if (instance.updateTime?.toIso8601String() case final value?)
+        'updateTime': value,
     };
 
 SessionAgentMessageDto _$SessionAgentMessageDtoFromJson(
@@ -488,20 +425,12 @@ CallbackOpenToolDto _$CallbackOpenToolDtoFromJson(Map<String, dynamic> json) =>
       timeout: (json['timeout'] as num?)?.toInt(),
     );
 
-Map<String, dynamic> _$CallbackOpenToolDtoToJson(CallbackOpenToolDto instance) {
-  final val = <String, dynamic>{
-    'opentool': instance.opentool,
-  };
-
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
-
-  writeNotNull('timeout', instance.timeout);
-  return val;
-}
+Map<String, dynamic> _$CallbackOpenToolDtoToJson(
+        CallbackOpenToolDto instance) =>
+    <String, dynamic>{
+      'opentool': instance.opentool,
+      if (instance.timeout case final value?) 'timeout': value,
+    };
 
 PresetOpenSpecDto _$PresetOpenSpecDtoFromJson(Map<String, dynamic> json) =>
     PresetOpenSpecDto(
@@ -511,17 +440,24 @@ PresetOpenSpecDto _$PresetOpenSpecDtoFromJson(Map<String, dynamic> json) =>
           : OpenSpecDto.fromJson(json['openSpec'] as Map<String, dynamic>),
     );
 
-Map<String, dynamic> _$PresetOpenSpecDtoToJson(PresetOpenSpecDto instance) {
-  final val = <String, dynamic>{
-    'systemPrompt': instance.systemPrompt,
-  };
+Map<String, dynamic> _$PresetOpenSpecDtoToJson(PresetOpenSpecDto instance) =>
+    <String, dynamic>{
+      'systemPrompt': instance.systemPrompt,
+      if (instance.openSpec?.toJson() case final value?) 'openSpec': value,
+    };
 
-  void writeNotNull(String key, dynamic value) {
-    if (value != null) {
-      val[key] = value;
-    }
-  }
+SessionInfoDto _$SessionInfoDtoFromJson(Map<String, dynamic> json) =>
+    SessionInfoDto(
+      sessionId: json['sessionId'] as String,
+      agentId: json['agentId'] as String?,
+      createTime: DateTime.parse(json['createTime'] as String),
+      topic: json['topic'] as String?,
+    );
 
-  writeNotNull('openSpec', instance.openSpec?.toJson());
-  return val;
-}
+Map<String, dynamic> _$SessionInfoDtoToJson(SessionInfoDto instance) =>
+    <String, dynamic>{
+      'sessionId': instance.sessionId,
+      if (instance.agentId case final value?) 'agentId': value,
+      'createTime': instance.createTime.toIso8601String(),
+      if (instance.topic case final value?) 'topic': value,
+    };

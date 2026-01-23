@@ -21,6 +21,13 @@ class AgentService {
   List<SessionMessageManageService> agentMessageManageServiceList = [];
   LinkedHashMap<Message, Map<String, bool>> sentMessages = LinkedHashMap<Message, Map<String, bool>>(); /// Map<Message, Map<sessionId, bool>>
 
+  /// agentId -> sessionId
+  Map<String, Set<String>> agentSessionsMap = {};
+  /// sessionId -> agentId
+  Map<String, String> sessionAgentMap = {};
+  /// sessionId -> createTime
+  Map<String, DateTime> sessionCreateTimeMap = {};
+
   AgentService({List<ToolDriver> globalToolDriverList = const [], List<SessionMessageManageService> messageManageServiceList = const []}) {
     globalDriverList.addAll(globalToolDriverList);
     agentMessageManageServiceList.addAll(messageManageServiceList);
@@ -63,8 +70,16 @@ class AgentService {
     return AgentMessageDto.fromModel(agentMessage);
   }
 
-  Future<SessionDto> initSession(CapabilityDto capabilityDto, {Map<String, OpenToolDriver>? opentoolDriverMap, List<ToolDriver>? customToolDriverList}) async {
+  Future<SessionDto> initSession(CapabilityDto capabilityDto, {String? agentId, Map<String, OpenToolDriver>? opentoolDriverMap, List<ToolDriver>? customToolDriverList}) async {
     String sessionId = uniqueId();
+    DateTime createTime = DateTime.now();
+
+    if (agentId != null) {
+      sessionAgentMap[sessionId] = agentId;
+      agentSessionsMap.putIfAbsent(agentId, () => <String>{});
+      agentSessionsMap[agentId]!.add(sessionId);
+    }
+    sessionCreateTimeMap[sessionId] = createTime;
     String systemPrompt = capabilityDto.systemPrompt;
     String fullSystemPrompt = _mergeFullSystemPrompt(systemPrompt);
     LLMConfig llmConfig = capabilityDto.llmConfig.toModel();
@@ -211,6 +226,68 @@ class AgentService {
     sessionAgent.clear();
     sessionAgents.remove(sessionId);
     sentMessages.clear();
+
+    String? agentId = sessionAgentMap.remove(sessionId);
+    if (agentId != null) {
+      agentSessionsMap[agentId]?.remove(sessionId);
+      if (agentSessionsMap[agentId]?.isEmpty ?? false) {
+        agentSessionsMap.remove(agentId);
+      }
+    }
+    sessionCreateTimeMap.remove(sessionId);
+  }
+
+  List<SessionInfoDto> getSessionsByAgentId(String agentId) {
+    Set<String>? sessionIds = agentSessionsMap[agentId];
+    if (sessionIds == null || sessionIds.isEmpty) {
+      return [];
+    }
+
+    return sessionIds.map((sessionId) {
+      return SessionInfoDto(
+        sessionId: sessionId,
+        agentId: agentId,
+        createTime: sessionCreateTimeMap[sessionId] ?? DateTime.now(),
+        topic: _getSessionTopic(sessionId),
+      );
+    }).toList();
+  }
+
+  String? _getSessionTopic(String sessionId) {
+    SessionAgent? sessionAgent = sessionAgents[sessionId];
+    if (sessionAgent == null) return null;
+
+    List<AgentMessage> messageList = sessionAgent.agentSession.listenAgentMessageList;
+    for (AgentMessage message in messageList) {
+      if (message.role == AgentRoleType.USER) {
+        dynamic content = message.content;
+        String? textContent;
+
+        if (content is String) {
+          textContent = content;
+        } else if (content is List<Content>) {
+          for (Content c in content) {
+            if (c.type == ContentType.TEXT) {
+              textContent = c.message;
+              break;
+            }
+          }
+        }
+
+        if (textContent != null && textContent.isNotEmpty) {
+          return textContent.length > 50 ? textContent.substring(0, 50) : textContent;
+        }
+      }
+    }
+    return null;
+  }
+
+  SessionAgent? getSessionAgent(String sessionId) {
+    return sessionAgents[sessionId];
+  }
+
+  String? getAgentIdBySessionId(String sessionId) {
+    return sessionAgentMap[sessionId];
   }
 
   Content _convertToContent(ContentDto contentDto) {

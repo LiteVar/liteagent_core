@@ -548,10 +548,19 @@ class AgentDto {
 class AgentInfoDto extends AgentIdDto {
   String name;
   CapabilityDto capability;
-  AgentInfoDto({required super.agentId, required this.name, required this.capability});
+  DateTime? createTime;
+  DateTime? updateTime;
+  AgentInfoDto({
+    required super.agentId,
+    required this.name,
+    required this.capability,
+    this.createTime,
+    this.updateTime,
+  });
 
   factory AgentInfoDto.fromJson(Map<String, dynamic> json) => _$AgentInfoDtoFromJson(json);
 
+  @override
   Map<String, dynamic> toJson() => _$AgentInfoDtoToJson(this);
 }
 
@@ -589,4 +598,23 @@ class PresetOpenSpecDto {
   factory PresetOpenSpecDto.fromJson(Map<String, dynamic> json) => _$PresetOpenSpecDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$PresetOpenSpecDtoToJson(this);
+}
+
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
+class SessionInfoDto {
+  String sessionId;
+  String? agentId;
+  DateTime createTime;
+  String? topic;
+
+  SessionInfoDto({
+    required this.sessionId,
+    this.agentId,
+    required this.createTime,
+    this.topic,
+  });
+
+  factory SessionInfoDto.fromJson(Map<String, dynamic> json) => _$SessionInfoDtoFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SessionInfoDtoToJson(this);
 }
