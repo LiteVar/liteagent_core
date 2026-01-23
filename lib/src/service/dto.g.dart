@@ -502,3 +502,26 @@ Map<String, dynamic> _$CallbackOpenToolDtoToJson(CallbackOpenToolDto instance) {
   writeNotNull('timeout', instance.timeout);
   return val;
 }
+
+PresetOpenSpecDto _$PresetOpenSpecDtoFromJson(Map<String, dynamic> json) =>
+    PresetOpenSpecDto(
+      systemPrompt: json['systemPrompt'] as String,
+      openSpec: json['openSpec'] == null
+          ? null
+          : OpenSpecDto.fromJson(json['openSpec'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$PresetOpenSpecDtoToJson(PresetOpenSpecDto instance) {
+  final val = <String, dynamic>{
+    'systemPrompt': instance.systemPrompt,
+  };
+
+  void writeNotNull(String key, dynamic value) {
+    if (value != null) {
+      val[key] = value;
+    }
+  }
+
+  writeNotNull('openSpec', instance.openSpec?.toJson());
+  return val;
+}

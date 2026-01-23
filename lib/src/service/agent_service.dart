@@ -17,6 +17,7 @@ class AgentService {
   List<ToolDriver> globalDriverList = [];
   Map<String, OpenToolDriver> opentoolDriverMap = {}; /// Map<sessionId, OpenToolDriver>
   Map<String, OpenToolCallbackDriver> clientDriverMap= {}; /// Map<sessionId, ClientDriver>
+  List<PresetOpenSpecDto> _presetOpenSpecList = [];
   List<SessionMessageManageService> agentMessageManageServiceList = [];
   LinkedHashMap<Message, Map<String, bool>> sentMessages = LinkedHashMap<Message, Map<String, bool>>(); /// Map<Message, Map<sessionId, bool>>
 
@@ -29,14 +30,20 @@ class AgentService {
     return OpenAIUtil.checkLLMConfig(baseUrl, apiKey);
   }
 
+  void addPresetOpenSpec(PresetOpenSpecDto presetOpenSpec) {
+    _presetOpenSpecList.add(presetOpenSpec);
+  }
+
   Future<SessionDto> initSimple(SimpleCapabilityDto simpleCapabilityDto) async {
     String sessionId = uniqueId();
     String systemPrompt = simpleCapabilityDto.systemPrompt;
     LLMConfig llmConfig = simpleCapabilityDto.llmConfig.toModel();
 
+    String fullSystemPrompt = _mergeFullSystemPrompt(systemPrompt);
+
     SimpleAgent simpleAgent = SimpleAgent(
         llmConfig: llmConfig,
-        systemPrompt: systemPrompt,
+        systemPrompt: fullSystemPrompt,
         responseFormat: ResponseFormat(type: ResponseFormatType.TEXT)
     );
 
@@ -59,6 +66,7 @@ class AgentService {
   Future<SessionDto> initSession(CapabilityDto capabilityDto, {Map<String, OpenToolDriver>? opentoolDriverMap, List<ToolDriver>? customToolDriverList}) async {
     String sessionId = uniqueId();
     String systemPrompt = capabilityDto.systemPrompt;
+    String fullSystemPrompt = _mergeFullSystemPrompt(systemPrompt);
     LLMConfig llmConfig = capabilityDto.llmConfig.toModel();
     List<ReflectPrompt>? reflectPromptList = capabilityDto.reflectPromptList?.map((reflectPromptDto) => ReflectPrompt(llmConfig: reflectPromptDto.llmConfig.toModel(), prompt: reflectPromptDto.prompt)).toList();
 
@@ -71,10 +79,12 @@ class AgentService {
 
     List<ToolDriver> toolDriverList = [];
     toolDriverList.addAll(globalDriverList);
+    List<OpenSpecDto> presetOpenSpecList = _presetOpenSpecList.where((presetOpenSpec) => presetOpenSpec.openSpec != null).map((presetOpenSpec)=>presetOpenSpec.openSpec!).toList();
+    toolDriverList.addAll(await _buildToolDriverList(presetOpenSpecList));
     toolDriverList.addAll(await _buildToolDriverList(capabilityDto.openSpecList));
     if(customToolDriverList != null) toolDriverList.addAll(customToolDriverList);
 
-    List<AgentDriver>? agentDriverList = await _buildAgentDriverList(capabilityDto.sessionList, sessionId);
+    List<AgentDriver>? subAgentDriverList = await _buildAgentDriverList(capabilityDto.sessionList, sessionId);
 
     if (capabilityDto.auto == true) { // AutoAgent
       List<LLMConfig>? llmConfigList = capabilityDto.llmConfigList?.map((llmConfigDto) => llmConfigDto.toModel()).toList();
@@ -84,7 +94,7 @@ class AgentService {
         llmConfig: llmConfig,
         agentSession: _buildSession(sessionId),
         toolDriverList: toolDriverList,
-        systemPrompt: systemPrompt,
+        systemPrompt: fullSystemPrompt,
         toolReflectPromptList: reflectPromptList ?? const[],
         timeoutSeconds: capabilityDto.timeoutSeconds,
         taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
@@ -93,19 +103,19 @@ class AgentService {
         llmConfigList: llmConfigList,
       );
       sessionAgents[sessionId] = autoMultiAgent;
-    } else if(toolDriverList.isEmpty && agentDriverList == null && capabilityDto.callbackOpenTool == null) { // TextAgent
+    } else if(toolDriverList.isEmpty && subAgentDriverList == null && capabilityDto.callbackOpenTool == null) { // TextAgent
       SessionAgent textAgent = TextAgent(
           sessionId: sessionId,
           llmConfig: llmConfig,
           agentSession: _buildSession(sessionId),
-          systemPrompt: systemPrompt,
+          systemPrompt: fullSystemPrompt,
           textReflectPromptList: reflectPromptList??[],
           timeoutSeconds: capabilityDto.timeoutSeconds,
           taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
           enableThinking: capabilityDto.enableThinking
       );
       sessionAgents[sessionId] = textAgent;
-    } else if(agentDriverList == null) {  // ToolAgent
+    } else if(subAgentDriverList == null) {  // ToolAgent
       CallbackOpenTool? clientOpenTool = null;
       if(capabilityDto.callbackOpenTool != null) clientOpenTool = CallbackOpenTool(opentool: capabilityDto.callbackOpenTool!.opentool, timeout: capabilityDto.callbackOpenTool!.timeout, fetchClientDriver: this.fetchClientDriver);
       SessionAgent toolAgent = ToolAgent(
@@ -114,7 +124,7 @@ class AgentService {
           agentSession: _buildSession(sessionId),
           toolDriverList: toolDriverList,
           callbackOpenTool: clientOpenTool,
-          systemPrompt: systemPrompt,
+          systemPrompt: fullSystemPrompt,
           toolReflectPromptList: reflectPromptList??[],
           timeoutSeconds: capabilityDto.timeoutSeconds,
           taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
@@ -130,9 +140,9 @@ class AgentService {
           llmConfig: llmConfig,
           agentSession: _buildSession(sessionId),
           toolDriverList: toolDriverList,
-          subAgentDriverList: agentDriverList,
+          subAgentDriverList: subAgentDriverList,
           clientOpenTool: clientOpenTool,
-          systemPrompt: systemPrompt,
+          systemPrompt: fullSystemPrompt,
           toolReflectPromptList: reflectPromptList??[],
           timeoutSeconds: capabilityDto.timeoutSeconds,
           taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
@@ -482,5 +492,15 @@ class AgentService {
     }
 
     return (sessionAgentDriver, simpleAgentDriver);
+  }
+
+  String _mergeFullSystemPrompt(String systemPrompt) {
+    String fullSystemPrompt = systemPrompt;
+
+    for(PresetOpenSpecDto presetOpenSpec in _presetOpenSpecList) {
+      fullSystemPrompt = fullSystemPrompt + "\n---" + presetOpenSpec.systemPrompt;
+    }
+
+    return fullSystemPrompt;
   }
 }

@@ -578,3 +578,15 @@ class CallbackOpenToolDto {
 
   Map<String, dynamic> toJson() => _$CallbackOpenToolDtoToJson(this);
 }
+
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
+class PresetOpenSpecDto {
+  String systemPrompt;
+  OpenSpecDto? openSpec;
+
+  PresetOpenSpecDto({required this.systemPrompt, this.openSpec});
+
+  factory PresetOpenSpecDto.fromJson(Map<String, dynamic> json) => _$PresetOpenSpecDtoFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PresetOpenSpecDtoToJson(this);
+}
