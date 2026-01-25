@@ -24,8 +24,8 @@ dependencies:
   mcp_dart: ^1.0.2
 
 dev_dependencies:
-  build_runner: ^2.4.9
-  json_serializable: ^6.8.0
+  build_runner: ^2.5.4
+  json_serializable: 6.9.5
   lints: ^4.0.0
   test: ^1.24.0
   dotenv: ^4.2.0

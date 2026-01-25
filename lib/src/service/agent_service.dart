@@ -37,8 +37,8 @@ class AgentService {
     return OpenAIUtil.checkLLMConfig(baseUrl, apiKey);
   }
 
-  void addPresetOpenSpec(PresetOpenSpecDto presetOpenSpec) {
-    _presetOpenSpecList.add(presetOpenSpec);
+  void setPresetOpenSpecList(List<PresetOpenSpecDto> presetOpenSpecList) {
+    _presetOpenSpecList = presetOpenSpecList;
   }
 
   Future<SessionDto> initSimple(SimpleCapabilityDto simpleCapabilityDto) async {
