@@ -2,8 +2,6 @@ import 'dart:io';
 import 'package:dotenv/dotenv.dart';
 import 'package:liteagent_core_dart/liteagent_core.dart';
 import 'package:liteagent_core_dart/liteagent_service.dart';
-import 'package:opentool_dart/opentool_client.dart';
-import '../custom_driver/mock_driver.dart';
 import '../listener.dart';
 
 /// [IMPORTANT] Prepare:
@@ -23,11 +21,7 @@ Future<void> main() async {
 
   print("[CapabilityDto] " + capabilityDto.toJson().toString());
 
-  SessionDto sessionDto = await agentService.initSession(
-      capabilityDto,
-      /// Add opentool Map here
-      opentoolDriverMap: await _buildOpenToolDriverMap()
-  );
+  SessionDto sessionDto = await agentService.initSession(capabilityDto);
 
   print("[SessionDto] " + sessionDto.toJson().toString());
 
@@ -87,21 +81,4 @@ Future<List<OpenSpecDto>> _buildOpenSpecList() async {
   }
 
   return openSpecList;
-}
-
-Future<Map<String, OpenToolDriver>> _buildOpenToolDriverMap() async {
-  String folder = "${Directory.current.path}${Platform.pathSeparator}example${Platform.pathSeparator}custom_driver";
-  List<String> fileNameList = [
-    "mock-tool.json"
-  ];
-
-  Map<String, OpenToolDriver> opentoolDriverMap = {};
-  for (String fileName in fileNameList) {
-    String jsonPath = "$folder${Platform.pathSeparator}$fileName";
-    OpenTool openTool = await OpenToolJsonLoader().loadFromFile(jsonPath);
-    OpenToolDriver opentoolDriver = MockDriver(openTool);
-    String opentoolId = fileName.substring(0, fileName.lastIndexOf('.'),);
-    opentoolDriverMap[opentoolId] = opentoolDriver;
-  }
-  return opentoolDriverMap;
 }

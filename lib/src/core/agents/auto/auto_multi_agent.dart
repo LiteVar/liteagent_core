@@ -137,6 +137,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
 
   @override
   Future<void> userToAgent({required List<Content> contentList, bool? stream, String? originalTaskId, String? parentTaskId, void Function(String taskId)? fetchTaskId}) async {
+    timeout.clear();
     this.parentTaskId = parentTaskId;
     String taskId = uniqueId();
     if(fetchTaskId != null) fetchTaskId(taskId);
@@ -325,6 +326,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
       content: TaskStatus(status: TaskStatusType.DONE, taskId: taskId)
     );
     await sendAgentMessage(clientMessage);
+    timeout.start(handleIdleTimeout);
   }
 
   @override

@@ -93,7 +93,7 @@ class TextAgent extends SessionAgent {
     dispatcherMap.dispatch(clientCommand);
     List<AgentMessage> taskDoneMessageList = dispatcherMap.getTaskMessageList(sessionMessage.taskId);
     agentSession.addTaskDoneAgentMessageList(taskDoneMessageList);
-    timeout.start(clear);
+    timeout.start(handleIdleTimeout);
 
   }
 
@@ -151,6 +151,7 @@ class TextAgent extends SessionAgent {
         content: TaskStatus(status:TaskStatusType.EXCEPTION, taskId: taskId, description: {"error": exceptionMessage}));
     Command exceptionCommand = Command(toClient, agentMessage);
     dispatcherMap.stop(agentMessage.taskId, exceptionCommand);
+    timeout.start(handleIdleTimeout);
   }
 
   void listenChunk(AgentMessageChunk agentMessageChunk){

@@ -642,7 +642,7 @@ class ToolAgent extends TextAgent {
     dispatcherMap.dispatch(clientCommand);
     List<AgentMessage> taskDoneMessageList = dispatcherMap.getTaskMessageList(sessionMessage.taskId);
     agentSession.addTaskDoneAgentMessageList(taskDoneMessageList);
-    timeout.start(clear);
+    timeout.start(handleIdleTimeout);
   }
 }
 

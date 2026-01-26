@@ -15,8 +15,7 @@ class AgentService {
   Map<String, SessionAgent> sessionAgents = {}; /// Map<sessionId, SessionAgent>
   Map<String, SimpleAgent> simpleAgents = {}; /// Map<sessionId, SimpleAgent>
   List<ToolDriver> globalDriverList = [];
-  Map<String, OpenToolDriver> opentoolDriverMap = {}; /// Map<sessionId, OpenToolDriver>
-  Map<String, OpenToolCallbackDriver> clientDriverMap= {}; /// Map<sessionId, ClientDriver>
+  Map<String, OpenToolCallbackDriver> callbackOpenToolMap= {}; /// Map<sessionId, ClientDriver>
   List<PresetOpenSpecDto> _presetOpenSpecList = [];
   List<SessionMessageManageService> agentMessageManageServiceList = [];
   LinkedHashMap<Message, Map<String, bool>> sentMessages = LinkedHashMap<Message, Map<String, bool>>(); /// Map<Message, Map<sessionId, bool>>
@@ -66,11 +65,15 @@ class AgentService {
     List<Content> userMessageList = userTaskDto.content
         .map((userMessageDto) => _convertToContent(userMessageDto))
         .toList();
-    AgentMessage agentMessage = await simpleAgent.userToAgent(contentList: userMessageList);
-    return AgentMessageDto.fromModel(agentMessage);
+    try {
+      AgentMessage agentMessage = await simpleAgent.userToAgent(contentList: userMessageList);
+      return AgentMessageDto.fromModel(agentMessage);
+    } finally {
+      simpleAgents.remove(sessionId);
+    }
   }
 
-  Future<SessionDto> initSession(CapabilityDto capabilityDto, {String? agentId, Map<String, OpenToolDriver>? opentoolDriverMap, List<ToolDriver>? customToolDriverList}) async {
+  Future<SessionDto> initSession(CapabilityDto capabilityDto, {String? agentId, List<ToolDriver>? customToolDriverList}) async {
     String sessionId = uniqueId();
     DateTime createTime = DateTime.now();
 
@@ -84,14 +87,6 @@ class AgentService {
     String fullSystemPrompt = _mergeFullSystemPrompt(systemPrompt);
     LLMConfig llmConfig = capabilityDto.llmConfig.toModel();
     List<ReflectPrompt>? reflectPromptList = capabilityDto.reflectPromptList?.map((reflectPromptDto) => ReflectPrompt(llmConfig: reflectPromptDto.llmConfig.toModel(), prompt: reflectPromptDto.prompt)).toList();
-
-    if(opentoolDriverMap != null) opentoolDriverMap.forEach((key, value) { this.opentoolDriverMap[key] = value;});
-    // if(capabilityDto.clientOpenTool != null && listenClientFunctionCall != null) {
-    //   OpenTool clientOpenTool = await OpenToolLoader().load(capabilityDto.clientOpenTool!.opentool);
-    //
-    //   clientDriverMap[sessionId] = ClientDriver(listenFunctionCall, timeout: capabilityDto.clientOpenTool?.timeout??60).bind(clientOpenTool) as ClientDriver;
-    // }
-
     List<ToolDriver> toolDriverList = [];
     toolDriverList.addAll(globalDriverList);
     List<OpenSpecDto> presetOpenSpecList = _presetOpenSpecList.where((presetOpenSpec) => presetOpenSpec.openSpec != null).map((presetOpenSpec)=>presetOpenSpec.openSpec!).toList();
@@ -117,6 +112,7 @@ class AgentService {
         enableThinking: capabilityDto.enableThinking,
         llmConfigList: llmConfigList,
       );
+      _attachIdleTimeoutHandler(autoMultiAgent);
       sessionAgents[sessionId] = autoMultiAgent;
     } else if(toolDriverList.isEmpty && subAgentDriverList == null && capabilityDto.callbackOpenTool == null) { // TextAgent
       SessionAgent textAgent = TextAgent(
@@ -129,6 +125,7 @@ class AgentService {
           taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
           enableThinking: capabilityDto.enableThinking
       );
+      _attachIdleTimeoutHandler(textAgent);
       sessionAgents[sessionId] = textAgent;
     } else if(subAgentDriverList == null) {  // ToolAgent
       CallbackOpenTool? clientOpenTool = null;
@@ -146,6 +143,7 @@ class AgentService {
           toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL,
           enableThinking: capabilityDto.enableThinking
       );
+      _attachIdleTimeoutHandler(toolAgent);
       sessionAgents[sessionId] = toolAgent;
     } else {  // MultiAgent
       CallbackOpenTool? clientOpenTool = null;
@@ -164,6 +162,7 @@ class AgentService {
           toolPipelineStrategy: capabilityDto.toolPipelineStrategy??PipelineStrategyType.PARALLEL,
           enableThinking: capabilityDto.enableThinking
       );
+      _attachIdleTimeoutHandler(toolAgent);
       sessionAgents[sessionId] = toolAgent;
     }
 
@@ -221,20 +220,14 @@ class AgentService {
   }
 
   Future<void> clearSession(String sessionId) async {
-    SessionAgent? sessionAgent = sessionAgents[sessionId];
-    if(sessionAgent == null) throw SessionAgentNotFoundException(sessionId: sessionId);
-    sessionAgent.clear();
-    sessionAgents.remove(sessionId);
-    sentMessages.clear();
-
-    String? agentId = sessionAgentMap.remove(sessionId);
-    if (agentId != null) {
-      agentSessionsMap[agentId]?.remove(sessionId);
-      if (agentSessionsMap[agentId]?.isEmpty ?? false) {
-        agentSessionsMap.remove(agentId);
-      }
+    final Set<String> sessionIdsToClear = _collectSessionIdsForClear(sessionId);
+    if (sessionIdsToClear.isEmpty) {
+      throw SessionAgentNotFoundException(sessionId: sessionId);
     }
-    sessionCreateTimeMap.remove(sessionId);
+    for (final id in sessionIdsToClear) {
+      _clearSessionEntry(id);
+    }
+    sentMessages.clear();
   }
 
   List<SessionInfoDto> getSessionsByAgentId(String agentId) {
@@ -307,6 +300,41 @@ class AgentService {
     //   });
     // }
     return agentSession;
+  }
+
+  void _attachIdleTimeoutHandler(SessionAgent sessionAgent) {
+    sessionAgent.onIdleTimeout = (String id) {
+      unawaited(clearSession(id));
+    };
+  }
+
+  Set<String> _collectSessionIdsForClear(String rootSessionId) {
+    final Set<String> sessionIds = <String>{};
+    if (sessionAgents.containsKey(rootSessionId)) {
+      sessionIds.add(rootSessionId);
+      sessionIds.addAll(getSubSessionIds(rootSessionId));
+      return sessionIds;
+    }
+    if (simpleAgents.containsKey(rootSessionId)) {
+      sessionIds.add(rootSessionId);
+    }
+    return sessionIds;
+  }
+
+  void _clearSessionEntry(String sessionId) {
+    SessionAgent? sessionAgent = sessionAgents.remove(sessionId);
+    sessionAgent?.clear();
+    simpleAgents.remove(sessionId);
+    callbackOpenToolMap.remove(sessionId);
+
+    String? agentId = sessionAgentMap.remove(sessionId);
+    if (agentId != null) {
+      agentSessionsMap[agentId]?.remove(sessionId);
+      if (agentSessionsMap[agentId]?.isEmpty ?? false) {
+        agentSessionsMap.remove(agentId);
+      }
+    }
+    sessionCreateTimeMap.remove(sessionId);
   }
 
   void _updateSession(AgentSession agentSession, String taskId,
@@ -486,11 +514,11 @@ class AgentService {
   }
 
   void fetchClientDriver(String sessionId, OpenToolCallbackDriver clientDriver) {
-    clientDriverMap[sessionId] = clientDriver;
+    callbackOpenToolMap[sessionId] = clientDriver;
   }
 
   void clientDriverCallback(String sessionId, ot.ToolReturn toolReturn) {
-    OpenToolCallbackDriver? clientDriver = clientDriverMap[sessionId];
+    OpenToolCallbackDriver? clientDriver = callbackOpenToolMap[sessionId];
     if(clientDriver == null) {
       throw SessionAgentNotFoundException(sessionId: sessionId);
     }
@@ -498,7 +526,7 @@ class AgentService {
   }
 
   void clientDriverStreamCallback(String sessionId, String event, ot.ToolReturn toolReturn) {
-    OpenToolCallbackDriver? clientDriver = clientDriverMap[sessionId];
+    OpenToolCallbackDriver? clientDriver = callbackOpenToolMap[sessionId];
     if (clientDriver == null) {
       throw SessionAgentNotFoundException(sessionId: sessionId);
     }

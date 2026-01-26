@@ -20,7 +20,8 @@ Future<void> main() async {
     llmConfig: llmConfig,
     agentSession: _buildSession(sessionId),
     subAgentDriverList: await _buildSubAgentDriverList(llmConfig, sessionId),
-    systemPrompt: "You play the role of a tool caller. You can help me decide which tool to call to complete the task according to my requirements. You can only call one tool at a time. \n\nYou support the following tools:\n\n 1. Translation\n 2. Add, delete, modify and query tools"
+    toolPipelineStrategy: PipelineStrategyType.SERIAL,
+    systemPrompt: "You play the role of a tool caller. You can help me decide which tool to call to complete the task according to my requirements. You can only call one tool at a time. \n\nYou support the following tools:\n\n 1. Translation\n 2. Add, delete, modify and query tools\n\nAlways call CRUDTools first to fetch the text, then call translator and pass the fetched text as the prompt."
   );
 
   void Function(String taskId) fetchTaskId = (String taskId) {
@@ -51,7 +52,7 @@ Future<List<AgentDriver>> _buildSubAgentDriverList(LLMConfig llmConfig, String o
   ToolAgent toolAgent = ToolAgent(
       sessionId: sessionId,
       llmConfig: llmConfig,
-      agentSession: _buildSession(originalSessionId),
+      agentSession: _buildSession(sessionId),
       toolDriverList: await _buildToolDriverList(),
       systemPrompt: _buildSystemPrompt()
   );

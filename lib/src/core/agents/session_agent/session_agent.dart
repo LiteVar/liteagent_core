@@ -16,6 +16,7 @@ abstract class SessionAgent {
   AgentSession agentSession;
   DispatcherMap dispatcherMap = DispatcherMap();
   late Timeout timeout;
+  void Function(String sessionId)? onIdleTimeout;
   PipelineAsync<ContentsTask> pipeline;
 
   SessionAgent({
@@ -23,11 +24,13 @@ abstract class SessionAgent {
     required this.agentSession,
     this.systemPrompt,
     String taskPipelineStrategy = PipelineStrategyType.PARALLEL,
-    timeoutSeconds = 600
+    timeoutSeconds = 600,
+    this.onIdleTimeout,
   }) :  pipeline = PipelineAsync(taskPipelineStrategy),
         timeout = Timeout(timeoutSeconds);
 
   Future<void> userToAgent({required List<Content> contentList, bool? stream, String? originalTaskId, String? parentTaskId, void Function(String taskId)? fetchTaskId}) async {
+    timeout.clear();
     this.agentSession.isStream = stream??false;
     this.parentTaskId = parentTaskId;
     String taskId = uniqueId();
@@ -150,7 +153,7 @@ abstract class SessionAgent {
         content: TaskStatus(status: TaskStatusType.STOP, taskId: taskId)
       ));
     dispatcherMap.stop(taskId, clientCommand);
-    timeout.start(clear);
+    timeout.start(handleIdleTimeout);
   }
 
   void clear() {
@@ -159,8 +162,14 @@ abstract class SessionAgent {
     timeout.clear();
   }
 
+  void handleIdleTimeout() {
+    if (onIdleTimeout != null) {
+      onIdleTimeout!(sessionId);
+      return;
+    }
+    clear();
+  }
+
 }
-
-
 
 
