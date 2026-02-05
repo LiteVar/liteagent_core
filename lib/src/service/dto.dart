@@ -112,6 +112,7 @@ class LLMConfigDto {
   String model;
   double temperature;
   int maxTokens;
+  int? contextWindowSize;
   double topP;
   bool supportsToolCalling;
   bool supportsDeepThinking;
@@ -122,6 +123,7 @@ class LLMConfigDto {
     required this.model,
     this.temperature = 0.0,
     this.maxTokens = 4096,
+    this.contextWindowSize,
     this.topP = 1.0,
     this.supportsToolCalling = true,
     this.supportsDeepThinking = false
@@ -137,6 +139,7 @@ class LLMConfigDto {
     model: llmConfig.model,
     temperature: llmConfig.temperature,
     maxTokens: llmConfig.maxTokens,
+    contextWindowSize: llmConfig.contextWindowSize,
     topP: llmConfig.topP,
     supportsToolCalling: llmConfig.supportsToolCalling,
     supportsDeepThinking: llmConfig.supportsDeepThinking
@@ -148,6 +151,7 @@ class LLMConfigDto {
     model: model,
     temperature: temperature,
     maxTokens: maxTokens,
+    contextWindowSize: contextWindowSize,
     topP: topP,
     supportsToolCalling: supportsToolCalling,
     supportsDeepThinking: supportsDeepThinking
@@ -285,11 +289,13 @@ class TokenUsageDto {
   final int promptTokens;
   final int completionTokens;
   final int totalTokens;
+  final double? contextUsageRatio;
 
   TokenUsageDto({
     required this.promptTokens,
     required this.completionTokens,
-    required this.totalTokens
+    required this.totalTokens,
+    this.contextUsageRatio
   });
 
   factory TokenUsageDto.fromJson(Map<String, dynamic> json) => _$TokenUsageDtoFromJson(json);
@@ -299,7 +305,8 @@ class TokenUsageDto {
   factory TokenUsageDto.fromModel(TokenUsage tokenUsage) => TokenUsageDto(
     promptTokens: tokenUsage.promptTokens,
     completionTokens: tokenUsage.completionTokens,
-    totalTokens: tokenUsage.totalTokens
+    totalTokens: tokenUsage.totalTokens,
+    contextUsageRatio: tokenUsage.contextUsageRatio
   );
 }
 

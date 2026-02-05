@@ -121,6 +121,7 @@ LLMConfigDto _$LLMConfigDtoFromJson(Map<String, dynamic> json) => LLMConfigDto(
       model: json['model'] as String,
       temperature: (json['temperature'] as num?)?.toDouble() ?? 0.0,
       maxTokens: (json['maxTokens'] as num?)?.toInt() ?? 4096,
+      contextWindowSize: (json['contextWindowSize'] as num?)?.toInt(),
       topP: (json['topP'] as num?)?.toDouble() ?? 1.0,
       supportsToolCalling: json['supportsToolCalling'] as bool? ?? true,
       supportsDeepThinking: json['supportsDeepThinking'] as bool? ?? false,
@@ -133,6 +134,7 @@ Map<String, dynamic> _$LLMConfigDtoToJson(LLMConfigDto instance) =>
       'model': instance.model,
       'temperature': instance.temperature,
       'maxTokens': instance.maxTokens,
+      if (instance.contextWindowSize case final value?) 'contextWindowSize': value,
       'topP': instance.topP,
       'supportsToolCalling': instance.supportsToolCalling,
       'supportsDeepThinking': instance.supportsDeepThinking,
@@ -192,6 +194,7 @@ TokenUsageDto _$TokenUsageDtoFromJson(Map<String, dynamic> json) =>
       promptTokens: (json['promptTokens'] as num).toInt(),
       completionTokens: (json['completionTokens'] as num).toInt(),
       totalTokens: (json['totalTokens'] as num).toInt(),
+      contextUsageRatio: (json['contextUsageRatio'] as num?)?.toDouble(),
     );
 
 Map<String, dynamic> _$TokenUsageDtoToJson(TokenUsageDto instance) =>
@@ -199,6 +202,7 @@ Map<String, dynamic> _$TokenUsageDtoToJson(TokenUsageDto instance) =>
       'promptTokens': instance.promptTokens,
       'completionTokens': instance.completionTokens,
       'totalTokens': instance.totalTokens,
+      if (instance.contextUsageRatio case final value?) 'contextUsageRatio': value,
     };
 
 ApiKeyDto _$ApiKeyDtoFromJson(Map<String, dynamic> json) => ApiKeyDto(

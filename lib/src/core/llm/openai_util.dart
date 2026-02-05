@@ -45,10 +45,15 @@ class OpenAIUtil {
       enableThinking: enableThinking,
     );
 
+    double? contextUsageRatio;
+    if (llmConfig.contextWindowSize != null && llmConfig.contextWindowSize! > 0) {
+      contextUsageRatio = chatCompletion.usage.promptTokens / llmConfig.contextWindowSize!;
+    }
     TokenUsage tokenUsage = TokenUsage(
       promptTokens: chatCompletion.usage.promptTokens,
       completionTokens: chatCompletion.usage.completionTokens,
-      totalTokens: chatCompletion.usage.totalTokens
+      totalTokens: chatCompletion.usage.totalTokens,
+      contextUsageRatio: contextUsageRatio,
     );
 
     Completions completions = Completions(tokenUsage: tokenUsage, id: chatCompletion.id, model: llmConfig.model);
@@ -75,10 +80,15 @@ class OpenAIUtil {
     return chatCompletionStream.map((OpenAIStreamChatCompletionModel streamCompletion) {
       Completions? completions = null;
       if(streamCompletion.usage != null) {
+        double? contextUsageRatio;
+        if (llmConfig.contextWindowSize != null && llmConfig.contextWindowSize! > 0) {
+          contextUsageRatio = streamCompletion.usage!.promptTokens / llmConfig.contextWindowSize!;
+        }
         TokenUsage tokenUsage = TokenUsage(
           promptTokens: streamCompletion.usage!.promptTokens,
           completionTokens: streamCompletion.usage!.completionTokens,
-          totalTokens: streamCompletion.usage!.totalTokens
+          totalTokens: streamCompletion.usage!.totalTokens,
+          contextUsageRatio: contextUsageRatio,
         );
         completions = Completions(tokenUsage: tokenUsage, id: streamCompletion.id, model: llmConfig.model);
       }

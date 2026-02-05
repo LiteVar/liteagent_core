@@ -6,6 +6,7 @@ class LLMConfig {
   String model;
   double temperature;
   int maxTokens;
+  int? contextWindowSize;
   double topP;
   bool supportsToolCalling;
   bool supportsDeepThinking;
@@ -15,6 +16,7 @@ class LLMConfig {
     required this.model,
     this.temperature = 0.0,
     this.maxTokens = 4096,
+    this.contextWindowSize,
     this.topP = 1.0,
     this.supportsToolCalling = true,
     this.supportsDeepThinking = false
@@ -33,11 +35,13 @@ class TokenUsage {
   final int promptTokens;
   final int completionTokens;
   final int totalTokens;
+  final double? contextUsageRatio;
 
   TokenUsage({
     required this.promptTokens,
     required this.completionTokens,
-    required this.totalTokens
+    required this.totalTokens,
+    this.contextUsageRatio
   });
 }
 

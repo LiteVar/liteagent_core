@@ -10,6 +10,8 @@ import '../pipeline/model.dart';
 import '../pipeline/pipeline.dart';
 import '../reflection/model.dart';
 import '../session_agent/dispatcher.dart';
+import '../session_agent/model.dart';
+import '../simple_agent.dart';
 import '../text_agent/text_agent_message_handler.dart';
 import '../tool_agent/model.dart';
 import '../tool_agent/tool_agent.dart';
@@ -17,6 +19,25 @@ import 'model.dart';
 import 'multi_agent_message_handler.dart';
 
 class MultiAgent extends ToolAgent {
+  static const int _contextKeepMessageCount = 8;
+  static const double _contextUsageThreshold = 0.7;
+  static const String _summarySystemPrompt = '''
+You are a conversation context compressor. Summarize the given history for future turns.
+Rules:
+- Keep only facts, constraints, confirmed decisions, user preferences, and open questions.
+- Do not invent information.
+- Be concise and structured.
+- Max length: 200 words.
+
+Output format (Markdown):
+- summary: ...
+- facts:
+  - ...
+- open_questions:
+  - ...
+- artifacts:
+  - ...
+''';
   static const String _subAgentFunctionName = "callSubAgent";
   static const String _subAgentNameKey = "agentName";
   static const String _subAgentFunctionDescription = "Call a sub-agent by name.";
@@ -73,7 +94,7 @@ class MultiAgent extends ToolAgent {
     functionModelList.addAll(subAgentFunctionModelList);
 
     try {
-      List<AgentMessage> agentLLMMessageList = prepareAgentLLMMessageList(agentMessage);
+      List<AgentMessage> agentLLMMessageList = await prepareAgentLLMMessageList(agentMessage);
       if(super.agentSession.isStream) {
         Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(llmConfig).requestByStream(agentMessageList: agentLLMMessageList, functionModelList: functionModelList, enableThinking: enableThinking, listenChunk: listenChunk);
         agentMessageStream.listen((newAgentMessage) {
@@ -232,21 +253,140 @@ class MultiAgent extends ToolAgent {
   }
 
   @override
-  List<AgentMessage> prepareAgentLLMMessageList(AgentMessage agentMessage) {
-    List<AgentMessage> agentLLMMessageList = [];
+  Future<List<AgentMessage>> prepareAgentLLMMessageList(AgentMessage agentMessage) async {
     List<AgentMessage> sessionMessageList = List<AgentMessage>.from(agentSession.taskDoneAgentMessageList);
     List<AgentMessage> taskMessageList = dispatcherMap.getTaskMessageList(agentMessage.taskId);
-    sessionMessageList.addAll(taskMessageList);
-    sessionMessageList.forEach((sessionMessage){
-      if( sessionMessage.role == MultiAgentRoleType.DEVELOPER ||
-          sessionMessage.role == MultiAgentRoleType.ASSISTANT ||
-          sessionMessage.to == MultiAgentRoleType.ASSISTANT   ||
-          sessionMessage.role == MultiAgentRoleType.TOOL      ||
-          sessionMessage.role == MultiAgentRoleType.SUBAGENT ) {
-        agentLLMMessageList.add(sessionMessage);
+
+    List<AgentMessage> sessionContextMessages = _filterContextMessages(sessionMessageList);
+    List<AgentMessage> taskContextMessages = _filterContextMessages(taskMessageList);
+
+    bool shouldSummarize = _shouldSummarize();
+    if (shouldSummarize) {
+      await _updateSessionSummary(sessionContextMessages);
+    }
+
+    List<AgentMessage> agentLLMMessageList = [];
+    if (shouldSummarize && agentSession.sessionSummary?.isNotEmpty == true) {
+      agentLLMMessageList.add(_buildSummaryMessage(agentMessage, agentSession.sessionSummary!));
+      if (sessionContextMessages.length > _contextKeepMessageCount) {
+        sessionContextMessages = sessionContextMessages.sublist(
+          sessionContextMessages.length - _contextKeepMessageCount,
+        );
       }
-    });
+    }
+
+    agentLLMMessageList.addAll(sessionContextMessages);
+    agentLLMMessageList.addAll(taskContextMessages);
     return agentLLMMessageList;
+  }
+
+  bool _shouldSummarize() {
+    int? contextWindowSize = llmConfig.contextWindowSize;
+    if (contextWindowSize == null || contextWindowSize <= 0) return false;
+    int? promptTokens = _lastPromptTokens();
+    if (promptTokens == null) return false;
+    double ratio = promptTokens / contextWindowSize;
+    return ratio >= _contextUsageThreshold;
+  }
+
+  int? _lastPromptTokens() {
+    for (final message in agentSession.taskDoneAgentMessageList.reversed) {
+      final usage = message.completions?.tokenUsage;
+      if (usage != null) return usage.promptTokens;
+    }
+    return null;
+  }
+
+  Future<void> _updateSessionSummary(List<AgentMessage> sessionContextMessages) async {
+    if (sessionContextMessages.length <= _contextKeepMessageCount) return;
+
+    int cutoff = sessionContextMessages.length - _contextKeepMessageCount;
+    if (cutoff == agentSession.summaryMessageCount &&
+        agentSession.sessionSummary?.isNotEmpty == true) {
+      return;
+    }
+
+    String summaryInput = _formatMessagesForSummary(
+      sessionContextMessages.sublist(0, cutoff),
+    );
+    if (summaryInput.isEmpty) return;
+
+    try {
+      SimpleAgent summarizer = SimpleAgent(llmConfig: llmConfig, systemPrompt: _summarySystemPrompt);
+      AgentMessage result = await summarizer.userToAgent(
+        contentList: [Content(type: ContentType.TEXT, message: summaryInput)],
+      );
+      String summary = (result.content as String).trim();
+      if (summary.isNotEmpty) {
+        agentSession.sessionSummary = summary;
+        agentSession.summaryMessageCount = cutoff;
+      }
+    } catch (_) {
+      // If summary fails, keep existing context to avoid breaking requests.
+    }
+  }
+
+  List<AgentMessage> _filterContextMessages(List<AgentMessage> messages) {
+    List<AgentMessage> filtered = [];
+    for (final sessionMessage in messages) {
+      if (sessionMessage.role == MultiAgentRoleType.DEVELOPER ||
+          sessionMessage.role == MultiAgentRoleType.ASSISTANT ||
+          sessionMessage.to == MultiAgentRoleType.ASSISTANT ||
+          sessionMessage.role == MultiAgentRoleType.TOOL ||
+          sessionMessage.role == MultiAgentRoleType.SUBAGENT) {
+        filtered.add(sessionMessage);
+      }
+    }
+    return filtered;
+  }
+
+  AgentMessage _buildSummaryMessage(AgentMessage anchor, String summary) {
+    return AgentMessage(
+      sessionId: anchor.sessionId,
+      originalTaskId: anchor.originalTaskId,
+      parentTaskId: anchor.parentTaskId,
+      taskId: anchor.taskId,
+      role: MultiAgentRoleType.DEVELOPER,
+      to: MultiAgentRoleType.ASSISTANT,
+      type: MultiAgentMessageType.TEXT,
+      content: 'Session summary:\n$summary',
+    );
+  }
+
+  String _formatMessagesForSummary(List<AgentMessage> messages) {
+    final buffer = StringBuffer();
+    for (final message in messages) {
+      final text = _contentToText(message);
+      if (text.isEmpty) continue;
+      buffer.writeln('${_roleLabel(message)}: $text');
+    }
+    return buffer.toString().trim();
+  }
+
+  String _roleLabel(AgentMessage message) {
+    if (message.role == MultiAgentRoleType.USER) return 'User';
+    if (message.role == MultiAgentRoleType.ASSISTANT) return 'Assistant';
+    if (message.role == MultiAgentRoleType.TOOL) return 'Tool';
+    if (message.role == MultiAgentRoleType.SUBAGENT) return 'SubAgent';
+    if (message.role == MultiAgentRoleType.DEVELOPER) return 'System';
+    return 'Other';
+  }
+
+  String _contentToText(AgentMessage message) {
+    final content = message.content;
+    if (content is String) return content.trim();
+    if (content is List<Content>) {
+      return content.map((item) {
+        if (item.type == ContentType.TEXT) return item.message;
+        if (item.type == ContentType.IMAGE_URL) return '[image] ${item.message}';
+        return item.message;
+      }).join('\n').trim();
+    }
+    try {
+      return jsonEncode(content);
+    } catch (_) {
+      return '';
+    }
   }
 
   Future<void> requestSubAgents(AgentMessage agentMessage) async {

@@ -66,7 +66,8 @@ class LLMMessageHandler extends AgentMessageHandler {
             role: TextRoleType.AGENT,
             to: TextRoleType.USER,
             type: TextMessageType.TEXT,
-            content: agentMessage.content
+            content: agentMessage.content,
+            completions: agentMessage.completions
         );
         return Command(toUser, agentUserMessage); // If LLM return text and NOT reflect, forward to USER.
       }
@@ -79,7 +80,8 @@ class LLMMessageHandler extends AgentMessageHandler {
           role: TextRoleType.AGENT,
           to: TextRoleType.USER,
           type: TextMessageType.IMAGE_URL,
-          content: agentMessage.content);
+          content: agentMessage.content,
+          completions: agentMessage.completions);
       return Command(toUser, agentUserMessage); // If LLM return image, forward to USER.
     } else if(agentMessage.type == TextMessageType.TASK_STATUS && agentMessage.content == TextStatusType.CHUNK_DONE) {
       if(reflectionManager.shouldReflect) {
@@ -103,7 +105,8 @@ class LLMMessageHandler extends AgentMessageHandler {
             role: TextRoleType.AGENT,
             to: TextRoleType.USER,
             type: TextMessageType.TEXT,
-            content: chunkAccumulation
+            content: chunkAccumulation,
+            completions: agentMessage.completions
         );
         return Command(toUser, agentUserMessage); // If LLM return text and NOT reflect, forward to USER.
       }
@@ -133,7 +136,8 @@ class TextReflectionMessageHandler extends AgentMessageHandler {
         role: TextRoleType.AGENT,
         to: TextRoleType.USER,
         type: TextMessageType.TEXT,
-        content: reflection.messageScore.message
+        content: reflection.messageScore.message,
+        completions: agentMessage.completions
       );
       return Command(toUser, agentUserMessage); // If Reflection pass or maxCount, forward to USER.
     } else {

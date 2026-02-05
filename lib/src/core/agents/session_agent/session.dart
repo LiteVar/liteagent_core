@@ -8,6 +8,8 @@ class AgentSession {
   List<void Function(AgentMessage)> _agentMessageListenerList = [];
   List<void Function(AgentMessageChunk)> _agentMessageChunkListenerList = [];
   List<AgentMessage> taskDoneAgentMessageList = [];
+  String? sessionSummary;
+  int summaryMessageCount = 0;
   bool isStream = false;
 
   AgentSession({required this.sessionId});
@@ -16,6 +18,8 @@ class AgentSession {
     hasSystemMessage = false;
     listenAgentMessageList = [];
     taskDoneAgentMessageList = [];
+    sessionSummary = null;
+    summaryMessageCount = 0;
   }
 
   void resetListener() { _agentMessageListenerList = []; }
