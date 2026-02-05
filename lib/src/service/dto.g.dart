@@ -222,12 +222,15 @@ UserTaskDto _$UserTaskDtoFromJson(Map<String, dynamic> json) => UserTaskDto(
           .map((e) => ContentDto.fromJson(e as Map<String, dynamic>))
           .toList(),
       isChunk: json['isChunk'] as bool?,
+      extraSystemPrompt: json['extraSystemPrompt'] as String?,
     );
 
 Map<String, dynamic> _$UserTaskDtoToJson(UserTaskDto instance) =>
     <String, dynamic>{
       'content': instance.content.map((e) => e.toJson()).toList(),
       if (instance.isChunk case final value?) 'isChunk': value,
+      if (instance.extraSystemPrompt case final value?)
+        'extraSystemPrompt': value,
     };
 
 SessionTaskDto _$SessionTaskDtoFromJson(Map<String, dynamic> json) =>

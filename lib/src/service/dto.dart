@@ -320,8 +320,9 @@ class UserTaskDto {
   @JsonKey(includeIfNull: false)
   List<ContentDto> content;
   bool? isChunk;
+  String? extraSystemPrompt;
 
-  UserTaskDto({required this.content, this.isChunk});
+  UserTaskDto({required this.content, this.isChunk, this.extraSystemPrompt});
 
   factory UserTaskDto.fromJson(Map<String, dynamic> json) => _$UserTaskDtoFromJson(json);
 

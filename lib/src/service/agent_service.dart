@@ -19,6 +19,8 @@ class AgentService {
   List<PresetOpenSpecDto> _presetOpenSpecList = [];
   List<SessionMessageManageService> agentMessageManageServiceList = [];
   LinkedHashMap<Message, Map<String, bool>> sentMessages = LinkedHashMap<Message, Map<String, bool>>(); /// Map<Message, Map<sessionId, bool>>
+  Map<String, String> _sessionBaseSystemPromptMap = {}; /// Map<sessionId, baseSystemPrompt>
+  Map<String, String?> _sessionExtraSystemPromptMap = {}; /// Map<sessionId, extraSystemPrompt>
 
   /// agentId -> sessionId
   Map<String, Set<String>> agentSessionsMap = {};
@@ -62,6 +64,17 @@ class AgentService {
   Future<AgentMessageDto> startSimple(String sessionId, UserTaskDto userTaskDto) async {
     SimpleAgent? simpleAgent = simpleAgents[sessionId];
     if(simpleAgent == null) throw SessionAgentNotFoundException(sessionId: sessionId);
+    if (userTaskDto.extraSystemPrompt != null) {
+      String? extraSystemPrompt = userTaskDto.extraSystemPrompt;
+      if (extraSystemPrompt != null && extraSystemPrompt.isEmpty) {
+        extraSystemPrompt = null;
+      }
+      String baseSystemPrompt = simpleAgent.systemPrompt ?? "";
+      simpleAgent.systemPrompt = _buildEffectiveSystemPrompt(
+        baseSystemPrompt,
+        extraSystemPrompt,
+      );
+    }
     List<Content> userMessageList = userTaskDto.content
         .map((userMessageDto) => _convertToContent(userMessageDto))
         .toList();
@@ -85,6 +98,8 @@ class AgentService {
     sessionCreateTimeMap[sessionId] = createTime;
     String systemPrompt = capabilityDto.systemPrompt;
     String fullSystemPrompt = _mergeFullSystemPrompt(systemPrompt);
+    _sessionBaseSystemPromptMap[sessionId] = fullSystemPrompt;
+    _sessionExtraSystemPromptMap[sessionId] = null;
     LLMConfig llmConfig = capabilityDto.llmConfig.toModel();
     List<ReflectPrompt>? reflectPromptList = capabilityDto.reflectPromptList?.map((reflectPromptDto) => ReflectPrompt(llmConfig: reflectPromptDto.llmConfig.toModel(), prompt: reflectPromptDto.prompt)).toList();
     List<ToolDriver> toolDriverList = [];
@@ -180,6 +195,7 @@ class AgentService {
       }) async {
     SessionAgent? sessionAgent = sessionAgents[sessionId];
     if(sessionAgent == null) throw SessionAgentNotFoundException(sessionId: sessionId);
+    _updateSessionSystemPrompt(sessionId, sessionAgent, userTaskDto.extraSystemPrompt);
     List<Content> userMessageList = userTaskDto.content
         .map((contentDto) => _convertToContent(contentDto))
         .toList();
@@ -607,5 +623,44 @@ class AgentService {
     }
 
     return fullSystemPrompt;
+  }
+
+  void _updateSessionSystemPrompt(String sessionId, SessionAgent sessionAgent, String? newExtraSystemPrompt) {
+    String baseSystemPrompt = _sessionBaseSystemPromptMap[sessionId] ?? sessionAgent.systemPrompt ?? "";
+    String? extraSystemPrompt = _sessionExtraSystemPromptMap[sessionId];
+    if (newExtraSystemPrompt != null) {
+      String? normalizedExtra = newExtraSystemPrompt.isEmpty ? null : newExtraSystemPrompt;
+      extraSystemPrompt = normalizedExtra;
+      _sessionExtraSystemPromptMap[sessionId] = normalizedExtra;
+    }
+    String effectiveSystemPrompt = _buildEffectiveSystemPrompt(baseSystemPrompt, extraSystemPrompt);
+    sessionAgent.systemPrompt = effectiveSystemPrompt;
+    if (sessionAgent.agentSession.hasSystemMessage) {
+      _replaceSystemMessageContent(sessionAgent.agentSession, effectiveSystemPrompt);
+    }
+  }
+
+  String _buildEffectiveSystemPrompt(String baseSystemPrompt, String? extraSystemPrompt) {
+    if (extraSystemPrompt == null || extraSystemPrompt.isEmpty) return baseSystemPrompt;
+    if (baseSystemPrompt.isEmpty) return extraSystemPrompt;
+    return baseSystemPrompt + "\n---\n" + extraSystemPrompt;
+  }
+
+  void _replaceSystemMessageContent(AgentSession agentSession, String effectiveSystemPrompt) {
+    for (int i = 0; i < agentSession.taskDoneAgentMessageList.length; i++) {
+      AgentMessage message = agentSession.taskDoneAgentMessageList[i];
+      if (message.role == SessionRoleType.SYSTEM && message.type == SessionMessageType.TEXT) {
+        message.content = effectiveSystemPrompt;
+        break;
+      }
+    }
+
+    for (int i = 0; i < agentSession.listenAgentMessageList.length; i++) {
+      AgentMessage message = agentSession.listenAgentMessageList[i];
+      if (message.role == SessionRoleType.SYSTEM && message.type == SessionMessageType.TEXT) {
+        message.content = effectiveSystemPrompt;
+        break;
+      }
+    }
   }
 }
