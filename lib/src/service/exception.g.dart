@@ -32,3 +32,10 @@ Map<String, dynamic> _$OpenToolIdNotFoundExceptionToJson(
       'code': instance.code,
       'message': instance.message,
     };
+
+Map<String, dynamic> _$LLMConfigRequiredExceptionToJson(
+        LLMConfigRequiredException instance) =>
+    <String, dynamic>{
+      'code': instance.code,
+      'message': instance.message,
+    };

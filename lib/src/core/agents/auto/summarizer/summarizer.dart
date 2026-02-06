@@ -8,8 +8,7 @@ import '../../session_agent/session.dart';
 import 'package:unique_id_dart/unique_id_dart.dart';
 
 class AutoSummarizer {
-
-  final LLMConfig summarizerLLMConfig;
+  final LLMConfig? summarizerLLMConfig;
 
   final AutoMessageSender messageSender;
 
@@ -24,7 +23,13 @@ class AutoSummarizer {
     required String userCommand,
     required List<AutoTaskNode> completedNodes,
     required String taskId,
+    LLMConfig? requestLLMConfig,
   }) async {
+    final LLMConfig? effectiveLLMConfig =
+        requestLLMConfig ?? summarizerLLMConfig;
+    if (effectiveLLMConfig == null) {
+      throw AutoSummaryException('LLM config is required for summarizer');
+    }
 
     final sessionId = uniqueId();
     final agentSession = AgentSession(sessionId: sessionId);
@@ -36,7 +41,7 @@ class AutoSummarizer {
     summarizerAgent = AutoToolAgent(
       sessionId: sessionId,
       agentSession: agentSession,
-      llmConfig: summarizerLLMConfig,
+      llmConfig: effectiveLLMConfig,
       systemPrompt: systemPrompt,
     );
 
@@ -58,7 +63,7 @@ class AutoSummarizer {
   /// clean up the extra content in the summary result
   String _cleanSummaryResult(String result) {
     String cleaned = result.trim();
-    
+
     if (cleaned.startsWith('```')) {
       int firstNewline = cleaned.indexOf('\n');
       if (firstNewline != -1) {
@@ -68,7 +73,7 @@ class AutoSummarizer {
     if (cleaned.endsWith('```')) {
       cleaned = cleaned.substring(0, cleaned.length - 3);
     }
-    
+
     return cleaned.trim();
   }
 
@@ -83,9 +88,9 @@ class AutoSummarizer {
 
 class AutoSummaryException implements Exception {
   final String message;
-  
+
   AutoSummaryException(this.message);
-  
+
   @override
   String toString() => 'AutoSummaryException: $message';
-} 
+}

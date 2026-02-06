@@ -1,5 +1,6 @@
 import 'dart:async';
 import '../model.dart';
+import '../../llm/model.dart';
 import '../pipeline/model.dart';
 import '../pipeline/pipeline.dart';
 import 'dispatcher.dart';
@@ -18,6 +19,7 @@ abstract class SessionAgent {
   late Timeout timeout;
   void Function(String sessionId)? onIdleTimeout;
   PipelineAsync<ContentsTask> pipeline;
+  final Map<String, LLMConfig> _requestLLMConfigMap = {};
 
   SessionAgent({
     required this.sessionId,
@@ -26,70 +28,90 @@ abstract class SessionAgent {
     String taskPipelineStrategy = PipelineStrategyType.PARALLEL,
     timeoutSeconds = 600,
     this.onIdleTimeout,
-  }) :  pipeline = PipelineAsync(taskPipelineStrategy),
+  })  : pipeline = PipelineAsync(taskPipelineStrategy),
         timeout = Timeout(timeoutSeconds);
 
-  Future<void> userToAgent({required List<Content> contentList, bool? stream, String? originalTaskId, String? parentTaskId, void Function(String taskId)? fetchTaskId}) async {
+  Future<void> userToAgent(
+      {required List<Content> contentList,
+      bool? stream,
+      String? originalTaskId,
+      String? parentTaskId,
+      LLMConfig? requestLLMConfig,
+      void Function(String taskId)? fetchTaskId}) async {
     timeout.clear();
-    this.agentSession.isStream = stream??false;
+    this.agentSession.isStream = stream ?? false;
     this.parentTaskId = parentTaskId;
     String taskId = uniqueId();
-    if(fetchTaskId != null) fetchTaskId(taskId);
+    if (fetchTaskId != null) fetchTaskId(taskId);
     dispatcherMap.create(taskId);
-    originalTaskId = originalTaskId??taskId;
+    originalTaskId = originalTaskId ?? taskId;
+    if (requestLLMConfig != null) {
+      _requestLLMConfigMap[originalTaskId] = requestLLMConfig;
+    }
 
     pipeline.addJob(ContentsTask(taskId: taskId, contentList: contentList));
-    AddStatusAsync statusAsync = await pipeline.runAsync(_userToAgent, asyncId: taskId, originalTaskId: originalTaskId);
+    AddStatusAsync statusAsync = await pipeline.runAsync(_userToAgent,
+        asyncId: taskId, originalTaskId: originalTaskId);
 
-    switch(statusAsync.addStatus) {
-      case AddStatus.REJECT: {
-        pipeline.completeAsync(taskId);
-        Command clientCommand = Command(
-          toClient,
-          AgentMessage(
-            sessionId: sessionId,
-            originalTaskId: originalTaskId,
-            parentTaskId: this.parentTaskId,
-            taskId: taskId,
-            role: SessionRoleType.AGENT,
-            to: SessionRoleType.CLIENT,
-            type: SessionMessageType.TASK_STATUS,
-            content: TaskStatus(status: TaskStatusType.START, taskId: taskId, description: TaskRejectException(taskId: taskId, strategy: pipeline.pipelineStrategyType).toJson())
-          ));
-        dispatcherMap.dispatch(clientCommand);
-      };
-      case AddStatus.ERROR_STRATEGY: throw StrategyNotExistException(source: "task: $taskId", strategy: pipeline.pipelineStrategyType);
-      case AddStatus.SUCCESS: break;
+    switch (statusAsync.addStatus) {
+      case AddStatus.REJECT:
+        {
+          pipeline.completeAsync(taskId);
+          Command clientCommand = Command(
+              toClient,
+              AgentMessage(
+                  sessionId: sessionId,
+                  originalTaskId: originalTaskId,
+                  parentTaskId: this.parentTaskId,
+                  taskId: taskId,
+                  role: SessionRoleType.AGENT,
+                  to: SessionRoleType.CLIENT,
+                  type: SessionMessageType.TASK_STATUS,
+                  content: TaskStatus(
+                      status: TaskStatusType.START,
+                      taskId: taskId,
+                      description: TaskRejectException(
+                              taskId: taskId,
+                              strategy: pipeline.pipelineStrategyType)
+                          .toJson())));
+          dispatcherMap.dispatch(clientCommand);
+        }
+        ;
+      case AddStatus.ERROR_STRATEGY:
+        throw StrategyNotExistException(
+            source: "task: $taskId", strategy: pipeline.pipelineStrategyType);
+      case AddStatus.SUCCESS:
+        break;
     }
   }
 
-  Future<void> _userToAgent(ContentsTask contentsTask, String originalTaskId) async {
+  Future<void> _userToAgent(
+      ContentsTask contentsTask, String originalTaskId) async {
     Command clientCommand = Command(
-      toClient,
-      AgentMessage(
-        sessionId: sessionId,
-        originalTaskId: originalTaskId,
-        parentTaskId: this.parentTaskId,
-        taskId: contentsTask.taskId,
-        role: SessionRoleType.AGENT,
-        to: SessionRoleType.CLIENT,
-        type: SessionMessageType.TASK_STATUS,
-        content: TaskStatus(status: TaskStatusType.START, taskId: contentsTask.taskId)
-      ));
+        toClient,
+        AgentMessage(
+            sessionId: sessionId,
+            originalTaskId: originalTaskId,
+            parentTaskId: this.parentTaskId,
+            taskId: contentsTask.taskId,
+            role: SessionRoleType.AGENT,
+            to: SessionRoleType.CLIENT,
+            type: SessionMessageType.TASK_STATUS,
+            content: TaskStatus(
+                status: TaskStatusType.START, taskId: contentsTask.taskId)));
     dispatcherMap.dispatch(clientCommand);
 
     AgentMessage contentMessage = AgentMessage(
-      sessionId: sessionId,
-      originalTaskId: originalTaskId,
-      parentTaskId: parentTaskId,
-      taskId: contentsTask.taskId,
-      role: SessionRoleType.USER,
-      to: SessionRoleType.AGENT,
-      type: SessionMessageType.CONTENT_LIST,
-      content: contentsTask.contentList
-    );
+        sessionId: sessionId,
+        originalTaskId: originalTaskId,
+        parentTaskId: parentTaskId,
+        taskId: contentsTask.taskId,
+        role: SessionRoleType.USER,
+        to: SessionRoleType.AGENT,
+        type: SessionMessageType.CONTENT_LIST,
+        content: contentsTask.contentList);
 
-    if ( systemPrompt == null || agentSession.hasSystemMessage ) {
+    if (systemPrompt == null || agentSession.hasSystemMessage) {
       dispatcherMap.dispatch(Command(toAgent, contentMessage));
     } else {
       dispatcherMap.dispatch(Command(_initSystemMessage, contentMessage));
@@ -101,15 +123,14 @@ abstract class SessionAgent {
   Future<void> _initSystemMessage(AgentMessage sessionMessage) async {
     if (systemPrompt != null && systemPrompt!.isNotEmpty) {
       AgentMessage systemMessage = AgentMessage(
-        sessionId: sessionMessage.sessionId,
-        originalTaskId: sessionMessage.originalTaskId,
-        parentTaskId: this.parentTaskId,
-        taskId: sessionMessage.taskId,
-        role: SessionRoleType.SYSTEM,
-        to: SessionRoleType.AGENT,
-        type: SessionMessageType.TEXT,
-        content: systemPrompt
-      );
+          sessionId: sessionMessage.sessionId,
+          originalTaskId: sessionMessage.originalTaskId,
+          parentTaskId: this.parentTaskId,
+          taskId: sessionMessage.taskId,
+          role: SessionRoleType.SYSTEM,
+          to: SessionRoleType.AGENT,
+          type: SessionMessageType.TEXT,
+          content: systemPrompt);
       agentSession.addTaskDoneAgentMessageList([systemMessage]);
       agentSession.hasSystemMessage = true;
       await toAgent(systemMessage);
@@ -123,35 +144,35 @@ abstract class SessionAgent {
   }
 
   void stop({String? taskId = null, String? originalTaskId}) {
-    if(taskId == null) {
+    if (taskId == null) {
       AgentMessageBase stopMessage = AgentMessageBase(
-        sessionId: sessionId,
-        originalTaskId: originalTaskId??"",
-        role: SessionRoleType.AGENT,
-        to: SessionRoleType.CLIENT,
-        type: SessionMessageType.TASK_STATUS,
-        content: TaskStatus(status: TaskStatusType.STOP, taskId: taskId??"")
-      );
+          sessionId: sessionId,
+          originalTaskId: originalTaskId ?? "",
+          role: SessionRoleType.AGENT,
+          to: SessionRoleType.CLIENT,
+          type: SessionMessageType.TASK_STATUS,
+          content:
+              TaskStatus(status: TaskStatusType.STOP, taskId: taskId ?? ""));
       dispatcherMap.stopAll(toClient, stopMessage);
     } else {
-      _stop(taskId, originalTaskId??"");
+      _stop(taskId, originalTaskId ?? "");
     }
   }
 
   void _stop(String taskId, String originalTaskId) {
     pipeline.completeAsync(taskId);
+    clearTaskLLMConfig(originalTaskId);
     Command clientCommand = Command(
-      toClient,
-      AgentMessage(
-        sessionId: sessionId,
-        originalTaskId: originalTaskId,
-        parentTaskId: parentTaskId,
-        taskId: taskId,
-        role: SessionRoleType.AGENT,
-        to: SessionRoleType.CLIENT,
-        type: SessionMessageType.TASK_STATUS,
-        content: TaskStatus(status: TaskStatusType.STOP, taskId: taskId)
-      ));
+        toClient,
+        AgentMessage(
+            sessionId: sessionId,
+            originalTaskId: originalTaskId,
+            parentTaskId: parentTaskId,
+            taskId: taskId,
+            role: SessionRoleType.AGENT,
+            to: SessionRoleType.CLIENT,
+            type: SessionMessageType.TASK_STATUS,
+            content: TaskStatus(status: TaskStatusType.STOP, taskId: taskId)));
     dispatcherMap.stop(taskId, clientCommand);
     timeout.start(handleIdleTimeout);
   }
@@ -160,6 +181,7 @@ abstract class SessionAgent {
     stop();
     agentSession.clearMessage();
     timeout.clear();
+    _requestLLMConfigMap.clear();
   }
 
   void handleIdleTimeout() {
@@ -170,6 +192,16 @@ abstract class SessionAgent {
     clear();
   }
 
+  LLMConfig? resolveTaskLLMConfig(String originalTaskId,
+      {LLMConfig? defaultLLMConfig}) {
+    return _requestLLMConfigMap[originalTaskId] ?? defaultLLMConfig;
+  }
+
+  void setTaskLLMConfig(String originalTaskId, LLMConfig requestLLMConfig) {
+    _requestLLMConfigMap[originalTaskId] = requestLLMConfig;
+  }
+
+  void clearTaskLLMConfig(String originalTaskId) {
+    _requestLLMConfigMap.remove(originalTaskId);
+  }
 }
-
-

@@ -8,7 +8,7 @@ class SessionAgentNotFoundException implements Exception {
   final int code = 404;
   late String message;
 
-  SessionAgentNotFoundException({ required String sessionId }) {
+  SessionAgentNotFoundException({required String sessionId}) {
     this.message = "SessionId `${sessionId}` Agent Not Found";
   }
 
@@ -25,7 +25,7 @@ class AgentNotFoundException implements Exception {
   final int code = 404;
   late String message;
 
-  AgentNotFoundException({ required String agentId }) {
+  AgentNotFoundException({required String agentId}) {
     this.message = "AgentId `${agentId}` Agent Not Found";
   }
 
@@ -44,8 +44,9 @@ class AgentNameException implements Exception {
 
   AgentNameException({
     required String agentName,
-  }){
-    this.message = "Name exception: `$agentName`. Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.";
+  }) {
+    this.message =
+        "Name exception: `$agentName`. Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.";
   }
 
   Map<String, dynamic> toJson() => _$AgentNameExceptionToJson(this);
@@ -61,11 +62,30 @@ class OpenToolIdNotFoundException implements Exception {
   final int code = 404;
   late String message;
 
-  OpenToolIdNotFoundException({required String openToolId,}){
+  OpenToolIdNotFoundException({
+    required String openToolId,
+  }) {
     this.message = "OpenToolId not found: `$openToolId`";
   }
 
   Map<String, dynamic> toJson() => _$OpenToolIdNotFoundExceptionToJson(this);
+
+  @override
+  String toString() => jsonEncode(this.toJson());
+}
+
+@JsonSerializable(createFactory: false)
+class LLMConfigRequiredException implements Exception {
+  final int code = 400;
+  late String message;
+
+  LLMConfigRequiredException({required String scene, String? sessionId}) {
+    String detail = "LLM config is required for `$scene`";
+    if (sessionId != null) detail = "$detail, sessionId: `$sessionId`";
+    message = "$detail. Provide llmConfig in init or current chat request.";
+  }
+
+  Map<String, dynamic> toJson() => _$LLMConfigRequiredExceptionToJson(this);
 
   @override
   String toString() => jsonEncode(this.toJson());

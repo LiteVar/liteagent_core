@@ -31,22 +31,24 @@ Map<String, dynamic> _$SessionNameDtoToJson(SessionNameDto instance) =>
 
 SimpleCapabilityDto _$SimpleCapabilityDtoFromJson(Map<String, dynamic> json) =>
     SimpleCapabilityDto(
-      llmConfig:
-          LLMConfigDto.fromJson(json['llmConfig'] as Map<String, dynamic>),
+      llmConfig: json['llmConfig'] == null
+          ? null
+          : LLMConfigDto.fromJson(json['llmConfig'] as Map<String, dynamic>),
       systemPrompt: json['systemPrompt'] as String,
     );
 
 Map<String, dynamic> _$SimpleCapabilityDtoToJson(
         SimpleCapabilityDto instance) =>
     <String, dynamic>{
-      'llmConfig': instance.llmConfig.toJson(),
+      if (instance.llmConfig?.toJson() case final value?) 'llmConfig': value,
       'systemPrompt': instance.systemPrompt,
     };
 
 CapabilityDto _$CapabilityDtoFromJson(Map<String, dynamic> json) =>
     CapabilityDto(
-      llmConfig:
-          LLMConfigDto.fromJson(json['llmConfig'] as Map<String, dynamic>),
+      llmConfig: json['llmConfig'] == null
+          ? null
+          : LLMConfigDto.fromJson(json['llmConfig'] as Map<String, dynamic>),
       systemPrompt: json['systemPrompt'] as String,
       openSpecList: (json['openSpecList'] as List<dynamic>?)
           ?.map((e) => OpenSpecDto.fromJson(e as Map<String, dynamic>))
@@ -74,7 +76,7 @@ CapabilityDto _$CapabilityDtoFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
     <String, dynamic>{
-      'llmConfig': instance.llmConfig.toJson(),
+      if (instance.llmConfig?.toJson() case final value?) 'llmConfig': value,
       'systemPrompt': instance.systemPrompt,
       if (instance.openSpecList?.map((e) => e.toJson()).toList()
           case final value?)
@@ -134,7 +136,8 @@ Map<String, dynamic> _$LLMConfigDtoToJson(LLMConfigDto instance) =>
       'model': instance.model,
       'temperature': instance.temperature,
       'maxTokens': instance.maxTokens,
-      if (instance.contextWindowSize case final value?) 'contextWindowSize': value,
+      if (instance.contextWindowSize case final value?)
+        'contextWindowSize': value,
       'topP': instance.topP,
       'supportsToolCalling': instance.supportsToolCalling,
       'supportsDeepThinking': instance.supportsDeepThinking,
@@ -202,7 +205,8 @@ Map<String, dynamic> _$TokenUsageDtoToJson(TokenUsageDto instance) =>
       'promptTokens': instance.promptTokens,
       'completionTokens': instance.completionTokens,
       'totalTokens': instance.totalTokens,
-      if (instance.contextUsageRatio case final value?) 'contextUsageRatio': value,
+      if (instance.contextUsageRatio case final value?)
+        'contextUsageRatio': value,
     };
 
 ApiKeyDto _$ApiKeyDtoFromJson(Map<String, dynamic> json) => ApiKeyDto(
@@ -227,6 +231,9 @@ UserTaskDto _$UserTaskDtoFromJson(Map<String, dynamic> json) => UserTaskDto(
           .toList(),
       isChunk: json['isChunk'] as bool?,
       extraSystemPrompt: json['extraSystemPrompt'] as String?,
+      llmConfig: json['llmConfig'] == null
+          ? null
+          : LLMConfigDto.fromJson(json['llmConfig'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$UserTaskDtoToJson(UserTaskDto instance) =>
@@ -235,6 +242,7 @@ Map<String, dynamic> _$UserTaskDtoToJson(UserTaskDto instance) =>
       if (instance.isChunk case final value?) 'isChunk': value,
       if (instance.extraSystemPrompt case final value?)
         'extraSystemPrompt': value,
+      if (instance.llmConfig?.toJson() case final value?) 'llmConfig': value,
     };
 
 SessionTaskDto _$SessionTaskDtoFromJson(Map<String, dynamic> json) =>

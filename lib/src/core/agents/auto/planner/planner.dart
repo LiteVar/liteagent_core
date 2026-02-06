@@ -9,8 +9,7 @@ import '../../session_agent/session.dart';
 import 'package:unique_id_dart/unique_id_dart.dart';
 
 class AutoTaskPlanner {
-
-  final LLMConfig plannerLLMConfig;
+  final LLMConfig? plannerLLMConfig;
 
   final AutoMessageSender messageSender;
 
@@ -26,7 +25,12 @@ class AutoTaskPlanner {
     required List<IndexedLLMConfig> indexedLLMConfigs,
     required List<IndexedFunction> indexedFunctions,
     required String taskId,
+    LLMConfig? requestLLMConfig,
   }) async {
+    final LLMConfig? effectiveLLMConfig = requestLLMConfig ?? plannerLLMConfig;
+    if (effectiveLLMConfig == null) {
+      throw AutoPlanningException('LLM config is required for planner');
+    }
 
     final sessionId = uniqueId();
     final agentSession = AgentSession(sessionId: sessionId);
@@ -38,7 +42,7 @@ class AutoTaskPlanner {
     plannerAgent = AutoToolAgent(
       sessionId: sessionId,
       agentSession: agentSession,
-      llmConfig: plannerLLMConfig,
+      llmConfig: effectiveLLMConfig,
       systemPrompt: planningPrompt,
     );
 
@@ -79,14 +83,14 @@ class AutoTaskPlanner {
     if (cleaned.endsWith('```')) {
       cleaned = cleaned.substring(0, cleaned.length - 3);
     }
-    
+
     int startIndex = cleaned.indexOf('[');
     int endIndex = cleaned.lastIndexOf(']');
-    
+
     if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
       cleaned = cleaned.substring(startIndex, endIndex + 1);
     }
-    
+
     return cleaned.trim();
   }
 
@@ -101,9 +105,9 @@ class AutoTaskPlanner {
 
 class AutoPlanningException implements Exception {
   final String message;
-  
+
   AutoPlanningException(this.message);
-  
+
   @override
   String toString() => 'AutoPlanningException: $message';
-} 
+}

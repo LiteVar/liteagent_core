@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:opentool_dart/opentool_client.dart';
+import '../../llm/model.dart';
 import '../../agents/text_agent/text_agent.dart';
 import '../../driver/opentool/opentool_callback_driver.dart';
 import '../../driver/opentool/opentool_driver.dart';
@@ -63,34 +64,54 @@ Output format (Markdown):
     required super.agentSession,
     String? super.systemPrompt,
     super.timeoutSeconds = 3600,
-    List<ReflectPrompt> toolReflectPromptList = const[],
+    List<ReflectPrompt> toolReflectPromptList = const [],
     super.taskPipelineStrategy,
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
     this.streamCallTimeoutSeconds = 60,
     super.enableThinking,
   }) {
-    toolReflectPromptList.forEach((reflectPrompt){
-      ReflectorAgent reflectorAgent = ReflectorAgent(llmExecutor: OpenAIExecutor(reflectPrompt.llmConfig), systemPrompt: reflectPrompt.prompt, sessionId: this.sessionId, parentTaskId: this.parentTaskId);
-      AgentReflector agentReflector = AgentReflector(agent: reflectorAgent, subscribeCompletions: subscribeCompletions);
+    toolReflectPromptList.forEach((reflectPrompt) {
+      ReflectorAgent reflectorAgent = ReflectorAgent(
+          llmExecutor: OpenAIExecutor(reflectPrompt.llmConfig),
+          systemPrompt: reflectPrompt.prompt,
+          sessionId: this.sessionId,
+          parentTaskId: this.parentTaskId);
+      AgentReflector agentReflector = AgentReflector(
+          agent: reflectorAgent, subscribeCompletions: subscribeCompletions);
       toolReflectionManager.addReflector(agentReflector);
     });
 
-    manager.registerHandler(role: TextRoleType.USER, handler: UserMessageHandler(toolReflectionManager, toLLM));//override TextAgent User handler, for save List<Content>
-    manager.registerHandler(role: ToolRoleType.ASSISTANT, handler: LLMFunctionCallingMessageHandler(toolReflectionManager, toReflection, toUser, toTool)); //override TextAgent LLM handler
-    manager.registerHandler(role: ToolRoleType.TOOL, handler: ToolMessageHandler(toLLM, onToolReturn: onToolReturn));
-    manager.registerHandler(role: ToolRoleType.REFLECTION, handler: ToolReflectionMessageHandler(toolReflectionManager, toLLM, toTool, onToolRetry: super.onReflectionRetry));
+    manager.registerHandler(
+        role: TextRoleType.USER,
+        handler: UserMessageHandler(toolReflectionManager,
+            toLLM)); //override TextAgent User handler, for save List<Content>
+    manager.registerHandler(
+        role: ToolRoleType.ASSISTANT,
+        handler: LLMFunctionCallingMessageHandler(toolReflectionManager,
+            toReflection, toUser, toTool)); //override TextAgent LLM handler
+    manager.registerHandler(
+        role: ToolRoleType.TOOL,
+        handler: ToolMessageHandler(toLLM, onToolReturn: onToolReturn));
+    manager.registerHandler(
+        role: ToolRoleType.REFLECTION,
+        handler: ToolReflectionMessageHandler(
+            toolReflectionManager, toLLM, toTool,
+            onToolRetry: super.onReflectionRetry));
 
     toolPipeLine = Pipeline(toolPipelineStrategy);
   }
 
   Future<List<ToolDriver>> prepareToolDrivers(AgentMessage agentMessage) async {
     final drivers = List<ToolDriver>.from(toolDriverList);
-    if (callbackOpenTool != null && callbackOpenTool!.fetchClientDriver != null) {
-      OpenToolCallbackDriver? clientDriver = _callbackToolDriverMap[agentMessage.originalTaskId];
+    if (callbackOpenTool != null &&
+        callbackOpenTool!.fetchClientDriver != null) {
+      OpenToolCallbackDriver? clientDriver =
+          _callbackToolDriverMap[agentMessage.originalTaskId];
       if (clientDriver == null) {
         clientDriver = await buildClientDriver(agentMessage);
         _callbackToolDriverMap[agentMessage.originalTaskId] = clientDriver;
-        callbackOpenTool!.fetchClientDriver!(agentMessage.sessionId, clientDriver);
+        callbackOpenTool!.fetchClientDriver!(
+            agentMessage.sessionId, clientDriver);
       }
       drivers.add(clientDriver);
     }
@@ -99,7 +120,8 @@ Output format (Markdown):
   }
 
   List<ToolDriver> getToolDriversForOriginalTask(String originalTaskId) {
-    return _toolDriversByOriginalTaskId[originalTaskId] ?? List<ToolDriver>.from(toolDriverList);
+    return _toolDriversByOriginalTaskId[originalTaskId] ??
+        List<ToolDriver>.from(toolDriverList);
   }
 
   void onToolReturn(AgentMessage agentLLMMessage) {
@@ -114,12 +136,17 @@ Output format (Markdown):
   }
 
   @override
-  Future<List<AgentMessage>> prepareAgentLLMMessageList(AgentMessage agentMessage) async {
-    List<AgentMessage> sessionMessageList = List<AgentMessage>.from(agentSession.taskDoneAgentMessageList);
-    List<AgentMessage> taskMessageList = dispatcherMap.getTaskMessageList(agentMessage.taskId);
+  Future<List<AgentMessage>> prepareAgentLLMMessageList(
+      AgentMessage agentMessage) async {
+    List<AgentMessage> sessionMessageList =
+        List<AgentMessage>.from(agentSession.taskDoneAgentMessageList);
+    List<AgentMessage> taskMessageList =
+        dispatcherMap.getTaskMessageList(agentMessage.taskId);
 
-    List<AgentMessage> sessionContextMessages = _filterContextMessages(sessionMessageList);
-    List<AgentMessage> taskContextMessages = _filterContextMessages(taskMessageList);
+    List<AgentMessage> sessionContextMessages =
+        _filterContextMessages(sessionMessageList);
+    List<AgentMessage> taskContextMessages =
+        _filterContextMessages(taskMessageList);
 
     bool shouldSummarize = _shouldSummarize();
     if (shouldSummarize) {
@@ -128,7 +155,8 @@ Output format (Markdown):
 
     List<AgentMessage> agentLLMMessageList = [];
     if (shouldSummarize && agentSession.sessionSummary?.isNotEmpty == true) {
-      agentLLMMessageList.add(_buildSummaryMessage(agentMessage, agentSession.sessionSummary!));
+      agentLLMMessageList.add(
+          _buildSummaryMessage(agentMessage, agentSession.sessionSummary!));
       if (sessionContextMessages.length > _contextKeepMessageCount) {
         sessionContextMessages = sessionContextMessages.sublist(
           sessionContextMessages.length - _contextKeepMessageCount,
@@ -144,40 +172,71 @@ Output format (Markdown):
   @override
   Future<void> toLLM(AgentMessage agentMessage) async {
     agentSession.addListenAgentMessage(agentMessage);
+    final LLMConfig? effectiveLLMConfig = resolveTaskLLMConfig(
+        agentMessage.originalTaskId,
+        defaultLLMConfig: llmConfig);
+    if (effectiveLLMConfig == null) {
+      pushException(
+        agentMessage.sessionId,
+        agentMessage.taskId,
+        agentMessage.originalTaskId,
+        jsonEncode(LLMException(message: "LLM config is required").toJson()),
+      );
+      return;
+    }
 
     final drivers = await prepareToolDrivers(agentMessage);
     await Future.wait(drivers.map((driver) => driver.init()));
-    List<FunctionModel> functionModelList = await buildFunctionModelList(drivers);
+    List<FunctionModel> functionModelList =
+        await buildFunctionModelList(drivers);
 
     try {
-      List<AgentMessage> agentLLMMessageList = await prepareAgentLLMMessageList(agentMessage);
-      if(super.agentSession.isStream) {
-        Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(llmConfig).requestByStream(agentMessageList: agentLLMMessageList, functionModelList: functionModelList, enableThinking: enableThinking, listenChunk: listenChunk);
-        agentMessageStream.listen((newAgentMessage) {
-          Command nextCommand = Command(toAgent, newAgentMessage);
-          dispatcherMap.dispatch(nextCommand);
-        },
-          onDone: () {},
-          onError: (e) {
-            pushException(agentMessage.sessionId, agentMessage.taskId, agentMessage.originalTaskId, e.toString());
-          }
-        );
+      List<AgentMessage> agentLLMMessageList =
+          await prepareAgentLLMMessageList(agentMessage);
+      if (super.agentSession.isStream) {
+        Stream<AgentMessage> agentMessageStream =
+            await OpenAIExecutor(effectiveLLMConfig).requestByStream(
+                agentMessageList: agentLLMMessageList,
+                functionModelList: functionModelList,
+                enableThinking: enableThinking,
+                listenChunk: listenChunk);
+        agentMessageStream.listen(
+            (newAgentMessage) {
+              Command nextCommand = Command(toAgent, newAgentMessage);
+              dispatcherMap.dispatch(nextCommand);
+            },
+            onDone: () {},
+            onError: (e) {
+              pushException(agentMessage.sessionId, agentMessage.taskId,
+                  agentMessage.originalTaskId, e.toString());
+            });
       } else {
-        AgentMessage llmMessage = await OpenAIExecutor(llmConfig).request(agentMessageList: agentLLMMessageList, functionModelList: functionModelList, enableThinking: enableThinking);
+        AgentMessage llmMessage = await OpenAIExecutor(effectiveLLMConfig)
+            .request(
+                agentMessageList: agentLLMMessageList,
+                functionModelList: functionModelList,
+                enableThinking: enableThinking);
         Command nextCommand = Command(toAgent, llmMessage);
         dispatcherMap.dispatch(nextCommand);
       }
-    } on LLMException catch(e) {
-      pushException(agentMessage.sessionId, agentMessage.taskId, agentMessage.originalTaskId, jsonEncode(e.toJson()));
+    } on LLMException catch (e) {
+      pushException(agentMessage.sessionId, agentMessage.taskId,
+          agentMessage.originalTaskId, jsonEncode(e.toJson()));
     }
   }
 
   @override
   Future<void> toReflection(AgentMessage agentMessage) async {
-    if(agentMessage.type == ToolMessageType.TOOL_CALLS) {
-      List<FunctionCall> functionCallList = agentMessage.content as List<FunctionCall>;
-      List<Map<String, dynamic>> functionCallJsonList = functionCallList.map((functionCall)=>functionCall.toJson()).toList();
-      Reflection reflection = await toolReflectionManager.reflect(agentMessage.type, jsonEncode(functionCallJsonList), agentMessage.originalTaskId);
+    if (agentMessage.type == ToolMessageType.TOOL_CALLS) {
+      List<FunctionCall> functionCallList =
+          agentMessage.content as List<FunctionCall>;
+      List<Map<String, dynamic>> functionCallJsonList = functionCallList
+          .map((functionCall) => functionCall.toJson())
+          .toList();
+      Reflection reflection = await toolReflectionManager.reflect(
+          agentMessage.type,
+          jsonEncode(functionCallJsonList),
+          agentMessage.originalTaskId);
       AgentMessage reflectionMessage = AgentMessage(
           sessionId: agentMessage.sessionId,
           originalTaskId: agentMessage.originalTaskId,
@@ -187,8 +246,7 @@ Output format (Markdown):
           to: TextRoleType.AGENT,
           type: TextMessageType.REFLECTION,
           content: reflection,
-          completions: currAgentReflectorCompletions
-      );
+          completions: currAgentReflectorCompletions);
       Command reflectionCommand = Command(toAgent, reflectionMessage);
       dispatcherMap.dispatch(reflectionCommand);
     } else {
@@ -196,7 +254,8 @@ Output format (Markdown):
     }
   }
 
-  Future<List<FunctionModel>> buildFunctionModelList([List<ToolDriver>? drivers]) async {
+  Future<List<FunctionModel>> buildFunctionModelList(
+      [List<ToolDriver>? drivers]) async {
     final driverList = drivers ?? toolDriverList;
     List<FunctionModel> functionModelList = [];
     driverList.forEach((ToolDriver toolDriver) {
@@ -205,31 +264,34 @@ Output format (Markdown):
     return functionModelList;
   }
 
-  Future<OpenToolCallbackDriver> buildClientDriver(AgentMessage agentMessage) async {
-    OpenTool opentool = await OpenToolJsonLoader().load(this.callbackOpenTool!.opentool);
-    void Function(FunctionCall functionCall) listenClientFunctionCall = (FunctionCall functionCall) {
+  Future<OpenToolCallbackDriver> buildClientDriver(
+      AgentMessage agentMessage) async {
+    OpenTool opentool =
+        await OpenToolJsonLoader().load(this.callbackOpenTool!.opentool);
+    void Function(FunctionCall functionCall) listenClientFunctionCall =
+        (FunctionCall functionCall) {
       AgentMessage clientMessage = AgentMessage(
           sessionId: agentMessage.sessionId,
           originalTaskId: agentMessage.originalTaskId,
-            parentTaskId: agentMessage.parentTaskId,
+          parentTaskId: agentMessage.parentTaskId,
           taskId: agentMessage.taskId,
           role: ToolRoleType.AGENT,
           to: ToolRoleType.CLIENT,
           type: ToolMessageType.FUNCTION_CALL,
-          content: functionCall
-      );
+          content: functionCall);
       Command functionCallCommand = Command(toAgent, clientMessage);
       dispatcherMap.dispatch(functionCallCommand);
     };
-    return OpenToolCallbackDriver(opentool, listenClientFunctionCall, timeout: callbackOpenTool!.timeout??60);
+    return OpenToolCallbackDriver(opentool, listenClientFunctionCall,
+        timeout: callbackOpenTool!.timeout ?? 60);
   }
 
   bool _supportsStreamCall(ToolDriver toolDriver, FunctionCall functionCall) {
     if (toolDriver is OpenToolDriver) {
       FunctionModel? functionModel;
       try {
-        functionModel = toolDriver.opentool.functions
-            .firstWhere((functionModel) => functionModel.name == functionCall.name);
+        functionModel = toolDriver.opentool.functions.firstWhere(
+            (functionModel) => functionModel.name == functionCall.name);
       } catch (_) {
         functionModel = null;
       }
@@ -238,7 +300,8 @@ Output format (Markdown):
     return false;
   }
 
-  _StreamCallTaskState _getOrCreateStreamTaskState(FunctionCallParam functionCallParam) {
+  _StreamCallTaskState _getOrCreateStreamTaskState(
+      FunctionCallParam functionCallParam) {
     return _streamTaskStateMap.putIfAbsent(
       functionCallParam.taskId,
       () => _StreamCallTaskState(
@@ -251,7 +314,8 @@ Output format (Markdown):
     );
   }
 
-  Future<void> _handleStreamToolCall(FunctionCallParam functionCallParam, ToolDriver toolDriver) async {
+  Future<void> _handleStreamToolCall(
+      FunctionCallParam functionCallParam, ToolDriver toolDriver) async {
     final taskState = _getOrCreateStreamTaskState(functionCallParam);
     final callState = taskState.getOrCreateCall(
       functionCallParam.functionCall.id,
@@ -293,7 +357,8 @@ Output format (Markdown):
     _resetStreamTimeout(taskState);
 
     if (eventType == EventType.DONE || eventType == EventType.ERROR) {
-      _markStreamCallDone(taskState, callState, eventType == EventType.ERROR, resultPayload);
+      _markStreamCallDone(
+          taskState, callState, eventType == EventType.ERROR, resultPayload);
     }
 
     _scheduleStreamInference(taskState);
@@ -393,7 +458,8 @@ Output format (Markdown):
     }
     if (isException) {
       taskState.hasException = true;
-      if (taskState.exceptionPayload == null && payload is Map<String, dynamic>) {
+      if (taskState.exceptionPayload == null &&
+          payload is Map<String, dynamic>) {
         taskState.exceptionPayload = payload;
       }
     }
@@ -431,7 +497,8 @@ Output format (Markdown):
     });
   }
 
-  Map<String, List<Map<String, dynamic>>> _snapshotStreamEvents(_StreamCallTaskState taskState) {
+  Map<String, List<Map<String, dynamic>>> _snapshotStreamEvents(
+      _StreamCallTaskState taskState) {
     final snapshot = <String, List<Map<String, dynamic>>>{};
     taskState.calls.forEach((callId, callState) {
       snapshot[callId] = List<Map<String, dynamic>>.from(callState.events);
@@ -439,7 +506,8 @@ Output format (Markdown):
     return snapshot;
   }
 
-  Future<List<AgentMessage>> _buildStreamMessageList(_StreamCallTaskState taskState) async {
+  Future<List<AgentMessage>> _buildStreamMessageList(
+      _StreamCallTaskState taskState) async {
     final anchorMessage = AgentMessage(
       sessionId: taskState.sessionId,
       originalTaskId: taskState.originalTaskId,
@@ -448,14 +516,16 @@ Output format (Markdown):
       role: ToolRoleType.AGENT,
       to: ToolRoleType.ASSISTANT,
       type: ToolMessageType.TASK_STATUS,
-      content: TaskStatus(status: ToolStatusType.DONE, taskId: taskState.taskId),
+      content:
+          TaskStatus(status: ToolStatusType.DONE, taskId: taskState.taskId),
     );
 
     final messageList = await prepareAgentLLMMessageList(anchorMessage);
     final snapshot = _snapshotStreamEvents(taskState);
 
     snapshot.forEach((callId, events) {
-      final toolReturn = ToolReturn(id: callId, result: {_streamEventsKey: events});
+      final toolReturn =
+          ToolReturn(id: callId, result: {_streamEventsKey: events});
       messageList.add(AgentMessage(
         sessionId: taskState.sessionId,
         originalTaskId: taskState.originalTaskId,
@@ -475,9 +545,21 @@ Output format (Markdown):
     final drivers = getToolDriversForOriginalTask(taskState.originalTaskId);
     final functionModelList = await buildFunctionModelList(drivers);
     final messageList = await _buildStreamMessageList(taskState);
+    final LLMConfig? effectiveLLMConfig = resolveTaskLLMConfig(
+        taskState.originalTaskId,
+        defaultLLMConfig: llmConfig);
+    if (effectiveLLMConfig == null) {
+      pushException(
+        taskState.sessionId,
+        taskState.taskId,
+        taskState.originalTaskId,
+        jsonEncode(LLMException(message: "LLM config is required").toJson()),
+      );
+      return;
+    }
 
     try {
-      final stream = await OpenAIExecutor(llmConfig).requestByStream(
+      final stream = await OpenAIExecutor(effectiveLLMConfig).requestByStream(
         agentMessageList: messageList,
         functionModelList: functionModelList,
         enableThinking: enableThinking,
@@ -487,7 +569,8 @@ Output format (Markdown):
       final completer = Completer<void>();
       stream.listen(
         (message) async {
-          if (message.type == ToolMessageType.TEXT || message.type == ToolMessageType.IMAGE_URL) {
+          if (message.type == ToolMessageType.TEXT ||
+              message.type == ToolMessageType.IMAGE_URL) {
             AgentMessage userMessage = AgentMessage(
               sessionId: message.sessionId,
               originalTaskId: message.originalTaskId,
@@ -506,20 +589,23 @@ Output format (Markdown):
         },
         onDone: () => completer.complete(),
         onError: (e) {
-          pushException(taskState.sessionId, taskState.taskId, taskState.originalTaskId, e.toString());
+          pushException(taskState.sessionId, taskState.taskId,
+              taskState.originalTaskId, e.toString());
           completer.complete();
         },
       );
       await completer.future;
     } on LLMException catch (e) {
-      pushException(taskState.sessionId, taskState.taskId, taskState.originalTaskId, jsonEncode(e.toJson()));
+      pushException(taskState.sessionId, taskState.taskId,
+          taskState.originalTaskId, jsonEncode(e.toJson()));
     }
   }
 
   Future<void> _runFinalStreamInference(_StreamCallTaskState taskState) async {
     final snapshot = _snapshotStreamEvents(taskState);
     snapshot.forEach((callId, events) {
-      final toolReturn = ToolReturn(id: callId, result: {_streamEventsKey: events});
+      final toolReturn =
+          ToolReturn(id: callId, result: {_streamEventsKey: events});
       AgentMessage toolMessage = AgentMessage(
         sessionId: taskState.sessionId,
         originalTaskId: taskState.originalTaskId,
@@ -534,8 +620,8 @@ Output format (Markdown):
     });
 
     if (taskState.hasException) {
-      _streamExceptionTaskInfo[taskState.taskId] =
-          taskState.exceptionPayload ?? <String, dynamic>{"error": "streamCall exception"};
+      _streamExceptionTaskInfo[taskState.taskId] = taskState.exceptionPayload ??
+          <String, dynamic>{"error": "streamCall exception"};
     }
 
     AgentMessage toolDoneMessage = AgentMessage(
@@ -558,42 +644,61 @@ Output format (Markdown):
   }
 
   Future<void> requestTools(AgentMessage agentMessage) async {
-    List<FunctionCall> functionCallList = agentMessage.content as List<FunctionCall>;
-    List<ToolDriver> drivers = getToolDriversForOriginalTask(agentMessage.originalTaskId);
+    List<FunctionCall> functionCallList =
+        agentMessage.content as List<FunctionCall>;
+    List<ToolDriver> drivers =
+        getToolDriversForOriginalTask(agentMessage.originalTaskId);
     bool hasStreamCall = false;
 
     for (FunctionCall functionCall in functionCallList) {
-      int toolIndex = drivers.indexWhere((toolDriver) => toolDriver.hasFunction(functionCall.name));
-      if(toolIndex >= 0) {
-        FunctionCallParam functionCallParam = FunctionCallParam(sessionId: agentMessage.sessionId, taskId: agentMessage.taskId, originalTaskId: agentMessage.originalTaskId, type: FunctionCallType.TOOL, index: toolIndex,functionCall: functionCall);
+      int toolIndex = drivers.indexWhere(
+          (toolDriver) => toolDriver.hasFunction(functionCall.name));
+      if (toolIndex >= 0) {
+        FunctionCallParam functionCallParam = FunctionCallParam(
+            sessionId: agentMessage.sessionId,
+            taskId: agentMessage.taskId,
+            originalTaskId: agentMessage.originalTaskId,
+            type: FunctionCallType.TOOL,
+            index: toolIndex,
+            functionCall: functionCall);
         toolPipeLine.addJob(functionCallParam);
         if (_supportsStreamCall(drivers[toolIndex], functionCall)) {
           hasStreamCall = true;
         }
       }
     }
-    List<String> functionCallIdList = functionCallList.map((functionCall) => functionCall.id).toList();
+    List<String> functionCallIdList =
+        functionCallList.map((functionCall) => functionCall.id).toList();
 
-    toolPipeLine.run(_requestTool, onComplete: hasStreamCall ? null : () async {
-      AgentMessage toolDoneMessage = AgentMessage(
-        sessionId: agentMessage.sessionId,
-        originalTaskId: agentMessage.originalTaskId,
-        parentTaskId: agentMessage.parentTaskId,
-        taskId: agentMessage.taskId,
-        role: ToolRoleType.TOOL,
-        to: ToolRoleType.AGENT,
-        type: ToolMessageType.TASK_STATUS,
-        content: TaskStatus(status: ToolStatusType.DONE, taskId: agentMessage.taskId, description: ToolStatusDescription(functionCallIdList: functionCallIdList).toJson())
-      );
-      Command command = Command(toAgent, toolDoneMessage);
-      dispatcherMap.dispatch(command);
-    });
+    toolPipeLine.run(_requestTool,
+        onComplete: hasStreamCall
+            ? null
+            : () async {
+                AgentMessage toolDoneMessage = AgentMessage(
+                    sessionId: agentMessage.sessionId,
+                    originalTaskId: agentMessage.originalTaskId,
+                    parentTaskId: agentMessage.parentTaskId,
+                    taskId: agentMessage.taskId,
+                    role: ToolRoleType.TOOL,
+                    to: ToolRoleType.AGENT,
+                    type: ToolMessageType.TASK_STATUS,
+                    content: TaskStatus(
+                        status: ToolStatusType.DONE,
+                        taskId: agentMessage.taskId,
+                        description: ToolStatusDescription(
+                                functionCallIdList: functionCallIdList)
+                            .toJson()));
+                Command command = Command(toAgent, toolDoneMessage);
+                dispatcherMap.dispatch(command);
+              });
   }
 
   Future<void> _requestTool(FunctionCallParam functionCallParam) async {
     try {
-      if(functionCallParam.type == null || functionCallParam.type == FunctionCallType.TOOL) {
-        List<ToolDriver> drivers = getToolDriversForOriginalTask(functionCallParam.originalTaskId);
+      if (functionCallParam.type == null ||
+          functionCallParam.type == FunctionCallType.TOOL) {
+        List<ToolDriver> drivers =
+            getToolDriversForOriginalTask(functionCallParam.originalTaskId);
         ToolDriver toolDriver = drivers[functionCallParam.index];
         ToolReturn toolReturn;
 
@@ -605,19 +710,18 @@ Output format (Markdown):
         }
 
         AgentMessage toolMessage = AgentMessage(
-          sessionId: functionCallParam.sessionId,
-          originalTaskId: functionCallParam.originalTaskId,
-          parentTaskId: super.parentTaskId,
-          taskId: functionCallParam.taskId,
-          role: ToolRoleType.TOOL,
-          to: ToolRoleType.AGENT,
-          type: ToolMessageType.TOOL_RETURN,
-          content: toolReturn
-        );
+            sessionId: functionCallParam.sessionId,
+            originalTaskId: functionCallParam.originalTaskId,
+            parentTaskId: super.parentTaskId,
+            taskId: functionCallParam.taskId,
+            role: ToolRoleType.TOOL,
+            to: ToolRoleType.AGENT,
+            type: ToolMessageType.TOOL_RETURN,
+            content: toolReturn);
         Command command = Command(toAgent, toolMessage);
         dispatcherMap.dispatch(command);
       }
-    } on ToolBreakException catch(e) {
+    } on ToolBreakException catch (e) {
       /** When toolDriver.call throw ToolBreakException, it will break task.*/
       this.dispatcherMap.breakTask(functionCallParam.taskId);
       throw e;
@@ -625,22 +729,28 @@ Output format (Markdown):
   }
 
   Future<void> toTool(AgentMessage agentMessage) async {
-    if(agentMessage.type == ToolMessageType.TOOL_CALLS) {
-      List<FunctionCall> functionCallList = agentMessage.content as List<FunctionCall>;
-      List<String> functionCallIdList = functionCallList.map((functionCall) => functionCall.id).toList();
+    if (agentMessage.type == ToolMessageType.TOOL_CALLS) {
+      List<FunctionCall> functionCallList =
+          agentMessage.content as List<FunctionCall>;
+      List<String> functionCallIdList =
+          functionCallList.map((functionCall) => functionCall.id).toList();
       agentSession.addListenAgentMessage(agentMessage);
       Command clientCommand = Command(
           toClient,
           AgentMessage(
-            sessionId: agentMessage.sessionId,
-            originalTaskId: agentMessage.originalTaskId,
-            taskId: agentMessage.taskId,
-            parentTaskId: agentMessage.parentTaskId,
-            role: ToolRoleType.AGENT,
-            to: ToolRoleType.CLIENT,
-            type: ToolMessageType.TASK_STATUS,
-            content: TaskStatus(status:ToolStatusType.START, taskId: agentMessage.taskId, description: ToolStatusDescription(functionCallIdList: functionCallIdList).toJson())
-          ));
+              sessionId: agentMessage.sessionId,
+              originalTaskId: agentMessage.originalTaskId,
+              taskId: agentMessage.taskId,
+              parentTaskId: agentMessage.parentTaskId,
+              role: ToolRoleType.AGENT,
+              to: ToolRoleType.CLIENT,
+              type: ToolMessageType.TASK_STATUS,
+              content: TaskStatus(
+                  status: ToolStatusType.START,
+                  taskId: agentMessage.taskId,
+                  description: ToolStatusDescription(
+                          functionCallIdList: functionCallIdList)
+                      .toJson())));
       dispatcherMap.dispatch(clientCommand);
       requestTools(agentMessage);
     }
@@ -648,7 +758,8 @@ Output format (Markdown):
 
   @override
   Future<void> toUser(AgentMessage sessionMessage) async {
-    final exceptionInfo = _streamExceptionTaskInfo.remove(sessionMessage.taskId);
+    final exceptionInfo =
+        _streamExceptionTaskInfo.remove(sessionMessage.taskId);
     if (exceptionInfo == null) {
       return super.toUser(sessionMessage);
     }
@@ -656,6 +767,7 @@ Output format (Markdown):
     agentSession.addListenAgentMessage(sessionMessage);
 
     pipeline.completeAsync(sessionMessage.taskId);
+    clearTaskLLMConfig(sessionMessage.originalTaskId);
     AgentMessage clientMessage = AgentMessage(
       sessionId: sessionMessage.sessionId,
       originalTaskId: sessionMessage.originalTaskId,
@@ -672,13 +784,14 @@ Output format (Markdown):
     );
     Command clientCommand = Command(toClient, clientMessage);
     dispatcherMap.dispatch(clientCommand);
-    List<AgentMessage> taskDoneMessageList = dispatcherMap.getTaskMessageList(sessionMessage.taskId);
+    List<AgentMessage> taskDoneMessageList =
+        dispatcherMap.getTaskMessageList(sessionMessage.taskId);
     agentSession.addTaskDoneAgentMessageList(taskDoneMessageList);
     timeout.start(handleIdleTimeout);
   }
 
   bool _shouldSummarize() {
-    int? contextWindowSize = llmConfig.contextWindowSize;
+    int? contextWindowSize = llmConfig?.contextWindowSize;
     if (contextWindowSize == null || contextWindowSize <= 0) return false;
     int? promptTokens = _lastPromptTokens();
     if (promptTokens == null) return false;
@@ -694,7 +807,8 @@ Output format (Markdown):
     return null;
   }
 
-  Future<void> _updateSessionSummary(List<AgentMessage> sessionContextMessages) async {
+  Future<void> _updateSessionSummary(
+      List<AgentMessage> sessionContextMessages) async {
     if (sessionContextMessages.length <= _contextKeepMessageCount) return;
 
     int cutoff = sessionContextMessages.length - _contextKeepMessageCount;
@@ -709,7 +823,9 @@ Output format (Markdown):
     if (summaryInput.isEmpty) return;
 
     try {
-      SimpleAgent summarizer = SimpleAgent(llmConfig: llmConfig, systemPrompt: _summarySystemPrompt);
+      if (llmConfig == null) return;
+      SimpleAgent summarizer =
+          SimpleAgent(llmConfig: llmConfig, systemPrompt: _summarySystemPrompt);
       AgentMessage result = await summarizer.userToAgent(
         contentList: [Content(type: ContentType.TEXT, message: summaryInput)],
       );
@@ -771,11 +887,15 @@ Output format (Markdown):
     final content = message.content;
     if (content is String) return content.trim();
     if (content is List<Content>) {
-      return content.map((item) {
-        if (item.type == ContentType.TEXT) return item.message;
-        if (item.type == ContentType.IMAGE_URL) return '[image] ${item.message}';
-        return item.message;
-      }).join('\\n').trim();
+      return content
+          .map((item) {
+            if (item.type == ContentType.TEXT) return item.message;
+            if (item.type == ContentType.IMAGE_URL)
+              return '[image] ${item.message}';
+            return item.message;
+          })
+          .join('\\n')
+          .trim();
     }
     try {
       return jsonEncode(content);
