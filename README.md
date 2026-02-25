@@ -46,6 +46,25 @@ Future<void> main() async {
 }
 ```
 
+### Tool return packing
+
+`CapabilityDto` supports `toolReturnPackMinLength` to control tool-return compression before sending content to LLM:
+
+- `null`: use default threshold `800`
+- `> 0`: enable compression when `jsonEncode(toolReturn).length >= toolReturnPackMinLength`
+- `<= 0`: disable compression
+
+Example:
+
+```dart
+CapabilityDto capabilityDto = CapabilityDto(
+  llmConfig: _buildLLMConfig(),
+  systemPrompt: _buildSystemPrompt(),
+  openSpecList: await _buildOpenSpecList(),
+  toolReturnPackMinLength: 1200, // null=>800, <=0=>off
+);
+```
+
 - MultiAgent support
 
 ```dart

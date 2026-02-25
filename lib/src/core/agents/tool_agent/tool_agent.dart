@@ -51,6 +51,7 @@ Output format (Markdown):
   late Pipeline<FunctionCallParam> toolPipeLine;
   CallbackOpenTool? callbackOpenTool;
   final int streamCallTimeoutSeconds;
+  final int? toolReturnPackMinLength;
   final Map<String, OpenToolCallbackDriver> _callbackToolDriverMap = {};
   final Map<String, List<ToolDriver>> _toolDriversByOriginalTaskId = {};
   final Map<String, _StreamCallTaskState> _streamTaskStateMap = {};
@@ -68,6 +69,7 @@ Output format (Markdown):
     super.taskPipelineStrategy,
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
     this.streamCallTimeoutSeconds = 60,
+    this.toolReturnPackMinLength,
     super.enableThinking,
   }) {
     toolReflectPromptList.forEach((reflectPrompt) {
@@ -126,6 +128,13 @@ Output format (Markdown):
 
   void onToolReturn(AgentMessage agentLLMMessage) {
     agentSession.addListenAgentMessage(agentLLMMessage);
+  }
+
+  int? get resolvedToolReturnPackMinLength {
+    final configured = toolReturnPackMinLength;
+    if (configured == null) return 800;
+    if (configured <= 0) return null;
+    return configured;
   }
 
   @override
@@ -194,12 +203,14 @@ Output format (Markdown):
       List<AgentMessage> agentLLMMessageList =
           await prepareAgentLLMMessageList(agentMessage);
       if (super.agentSession.isStream) {
-        Stream<AgentMessage> agentMessageStream =
-            await OpenAIExecutor(effectiveLLMConfig).requestByStream(
-                agentMessageList: agentLLMMessageList,
-                functionModelList: functionModelList,
-                enableThinking: enableThinking,
-                listenChunk: listenChunk);
+        Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(
+          effectiveLLMConfig,
+          toolReturnPackMinLength: resolvedToolReturnPackMinLength,
+        ).requestByStream(
+            agentMessageList: agentLLMMessageList,
+            functionModelList: functionModelList,
+            enableThinking: enableThinking,
+            listenChunk: listenChunk);
         agentMessageStream.listen(
             (newAgentMessage) {
               Command nextCommand = Command(toAgent, newAgentMessage);
@@ -211,11 +222,13 @@ Output format (Markdown):
                   agentMessage.originalTaskId, e.toString());
             });
       } else {
-        AgentMessage llmMessage = await OpenAIExecutor(effectiveLLMConfig)
-            .request(
-                agentMessageList: agentLLMMessageList,
-                functionModelList: functionModelList,
-                enableThinking: enableThinking);
+        AgentMessage llmMessage = await OpenAIExecutor(
+          effectiveLLMConfig,
+          toolReturnPackMinLength: resolvedToolReturnPackMinLength,
+        ).request(
+            agentMessageList: agentLLMMessageList,
+            functionModelList: functionModelList,
+            enableThinking: enableThinking);
         Command nextCommand = Command(toAgent, llmMessage);
         dispatcherMap.dispatch(nextCommand);
       }
@@ -559,7 +572,10 @@ Output format (Markdown):
     }
 
     try {
-      final stream = await OpenAIExecutor(effectiveLLMConfig).requestByStream(
+      final stream = await OpenAIExecutor(
+        effectiveLLMConfig,
+        toolReturnPackMinLength: resolvedToolReturnPackMinLength,
+      ).requestByStream(
         agentMessageList: messageList,
         functionModelList: functionModelList,
         enableThinking: enableThinking,

@@ -45,6 +45,25 @@ Future<void> main() async {
 }
 ```
 
+### Tool返回压缩
+
+`CapabilityDto` 支持 `toolReturnPackMinLength`，用于控制发送给大模型前的 tool 返回压缩：
+
+- `null`：使用默认阈值 `800`
+- `> 0`：当 `jsonEncode(toolReturn).length >= toolReturnPackMinLength` 时启用压缩
+- `<= 0`：关闭压缩
+
+示例：
+
+```dart
+CapabilityDto capabilityDto = CapabilityDto(
+  llmConfig: _buildLLMConfig(),
+  systemPrompt: _buildSystemPrompt(),
+  openSpecList: await _buildOpenSpecList(),
+  toolReturnPackMinLength: 1200, // null=>800, <=0=>关闭
+);
+```
+
 - MultiAgent支持
 
 ```dart

@@ -10,6 +10,7 @@ dependencies:
   unique_id_dart: ^1.0.0
   json_annotation: ^4.9.0
   http: ^1.4.0
+  token_pack: ^0.1.0
 
   # OpenAI style api support
   dart_openai_sdk: ^6.0.0

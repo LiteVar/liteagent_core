@@ -62,6 +62,7 @@ class CapabilityDto extends SimpleCapabilityDto {
   bool? auto;
   List<LLMConfigDto>? llmConfigList;
   bool? enableThinking;
+  int? toolReturnPackMinLength;
 
   CapabilityDto({
     super.llmConfig,
@@ -76,6 +77,7 @@ class CapabilityDto extends SimpleCapabilityDto {
     this.auto,
     this.llmConfigList,
     this.enableThinking,
+    this.toolReturnPackMinLength,
   });
 
   factory CapabilityDto.fromJson(Map<String, dynamic> json) =>

@@ -61,6 +61,7 @@ Output format (Markdown):
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
     required this.subAgentDriverList,
     bool? enableThinking,
+    int? toolReturnPackMinLength,
   }) : super(
           sessionId: sessionId,
           toolDriverList: toolDriverList,
@@ -73,6 +74,7 @@ Output format (Markdown):
           taskPipelineStrategy: taskPipelineStrategy,
           toolPipelineStrategy: toolPipelineStrategy,
           enableThinking: enableThinking,
+          toolReturnPackMinLength: toolReturnPackMinLength,
         ) {
     manager.registerHandler(
         role: MultiAgentRoleType.USER,
@@ -130,12 +132,14 @@ Output format (Markdown):
       List<AgentMessage> agentLLMMessageList =
           await prepareAgentLLMMessageList(agentMessage);
       if (super.agentSession.isStream) {
-        Stream<AgentMessage> agentMessageStream =
-            await OpenAIExecutor(effectiveLLMConfig).requestByStream(
-                agentMessageList: agentLLMMessageList,
-                functionModelList: functionModelList,
-                enableThinking: enableThinking,
-                listenChunk: listenChunk);
+        Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(
+          effectiveLLMConfig,
+          toolReturnPackMinLength: resolvedToolReturnPackMinLength,
+        ).requestByStream(
+            agentMessageList: agentLLMMessageList,
+            functionModelList: functionModelList,
+            enableThinking: enableThinking,
+            listenChunk: listenChunk);
         agentMessageStream.listen(
             (newAgentMessage) {
               Command nextCommand = Command(toAgent, newAgentMessage);
@@ -147,11 +151,13 @@ Output format (Markdown):
                   agentMessage.originalTaskId, e.toString());
             });
       } else {
-        AgentMessage llmMessage = await OpenAIExecutor(effectiveLLMConfig)
-            .request(
-                agentMessageList: agentLLMMessageList,
-                functionModelList: functionModelList,
-                enableThinking: enableThinking);
+        AgentMessage llmMessage = await OpenAIExecutor(
+          effectiveLLMConfig,
+          toolReturnPackMinLength: resolvedToolReturnPackMinLength,
+        ).request(
+            agentMessageList: agentLLMMessageList,
+            functionModelList: functionModelList,
+            enableThinking: enableThinking);
         Command nextCommand = Command(toAgent, llmMessage);
         dispatcherMap.dispatch(nextCommand);
       }

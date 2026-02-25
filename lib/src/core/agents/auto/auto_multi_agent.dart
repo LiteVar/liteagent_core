@@ -50,6 +50,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
     super.systemPrompt,
     super.timeoutSeconds = 3600,
     super.streamCallTimeoutSeconds,
+    super.toolReturnPackMinLength,
     List<ReflectPrompt> toolReflectPromptList = const [],
     String taskPipelineStrategy = PipelineStrategyType.PARALLEL,
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
@@ -74,6 +75,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
     bool? enableThinking,
     List<LLMConfig>? llmConfigList,
+    int? toolReturnPackMinLength,
   }) async {
     try {
       AutoMultiAgent instance = AutoMultiAgent._internal(
@@ -90,6 +92,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
         toolPipelineStrategy: toolPipelineStrategy,
         enableThinking: enableThinking,
         llmConfigList: llmConfigList,
+        toolReturnPackMinLength: toolReturnPackMinLength,
       );
 
       instance._initializeIndexedLLMConfigs(llmConfigList);

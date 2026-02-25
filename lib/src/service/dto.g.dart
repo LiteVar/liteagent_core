@@ -72,6 +72,8 @@ CapabilityDto _$CapabilityDtoFromJson(Map<String, dynamic> json) =>
           ?.map((e) => LLMConfigDto.fromJson(e as Map<String, dynamic>))
           .toList(),
       enableThinking: json['enableThinking'] as bool?,
+      toolReturnPackMinLength:
+          (json['toolReturnPackMinLength'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
@@ -98,6 +100,8 @@ Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
           case final value?)
         'llmConfigList': value,
       if (instance.enableThinking case final value?) 'enableThinking': value,
+      if (instance.toolReturnPackMinLength case final value?)
+        'toolReturnPackMinLength': value,
     };
 
 OpenSpecDto _$OpenSpecDtoFromJson(Map<String, dynamic> json) => OpenSpecDto(

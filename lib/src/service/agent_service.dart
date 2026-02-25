@@ -136,6 +136,12 @@ class AgentService {
     _sessionBaseSystemPromptMap[sessionId] = fullSystemPrompt;
     _sessionExtraSystemPromptMap[sessionId] = null;
     LLMConfig? llmConfig = capabilityDto.llmConfig?.toModel();
+    final int? resolvedToolReturnPackMinLength =
+        capabilityDto.toolReturnPackMinLength == null
+            ? 800
+            : (capabilityDto.toolReturnPackMinLength! <= 0
+                ? null
+                : capabilityDto.toolReturnPackMinLength);
     _sessionLlmConfigMap[sessionId] = llmConfig;
     List<ReflectPrompt>? reflectPromptList = capabilityDto.reflectPromptList
         ?.map((reflectPromptDto) => ReflectPrompt(
@@ -176,6 +182,7 @@ class AgentService {
             capabilityDto.toolPipelineStrategy ?? PipelineStrategyType.PARALLEL,
         enableThinking: capabilityDto.enableThinking,
         llmConfigList: llmConfigList,
+        toolReturnPackMinLength: resolvedToolReturnPackMinLength,
       );
       _attachIdleTimeoutHandler(autoMultiAgent);
       sessionAgents[sessionId] = autoMultiAgent;
@@ -214,7 +221,8 @@ class AgentService {
           taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
           toolPipelineStrategy: capabilityDto.toolPipelineStrategy ??
               PipelineStrategyType.PARALLEL,
-          enableThinking: capabilityDto.enableThinking);
+          enableThinking: capabilityDto.enableThinking,
+          toolReturnPackMinLength: resolvedToolReturnPackMinLength);
       _attachIdleTimeoutHandler(toolAgent);
       sessionAgents[sessionId] = toolAgent;
     } else {
@@ -238,7 +246,8 @@ class AgentService {
           taskPipelineStrategy: capabilityDto.taskPipelineStrategy,
           toolPipelineStrategy: capabilityDto.toolPipelineStrategy ??
               PipelineStrategyType.PARALLEL,
-          enableThinking: capabilityDto.enableThinking);
+          enableThinking: capabilityDto.enableThinking,
+          toolReturnPackMinLength: resolvedToolReturnPackMinLength);
       _attachIdleTimeoutHandler(toolAgent);
       sessionAgents[sessionId] = toolAgent;
     }
