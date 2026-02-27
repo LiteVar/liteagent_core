@@ -8,27 +8,39 @@ class LLMConfig {
   int maxTokens;
   int? contextWindowSize;
   double topP;
-  bool supportsToolCalling;
-  bool supportsDeepThinking;
-  LLMConfig({
-    required this.baseUrl,
-    required this.apiKey,
-    required this.model,
-    this.temperature = 0.0,
-    this.maxTokens = 4096,
-    this.contextWindowSize,
-    this.topP = 1.0,
-    this.supportsToolCalling = true,
-    this.supportsDeepThinking = false
-  });
+  bool supportsToolCall;
+  bool supportsReasoning;
+  LLMConfig(
+      {required this.baseUrl,
+      required this.apiKey,
+      required this.model,
+      this.temperature = 0.0,
+      this.maxTokens = 4096,
+      this.contextWindowSize,
+      this.topP = 1.0,
+      this.supportsToolCall = true,
+      this.supportsReasoning = false});
 }
 
 class Completions {
   TokenUsage tokenUsage;
   String id;
   String model;
+  CompletionsLimits? limits;
 
-  Completions({required this.tokenUsage, required this.id, required this.model});
+  Completions({
+    required this.tokenUsage,
+    required this.id,
+    required this.model,
+    this.limits,
+  });
+}
+
+class CompletionsLimits {
+  final int maxTokens;
+  final int? contextWindowSize;
+
+  CompletionsLimits({required this.maxTokens, this.contextWindowSize});
 }
 
 class TokenUsage {
@@ -37,12 +49,11 @@ class TokenUsage {
   final int totalTokens;
   final double? contextUsageRatio;
 
-  TokenUsage({
-    required this.promptTokens,
-    required this.completionTokens,
-    required this.totalTokens,
-    this.contextUsageRatio
-  });
+  TokenUsage(
+      {required this.promptTokens,
+      required this.completionTokens,
+      required this.totalTokens,
+      this.contextUsageRatio});
 }
 
 class ChatCompletion {
@@ -79,8 +90,6 @@ class ResponseFormat {
   ResponseFormat({required this.type});
 
   Map<String, String> toJson() {
-    return {
-      "type": type
-    };
+    return {"type": type};
   }
 }

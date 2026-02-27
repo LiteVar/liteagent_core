@@ -129,8 +129,8 @@ LLMConfigDto _$LLMConfigDtoFromJson(Map<String, dynamic> json) => LLMConfigDto(
       maxTokens: (json['maxTokens'] as num?)?.toInt() ?? 4096,
       contextWindowSize: (json['contextWindowSize'] as num?)?.toInt(),
       topP: (json['topP'] as num?)?.toDouble() ?? 1.0,
-      supportsToolCalling: json['supportsToolCalling'] as bool? ?? true,
-      supportsDeepThinking: json['supportsDeepThinking'] as bool? ?? false,
+      supportsToolCall: json['supportsToolCall'] as bool? ?? true,
+      supportsReasoning: json['supportsReasoning'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$LLMConfigDtoToJson(LLMConfigDto instance) =>
@@ -143,8 +143,8 @@ Map<String, dynamic> _$LLMConfigDtoToJson(LLMConfigDto instance) =>
       if (instance.contextWindowSize case final value?)
         'contextWindowSize': value,
       'topP': instance.topP,
-      'supportsToolCalling': instance.supportsToolCalling,
-      'supportsDeepThinking': instance.supportsDeepThinking,
+      'supportsToolCall': instance.supportsToolCall,
+      'supportsReasoning': instance.supportsReasoning,
     };
 
 AgentMessageDto _$AgentMessageDtoFromJson(Map<String, dynamic> json) =>
@@ -187,6 +187,10 @@ CompletionsDto _$CompletionsDtoFromJson(Map<String, dynamic> json) =>
       usage: TokenUsageDto.fromJson(json['usage'] as Map<String, dynamic>),
       id: json['id'] as String,
       model: json['model'] as String,
+      limits: json['limits'] == null
+          ? null
+          : CompletionsLimitsDto.fromJson(
+              json['limits'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$CompletionsDtoToJson(CompletionsDto instance) =>
@@ -194,6 +198,22 @@ Map<String, dynamic> _$CompletionsDtoToJson(CompletionsDto instance) =>
       'usage': instance.usage.toJson(),
       'id': instance.id,
       'model': instance.model,
+      if (instance.limits?.toJson() case final value?) 'limits': value,
+    };
+
+CompletionsLimitsDto _$CompletionsLimitsDtoFromJson(
+        Map<String, dynamic> json) =>
+    CompletionsLimitsDto(
+      maxTokens: (json['maxTokens'] as num).toInt(),
+      contextWindowSize: (json['contextWindowSize'] as num?)?.toInt(),
+    );
+
+Map<String, dynamic> _$CompletionsLimitsDtoToJson(
+        CompletionsLimitsDto instance) =>
+    <String, dynamic>{
+      'maxTokens': instance.maxTokens,
+      if (instance.contextWindowSize case final value?)
+        'contextWindowSize': value,
     };
 
 TokenUsageDto _$TokenUsageDtoFromJson(Map<String, dynamic> json) =>

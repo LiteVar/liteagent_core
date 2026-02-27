@@ -123,8 +123,8 @@ class LLMConfigDto {
   int maxTokens;
   int? contextWindowSize;
   double topP;
-  bool supportsToolCalling;
-  bool supportsDeepThinking;
+  bool supportsToolCall;
+  bool supportsReasoning;
 
   LLMConfigDto(
       {required this.baseUrl,
@@ -134,8 +134,8 @@ class LLMConfigDto {
       this.maxTokens = 4096,
       this.contextWindowSize,
       this.topP = 1.0,
-      this.supportsToolCalling = true,
-      this.supportsDeepThinking = false});
+      this.supportsToolCall = true,
+      this.supportsReasoning = false});
 
   factory LLMConfigDto.fromJson(Map<String, dynamic> json) =>
       _$LLMConfigDtoFromJson(json);
@@ -150,8 +150,8 @@ class LLMConfigDto {
       maxTokens: llmConfig.maxTokens,
       contextWindowSize: llmConfig.contextWindowSize,
       topP: llmConfig.topP,
-      supportsToolCalling: llmConfig.supportsToolCalling,
-      supportsDeepThinking: llmConfig.supportsDeepThinking);
+      supportsToolCall: llmConfig.supportsToolCall,
+      supportsReasoning: llmConfig.supportsReasoning);
 
   LLMConfig toModel() => LLMConfig(
       baseUrl: baseUrl,
@@ -161,8 +161,8 @@ class LLMConfigDto {
       maxTokens: maxTokens,
       contextWindowSize: contextWindowSize,
       topP: topP,
-      supportsToolCalling: supportsToolCalling,
-      supportsDeepThinking: supportsDeepThinking);
+      supportsToolCall: supportsToolCall,
+      supportsReasoning: supportsReasoning);
 }
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
@@ -296,7 +296,15 @@ class CompletionsDto {
   /// When role is llm, this is current /chat/completions return message id
   String model;
 
-  CompletionsDto({required this.usage, required this.id, required this.model});
+  @JsonKey(includeIfNull: false)
+  CompletionsLimitsDto? limits;
+
+  CompletionsDto({
+    required this.usage,
+    required this.id,
+    required this.model,
+    this.limits,
+  });
 
   factory CompletionsDto.fromJson(Map<String, dynamic> json) =>
       _$CompletionsDtoFromJson(json);
@@ -306,7 +314,29 @@ class CompletionsDto {
   factory CompletionsDto.fromModel(Completions completions) => CompletionsDto(
       usage: TokenUsageDto.fromModel(completions.tokenUsage),
       id: completions.id,
-      model: completions.model);
+      model: completions.model,
+      limits: completions.limits == null
+          ? null
+          : CompletionsLimitsDto.fromModel(completions.limits!));
+}
+
+@JsonSerializable(includeIfNull: false, explicitToJson: true)
+class CompletionsLimitsDto {
+  final int maxTokens;
+  final int? contextWindowSize;
+
+  CompletionsLimitsDto({required this.maxTokens, this.contextWindowSize});
+
+  factory CompletionsLimitsDto.fromJson(Map<String, dynamic> json) =>
+      _$CompletionsLimitsDtoFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CompletionsLimitsDtoToJson(this);
+
+  factory CompletionsLimitsDto.fromModel(CompletionsLimits limits) =>
+      CompletionsLimitsDto(
+        maxTokens: limits.maxTokens,
+        contextWindowSize: limits.contextWindowSize,
+      );
 }
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
