@@ -123,7 +123,7 @@ Map<String, dynamic> _$OpenSpecDtoToJson(OpenSpecDto instance) =>
 
 LLMConfigDto _$LLMConfigDtoFromJson(Map<String, dynamic> json) => LLMConfigDto(
       baseUrl: json['baseUrl'] as String,
-      apiKey: json['apiKey'] as String,
+      apiKey: json['apiKey'] as String?,
       model: json['model'] as String,
       temperature: (json['temperature'] as num?)?.toDouble() ?? 0.0,
       maxTokens: (json['maxTokens'] as num?)?.toInt() ?? 4096,
@@ -136,7 +136,7 @@ LLMConfigDto _$LLMConfigDtoFromJson(Map<String, dynamic> json) => LLMConfigDto(
 Map<String, dynamic> _$LLMConfigDtoToJson(LLMConfigDto instance) =>
     <String, dynamic>{
       'baseUrl': instance.baseUrl,
-      'apiKey': instance.apiKey,
+      if (instance.apiKey case final value?) 'apiKey': value,
       'model': instance.model,
       'temperature': instance.temperature,
       'maxTokens': instance.maxTokens,

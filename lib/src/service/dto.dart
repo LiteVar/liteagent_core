@@ -117,7 +117,7 @@ class OpenSpecDto {
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
 class LLMConfigDto {
   String baseUrl;
-  String apiKey;
+  String? apiKey;
   String model;
   double temperature;
   int maxTokens;
@@ -128,7 +128,7 @@ class LLMConfigDto {
 
   LLMConfigDto(
       {required this.baseUrl,
-      required this.apiKey,
+      this.apiKey,
       required this.model,
       this.temperature = 0.0,
       this.maxTokens = 4096,

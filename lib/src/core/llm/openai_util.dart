@@ -15,7 +15,7 @@ class OpenAIUtil {
     );
   }
 
-  static Future<bool> checkLLMConfig(String baseUrl, String apiKey) async {
+  static Future<bool> checkLLMConfig(String baseUrl, String? apiKey) async {
     try {
       OpenAIClient tempClient = OpenAIClient(
         apiKey: apiKey,

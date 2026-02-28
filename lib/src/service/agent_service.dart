@@ -57,7 +57,7 @@ class AgentService {
     agentMessageManageServiceList.addAll(messageManageServiceList);
   }
 
-  Future<bool> testLLMConfig(String baseUrl, String apiKey) async {
+  Future<bool> testLLMConfig(String baseUrl, String? apiKey) async {
     return OpenAIUtil.checkLLMConfig(baseUrl, apiKey);
   }
 

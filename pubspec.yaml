@@ -13,7 +13,7 @@ dependencies:
   token_pack: ^0.1.0
 
   # OpenAI style api support
-  dart_openai_sdk: ^6.0.0
+  dart_openai_sdk: ^6.1.0
 
   # OpenSpec support
   opentool_dart:

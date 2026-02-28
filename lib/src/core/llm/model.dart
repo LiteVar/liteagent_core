@@ -2,7 +2,7 @@ import 'package:dart_openai_sdk/dart_openai_sdk.dart';
 
 class LLMConfig {
   String baseUrl;
-  String apiKey;
+  String? apiKey;
   String model;
   double temperature;
   int maxTokens;
@@ -12,7 +12,7 @@ class LLMConfig {
   bool supportsReasoning;
   LLMConfig(
       {required this.baseUrl,
-      required this.apiKey,
+      this.apiKey,
       required this.model,
       this.temperature = 0.0,
       this.maxTokens = 4096,
