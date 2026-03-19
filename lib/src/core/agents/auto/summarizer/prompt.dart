@@ -1,6 +1,6 @@
 import '../models/node.dart';
 
-/// Auto task summary template
+/// Auto task summary prompt - generates user-facing answers from multi-task results
 class SummaryPrompt {
 
   static String getSystemPrompt({
@@ -8,65 +8,49 @@ class SummaryPrompt {
     required List<AutoTaskNode> completedNodes,
   }) {
     return '''
-你是专业的任务执行总结分析师，擅长分析多任务结果，理解用户需求，并高效提取关键信息，生成结构清晰、简洁实用的总结报告。
+你是一个智能助手，你的职责是根据多个子任务的执行结果，直接回答用户的原始问题。
 
-能力包括：
-- 回溯用户需求，判断结果是否达标
-- 提炼执行过程中的核心信息
-- 结构化输出总结内容
+核心要求：
+- 直接回答用户的问题，像对话一样自然地给出答案
+- 从各子任务结果中提取与用户问题相关的关键信息，整合为一个完整连贯的回答
+- 不要提及"任务"、"子任务"、"执行"等内部概念，用户不需要知道背后的执行过程
+- 如果某些部分未能获取到结果，简要说明该部分暂时无法提供即可，不要解释原因
 
-总结原则：
-- 用户导向：围绕用户需求，聚焦是否解决核心问题
-- 结果导向：突出成果与影响，失败简述即可
-- 简洁清晰：信息优先级明确，避免冗余
-- 真实准确：仅基于实际结果，客观反映任务完成情况
+回答原则：
+- 聚焦问题本身，给出用户真正想要的答案
+- 信息完整，将分散在不同结果中的内容有机整合
+- 语言自然流畅，避免生硬的罗列
+- 仅基于已有结果作答，不编造信息
 
-## 输出格式要求
+## 输出格式
 - 使用Markdown格式
 - 适当使用emoji增强可读性
-- 控制总长度在500字以内，不要超过500字
-- 结构清晰，层次分明
+- 控制总长度在500字以内
+- 根据内容自然组织结构，无需固定模板
 
-以下是需要总结的内容：
-用户需求：$userCommand
-任务执行结果：${SummaryPrompt._formatExecutionDetails(completedNodes)}
+用户问题：$userCommand
+以下是各部分的结果信息：
+${SummaryPrompt._formatNodeResults(completedNodes)}
 ''';
   }
 
-  /// format node execution details to structured data for summary analysis
-  static String _formatExecutionDetails(List<AutoTaskNode> completedNodes) {
+  /// Format node results focusing on content rather than execution details
+  static String _formatNodeResults(List<AutoTaskNode> completedNodes) {
     StringBuffer buffer = StringBuffer();
-    
-    int totalNodes = completedNodes.length;
-    int successNodes = completedNodes.where((node) => node.status == AutoNodeStatus.SUCCEEDED).length;
-    int failedNodes = completedNodes.where((node) => node.status == AutoNodeStatus.FAILED).length;
-    
-    buffer.writeln('- 总任务数：$totalNodes');
-    buffer.writeln('- 成功完成：$successNodes');
-    buffer.writeln('- 执行失败：$failedNodes');
-    buffer.writeln();
-    
-    buffer.writeln('【详细执行结果】');
-    for (AutoTaskNode node in completedNodes) {
-      
-      buffer.writeln("任务${node.id}: ${node.name}");
 
-      if (node.dependencies.isNotEmpty) {
-        buffer.writeln(" 依赖: ${node.dependencies.map((dep) => dep.id).join(', ')}");
+    for (AutoTaskNode node in completedNodes) {
+      buffer.writeln('【${node.name}】');
+
+      if (node.status == AutoNodeStatus.SUCCEEDED && node.result?.isNotEmpty == true) {
+        String truncatedResult = _intelligentTruncate(node.result!, maxLength: 500);
+        buffer.writeln(truncatedResult);
+      } else if (node.status == AutoNodeStatus.FAILED) {
+        buffer.writeln('[该部分未能获取到结果]');
       }
-      
-      if (node.result?.isNotEmpty == true) {
-        String truncatedResult = _intelligentTruncate(node.result!, maxLength: 200);
-        buffer.writeln(" 结果: $truncatedResult");
-      }
-      
-      if (node.status == AutoNodeStatus.FAILED) {
-        buffer.writeln(" 失败原因: ${node.result ?? '未知错误'}");
-      }
-      
+
       buffer.writeln();
     }
-    
+
     return buffer.toString();
   }
 
