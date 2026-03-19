@@ -90,7 +90,8 @@ class Dispatcher {
     if(
         sessionMessage.to == SessionRoleType.AGENT &&
         sessionMessage.type == SessionMessageType.TEXT &&
-        (sessionMessage.content as String) == TaskStatusType.DONE
+        sessionMessage.content is String &&
+        (sessionMessage.content as String).trim() == TaskStatusType.DONE
     ) {
       _isTaskDone = true;
     }
