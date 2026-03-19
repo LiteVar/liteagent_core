@@ -318,16 +318,6 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
 
   Future<void> _sendStartMessage(
       String taskId, String originalTaskId, List<Content> contentList) async {
-    AgentMessage clientMessage = AgentMessage(
-        sessionId: sessionId,
-        originalTaskId: originalTaskId,
-        parentTaskId: parentTaskId,
-        taskId: taskId,
-        role: SessionRoleType.AGENT,
-        to: SessionRoleType.CLIENT,
-        type: SessionMessageType.TASK_STATUS,
-        content: TaskStatus(status: TaskStatusType.START, taskId: taskId));
-    await sendAgentMessage(clientMessage);
 
     AgentMessage userMessage = AgentMessage(
         sessionId: sessionId,
@@ -339,6 +329,17 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
         type: SessionMessageType.CONTENT_LIST,
         content: contentList);
     await sendAgentMessage(userMessage);
+    
+    AgentMessage clientMessage = AgentMessage(
+        sessionId: sessionId,
+        originalTaskId: originalTaskId,
+        parentTaskId: parentTaskId,
+        taskId: taskId,
+        role: SessionRoleType.AGENT,
+        to: SessionRoleType.CLIENT,
+        type: SessionMessageType.TASK_STATUS,
+        content: TaskStatus(status: TaskStatusType.START, taskId: taskId));
+    await sendAgentMessage(clientMessage);
   }
 
   Future<void> _sendDoneMessage(
