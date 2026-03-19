@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:opentool_dart/opentool_client.dart' as ot;
 import '../../../driver/tool_driver.dart';
+import '../../../driver/opentool/opentool_callback_driver.dart';
 import '../../tool_agent/tool_agent.dart';
+import '../../tool_agent/model.dart';
 import 'function.dart';
 import '../../session_agent/session.dart';
 import '../../session_agent/model.dart';
@@ -19,8 +21,9 @@ class AutoToolAgent extends ToolAgent {
     required super.agentSession,
     super.systemPrompt,
     super.streamCallTimeoutSeconds,
+    CallbackOpenTool? callbackOpenTool,
     this.indexedFunctions = const [],
-  }) {
+  }) : super(callbackOpenTool: callbackOpenTool) {
     if (indexedFunctions.isNotEmpty) {
       toolDriverList = _buildToolDriverList();
     }
@@ -29,6 +32,7 @@ class AutoToolAgent extends ToolAgent {
   List<ToolDriver> _buildToolDriverList() {
     final toolDriverSet = <ToolDriver>{};
     for (var indexedFunction in indexedFunctions) {
+      if (indexedFunction.toolDriver is OpenToolCallbackDriver) continue;
       toolDriverSet.add(indexedFunction.toolDriver);
     }
     return toolDriverSet.toList();

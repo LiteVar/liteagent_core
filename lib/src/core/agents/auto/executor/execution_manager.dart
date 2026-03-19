@@ -7,6 +7,7 @@ import '../wrappers/llm.dart';
 import '../auto_multi_agent.dart';
 import 'prompt.dart';
 import '../../session_agent/session.dart';
+import '../../tool_agent/model.dart';
 import 'package:unique_id_dart/unique_id_dart.dart';
 
 /// execution manager
@@ -14,6 +15,7 @@ import 'package:unique_id_dart/unique_id_dart.dart';
 class ExecutionManager {
   final List<IndexedFunction> indexedFunctions;
   final AutoMessageSender messageSender;
+  final CallbackOpenTool? callbackOpenTool;
   final int maxConcurrency;
 
   final Map<String, AutoToolAgent> _executorPool = {};
@@ -22,6 +24,7 @@ class ExecutionManager {
   ExecutionManager({
     required this.indexedFunctions,
     required this.messageSender,
+    this.callbackOpenTool,
     this.maxConcurrency = 3,
   });
 
@@ -87,6 +90,7 @@ class ExecutionManager {
       llmConfig: llmConfig,
       systemPrompt: systemPrompt,
       indexedFunctions: indexedFunctionsForNode,
+      callbackOpenTool: callbackOpenTool,
     );
 
     _executorPool[node.id] = agent;

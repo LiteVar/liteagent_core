@@ -169,11 +169,19 @@ class AgentService {
           ?.map((llmConfigDto) => llmConfigDto.toModel())
           .toList();
 
+      CallbackOpenTool? clientOpenTool;
+      if (capabilityDto.callbackOpenTool != null)
+        clientOpenTool = CallbackOpenTool(
+            opentool: capabilityDto.callbackOpenTool!.opentool,
+            timeout: capabilityDto.callbackOpenTool!.timeout,
+            fetchClientDriver: this.fetchClientDriver);
+
       AutoMultiAgent autoMultiAgent = await AutoMultiAgent.create(
         sessionId: sessionId,
         llmConfig: llmConfig,
         agentSession: _buildSession(sessionId),
         toolDriverList: toolDriverList,
+        clientOpenTool: clientOpenTool,
         systemPrompt: fullSystemPrompt,
         toolReflectPromptList: reflectPromptList ?? const [],
         timeoutSeconds: capabilityDto.timeoutSeconds,

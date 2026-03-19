@@ -7,10 +7,12 @@ import 'execution_manager.dart';
 import 'topological_scheduler.dart';
 import '../wrappers/llm.dart';
 import '../auto_multi_agent.dart';
+import '../../../agents/tool_agent/model.dart';
 
 class AutoNodeExecutor {
   final List<IndexedFunction> indexedFunctions;
   final AutoMessageSender messageSender;
+  final CallbackOpenTool? callbackOpenTool;
 
   late final DependencyAnalyzer _dependencyAnalyzer;
   late final TopologicalScheduler _topologicalScheduler;
@@ -21,12 +23,14 @@ class AutoNodeExecutor {
   AutoNodeExecutor({
     required this.indexedFunctions,
     required this.messageSender,
+    this.callbackOpenTool,
   }) {
     _dependencyAnalyzer = DependencyAnalyzer();
     _topologicalScheduler = TopologicalScheduler();
     _executionManager = ExecutionManager(
       indexedFunctions: indexedFunctions,
       messageSender: messageSender,
+      callbackOpenTool: callbackOpenTool,
     );
   }
 

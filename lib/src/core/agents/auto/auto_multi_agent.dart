@@ -12,6 +12,7 @@ import 'executor/executor.dart';
 import 'summarizer/summarizer.dart';
 import 'package:opentool_dart/opentool_client.dart' as ot;
 import '../../llm/model.dart';
+import '../../driver/opentool/opentool_callback_driver.dart';
 import 'wrappers/function.dart';
 import 'models/node.dart';
 import 'wrappers/llm.dart';
@@ -118,6 +119,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
     nodeExecutor = AutoNodeExecutor(
       indexedFunctions: indexedFunctions,
       messageSender: this,
+      callbackOpenTool: callbackOpenTool,
     );
 
     summarizer = AutoSummarizer(
@@ -237,6 +239,24 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
         currentIndex++;
       }
     }
+
+    if (callbackOpenTool != null) {
+      ot.OpenTool opentool =
+          await ot.OpenToolJsonLoader().load(callbackOpenTool!.opentool);
+      OpenToolCallbackDriver callbackDriver =
+          OpenToolCallbackDriver(opentool, (_) {},
+              timeout: callbackOpenTool!.timeout ?? 60);
+      List<ot.FunctionModel> callbackFunctions = callbackDriver.parse();
+
+      for (ot.FunctionModel functionModel in callbackFunctions) {
+        indexedFunctions.add(IndexedFunction(
+          index: currentIndex,
+          functionModel: functionModel,
+          toolDriver: callbackDriver,
+        ));
+        currentIndex++;
+      }
+    }
   }
 
   Future<void> _executeAutoMode(
@@ -329,7 +349,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
         type: SessionMessageType.CONTENT_LIST,
         content: contentList);
     await sendAgentMessage(userMessage);
-    
+
     AgentMessage clientMessage = AgentMessage(
         sessionId: sessionId,
         originalTaskId: originalTaskId,

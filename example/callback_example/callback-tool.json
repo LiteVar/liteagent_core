@@ -1,0 +1,50 @@
+{
+  "opentool": "1.0.0",
+  "info": {
+    "title": "Client Callback Tools",
+    "version": "1.0.0"
+  },
+  "functions": [
+    {
+      "name": "get_current_time",
+      "description": "Get the current date and time from the client device",
+      "parameters": [],
+      "return": {
+        "name": "CurrentTime",
+        "schema": {
+          "$ref": "#/schemas/TimeResult"
+        },
+        "description": "Current date and time string"
+      }
+    },
+    {
+      "name": "calculate",
+      "description": "Calculate a math expression on the client side",
+      "parameters": [
+        {
+          "name": "expression",
+          "schema": {
+            "type": "string"
+          },
+          "description": "A math expression to evaluate, e.g. '2 + 3 * 4'",
+          "required": true
+        }
+      ],
+      "return": {
+        "name": "CalculateResult",
+        "schema": {
+          "$ref": "#/schemas/CalculateResult"
+        },
+        "description": "The calculated result"
+      }
+    }
+  ],
+  "schemas": {
+    "TimeResult": {
+      "type": "string"
+    },
+    "CalculateResult": {
+      "type": "string"
+    }
+  }
+}
