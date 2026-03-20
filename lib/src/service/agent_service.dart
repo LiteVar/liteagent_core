@@ -20,6 +20,11 @@ class AgentService {
   /// Map<sessionId, SimpleAgent>
   List<ToolDriver> globalDriverList = [];
   Map<String, OpenToolCallbackDriver> callbackOpenToolMap = {};
+  final Map<String, Set<OpenToolCallbackDriver>> _callbackDriversBySessionId =
+      {};
+  final Map<OpenToolCallbackDriver, Set<String>> _callbackDriverSessionIds = {};
+  final Map<String, OpenToolCallbackDriver> _callbackDriversByFunctionCallId =
+      {};
 
   /// Map<sessionId, ClientDriver>
   List<PresetOpenSpecDto> _presetOpenSpecList = [];
@@ -439,7 +444,7 @@ class AgentService {
     SessionAgent? sessionAgent = sessionAgents.remove(sessionId);
     sessionAgent?.clear();
     simpleAgents.remove(sessionId);
-    callbackOpenToolMap.remove(sessionId);
+    _detachCallbackDriversForSession(sessionId);
     _sessionLlmConfigMap.remove(sessionId);
     _simpleSessionLlmConfigMap.remove(sessionId);
 
@@ -672,23 +677,113 @@ class AgentService {
   void fetchClientDriver(
       String sessionId, OpenToolCallbackDriver clientDriver) {
     callbackOpenToolMap[sessionId] = clientDriver;
+    _callbackDriversBySessionId.putIfAbsent(
+      sessionId,
+      () => <OpenToolCallbackDriver>{},
+    );
+    _callbackDriversBySessionId[sessionId]!.add(clientDriver);
+    _callbackDriverSessionIds.putIfAbsent(
+      clientDriver,
+      () => <String>{},
+    );
+    _callbackDriverSessionIds[clientDriver]!.add(sessionId);
+    clientDriver.setPendingCallHooks(
+      registerPendingCall: _registerPendingCallbackDriver,
+      unregisterPendingCall: _unregisterPendingCallbackDriver,
+    );
   }
 
   void clientDriverCallback(String sessionId, ot.ToolReturn toolReturn) {
-    OpenToolCallbackDriver? clientDriver = callbackOpenToolMap[sessionId];
-    if (clientDriver == null) {
+    if (!_dispatchClientDriverCallback(sessionId, toolReturn)) {
       throw SessionAgentNotFoundException(sessionId: sessionId);
     }
-    clientDriver.callback(toolReturn);
   }
 
   void clientDriverStreamCallback(
       String sessionId, String event, ot.ToolReturn toolReturn) {
-    OpenToolCallbackDriver? clientDriver = callbackOpenToolMap[sessionId];
-    if (clientDriver == null) {
+    if (!_dispatchClientDriverStreamCallback(sessionId, event, toolReturn)) {
       throw SessionAgentNotFoundException(sessionId: sessionId);
     }
-    clientDriver.streamCallback(event, toolReturn);
+  }
+
+  void _registerPendingCallbackDriver(
+      String functionCallId, OpenToolCallbackDriver clientDriver) {
+    _callbackDriversByFunctionCallId[functionCallId] = clientDriver;
+  }
+
+  void _unregisterPendingCallbackDriver(
+      String functionCallId, OpenToolCallbackDriver clientDriver) {
+    final registeredDriver = _callbackDriversByFunctionCallId[functionCallId];
+    if (registeredDriver == clientDriver) {
+      _callbackDriversByFunctionCallId.remove(functionCallId);
+    }
+  }
+
+  bool _dispatchClientDriverCallback(
+      String sessionId, ot.ToolReturn toolReturn) {
+    final OpenToolCallbackDriver? exactDriver =
+        _callbackDriversByFunctionCallId[toolReturn.id];
+    if (exactDriver != null && exactDriver.callback(toolReturn)) {
+      return true;
+    }
+
+    final Set<OpenToolCallbackDriver>? sessionDrivers =
+        _callbackDriversBySessionId[sessionId];
+    if (sessionDrivers == null || sessionDrivers.isEmpty) {
+      return false;
+    }
+
+    for (final driver in sessionDrivers.toList().reversed) {
+      if (driver.callback(toolReturn)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _dispatchClientDriverStreamCallback(
+      String sessionId, String event, ot.ToolReturn toolReturn) {
+    final OpenToolCallbackDriver? exactDriver =
+        _callbackDriversByFunctionCallId[toolReturn.id];
+    if (exactDriver != null && exactDriver.streamCallback(event, toolReturn)) {
+      return true;
+    }
+
+    final Set<OpenToolCallbackDriver>? sessionDrivers =
+        _callbackDriversBySessionId[sessionId];
+    if (sessionDrivers == null || sessionDrivers.isEmpty) {
+      return false;
+    }
+
+    for (final driver in sessionDrivers.toList().reversed) {
+      if (driver.streamCallback(event, toolReturn)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void _detachCallbackDriversForSession(String sessionId) {
+    callbackOpenToolMap.remove(sessionId);
+    final Set<OpenToolCallbackDriver>? sessionDrivers =
+        _callbackDriversBySessionId.remove(sessionId);
+    if (sessionDrivers == null || sessionDrivers.isEmpty) {
+      return;
+    }
+
+    for (final driver in sessionDrivers) {
+      final sessionIds = _callbackDriverSessionIds[driver];
+      if (sessionIds == null) {
+        continue;
+      }
+      sessionIds.remove(sessionId);
+      if (sessionIds.isEmpty) {
+        _callbackDriverSessionIds.remove(driver);
+        _callbackDriversByFunctionCallId.removeWhere(
+          (_, registeredDriver) => identical(registeredDriver, driver),
+        );
+      }
+    }
   }
 
   List<String> getSubSessionIds(String rootSessionId) {
