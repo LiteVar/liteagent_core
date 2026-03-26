@@ -41,6 +41,9 @@ class SessionNameDto extends SessionDto {
 class SimpleCapabilityDto {
   LLMConfigDto? llmConfig;
   String systemPrompt;
+
+  /// Complete SKILL.md documents following Agent Skills specification:
+  /// https://agentskills.io/specification
   List<String>? skills;
 
   SimpleCapabilityDto({

@@ -65,6 +65,40 @@ CapabilityDto capabilityDto = CapabilityDto(
 );
 ```
 
+### Skills
+
+`CapabilityDto` and `SimpleCapabilityDto` support an optional `skills` field. Each item should be a complete `SKILL.md` string that follows the [Agent Skills specification](https://agentskills.io/specification).
+
+Example:
+
+```dart
+CapabilityDto capabilityDto = CapabilityDto(
+  llmConfig: _buildLLMConfig(),
+  systemPrompt: _buildSystemPrompt(),
+  skills: [
+    '''
+---
+name: summary
+description: Summarize long text and extract key decisions.
+---
+# Summary Skill
+
+Focus on concise synthesis. Preserve facts, constraints, and open questions.
+''',
+  ],
+);
+```
+
+When provided, skills are appended below `systemPrompt` in this format:
+
+```text
+<original systemPrompt>
+
+[Skill: <skill.name>]
+<skill.description>
+<skill markdown body>
+```
+
 - MultiAgent support
 
 ```dart

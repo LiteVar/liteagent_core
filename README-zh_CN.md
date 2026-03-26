@@ -64,6 +64,40 @@ CapabilityDto capabilityDto = CapabilityDto(
 );
 ```
 
+### Skills
+
+`CapabilityDto` 和 `SimpleCapabilityDto` 支持可选的 `skills` 字段。每个元素都应该是一份完整的 `SKILL.md` 文本，并遵循 [Agent Skills specification](https://agentskills.io/specification)。
+
+示例：
+
+```dart
+CapabilityDto capabilityDto = CapabilityDto(
+  llmConfig: _buildLLMConfig(),
+  systemPrompt: _buildSystemPrompt(),
+  skills: [
+    '''
+---
+name: summary
+description: Summarize long text and extract key decisions.
+---
+# Summary Skill
+
+Focus on concise synthesis. Preserve facts, constraints, and open questions.
+''',
+  ],
+);
+```
+
+启用后，skills 会按下面的格式追加到 `systemPrompt` 下方：
+
+```text
+<原有 systemPrompt>
+
+[Skill: <skill.name>]
+<skill.description>
+<skill 的 markdown 正文>
+```
+
 - MultiAgent支持
 
 ```dart
