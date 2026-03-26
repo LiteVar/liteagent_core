@@ -11,6 +11,8 @@ import 'exception.dart';
 
 class AgentService {
   static const int _SENT_MESSAGES_CAPACITY = 500;
+  final SkillParser _skillParser = MarkdownSkillParser();
+  final SkillValidator _skillValidator = const SkillValidator();
 
   Map<String, SessionAgent> sessionAgents = {};
 
@@ -75,7 +77,10 @@ class AgentService {
     String systemPrompt = simpleCapabilityDto.systemPrompt;
     LLMConfig? llmConfig = simpleCapabilityDto.llmConfig?.toModel();
 
-    String fullSystemPrompt = _mergeFullSystemPrompt(systemPrompt);
+    String fullSystemPrompt = _mergeFullSystemPrompt(
+      systemPrompt,
+      skills: simpleCapabilityDto.skills,
+    );
 
     SimpleAgent simpleAgent = SimpleAgent(
         llmConfig: llmConfig,
@@ -137,7 +142,10 @@ class AgentService {
     }
     sessionCreateTimeMap[sessionId] = createTime;
     String systemPrompt = capabilityDto.systemPrompt;
-    String fullSystemPrompt = _mergeFullSystemPrompt(systemPrompt);
+    String fullSystemPrompt = _mergeFullSystemPrompt(
+      systemPrompt,
+      skills: capabilityDto.skills,
+    );
     _sessionBaseSystemPromptMap[sessionId] = fullSystemPrompt;
     _sessionExtraSystemPromptMap[sessionId] = null;
     LLMConfig? llmConfig = capabilityDto.llmConfig?.toModel();
@@ -856,8 +864,13 @@ class AgentService {
     return (sessionAgentDriver, simpleAgentDriver);
   }
 
-  String _mergeFullSystemPrompt(String systemPrompt) {
+  String _mergeFullSystemPrompt(String systemPrompt, {List<String>? skills}) {
     String fullSystemPrompt = systemPrompt;
+    final skillSystemPrompt = _buildSkillSystemPrompt(skills);
+    if (skillSystemPrompt.isNotEmpty) {
+      fullSystemPrompt =
+          _buildEffectiveSystemPrompt(fullSystemPrompt, skillSystemPrompt);
+    }
 
     for (PresetOpenSpecDto presetOpenSpec in _presetOpenSpecList) {
       fullSystemPrompt =
@@ -865,6 +878,23 @@ class AgentService {
     }
 
     return fullSystemPrompt;
+  }
+
+  String _buildSkillSystemPrompt(List<String>? rawSkills) {
+    if (rawSkills == null || rawSkills.isEmpty) return "";
+
+    final skillBlocks = <String>[];
+    for (final rawSkill in rawSkills) {
+      final skill = _skillParser.parse(rawSkill);
+      _skillValidator.validate(skill);
+      final description = skill.manifest.description.trim();
+      final instructions = skill.instructions.trim();
+      skillBlocks.add(
+        '[Skill: ${skill.manifest.name}]\n$description\n$instructions',
+      );
+    }
+
+    return skillBlocks.join('\n\n');
   }
 
   void _updateSessionSystemPrompt(String sessionId, SessionAgent sessionAgent,

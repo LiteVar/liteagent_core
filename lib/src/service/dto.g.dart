@@ -35,6 +35,8 @@ SimpleCapabilityDto _$SimpleCapabilityDtoFromJson(Map<String, dynamic> json) =>
           ? null
           : LLMConfigDto.fromJson(json['llmConfig'] as Map<String, dynamic>),
       systemPrompt: json['systemPrompt'] as String,
+      skills:
+          (json['skills'] as List<dynamic>?)?.map((e) => e as String).toList(),
     );
 
 Map<String, dynamic> _$SimpleCapabilityDtoToJson(
@@ -42,6 +44,7 @@ Map<String, dynamic> _$SimpleCapabilityDtoToJson(
     <String, dynamic>{
       if (instance.llmConfig?.toJson() case final value?) 'llmConfig': value,
       'systemPrompt': instance.systemPrompt,
+      if (instance.skills case final value?) 'skills': value,
     };
 
 CapabilityDto _$CapabilityDtoFromJson(Map<String, dynamic> json) =>
@@ -50,6 +53,8 @@ CapabilityDto _$CapabilityDtoFromJson(Map<String, dynamic> json) =>
           ? null
           : LLMConfigDto.fromJson(json['llmConfig'] as Map<String, dynamic>),
       systemPrompt: json['systemPrompt'] as String,
+      skills:
+          (json['skills'] as List<dynamic>?)?.map((e) => e as String).toList(),
       openSpecList: (json['openSpecList'] as List<dynamic>?)
           ?.map((e) => OpenSpecDto.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -80,6 +85,7 @@ Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
     <String, dynamic>{
       if (instance.llmConfig?.toJson() case final value?) 'llmConfig': value,
       'systemPrompt': instance.systemPrompt,
+      if (instance.skills case final value?) 'skills': value,
       if (instance.openSpecList?.map((e) => e.toJson()).toList()
           case final value?)
         'openSpecList': value,

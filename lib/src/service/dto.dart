@@ -41,8 +41,13 @@ class SessionNameDto extends SessionDto {
 class SimpleCapabilityDto {
   LLMConfigDto? llmConfig;
   String systemPrompt;
+  List<String>? skills;
 
-  SimpleCapabilityDto({this.llmConfig, required this.systemPrompt});
+  SimpleCapabilityDto({
+    this.llmConfig,
+    required this.systemPrompt,
+    this.skills,
+  });
 
   factory SimpleCapabilityDto.fromJson(Map<String, dynamic> json) =>
       _$SimpleCapabilityDtoFromJson(json);
@@ -67,6 +72,7 @@ class CapabilityDto extends SimpleCapabilityDto {
   CapabilityDto({
     super.llmConfig,
     required super.systemPrompt,
+    super.skills,
     this.openSpecList,
     this.callbackOpenTool,
     this.sessionList,
