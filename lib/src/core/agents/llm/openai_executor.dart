@@ -712,11 +712,37 @@ class FunctionCallAccumulation extends DeltaAccumulation<List<FunctionCall>> {
   void appendDelta(ChatCompletionDelta delta) {
     if (delta.finishReason == null && delta.delta != null) {
       OpenAIResponseToolCall toolCall = delta.delta!.toolCalls!.first;
-      if (toolCall.id != null && toolCall.id != currentId) {
+      // OpenAI-compatible streaming tool_call deltas carry `id` and
+      // `function.name` only on the *first* chunk of each tool call.
+      // On continuation chunks providers diverge:
+      //   - OpenAI / gpt-4o leave these fields as `null`.
+      //   - DashScope's deepseek-v4-flash sends empty strings `""`
+      //     instead (verified against the upstream SSE stream).
+      // Treat `""` as "not provided" (i.e. equivalent to `null`) so that:
+      //   * a continuation chunk is never mistaken for the start of a
+      //     new tool call — otherwise `"" != currentId` would flush the
+      //     in-progress accumulation prematurely and *clobber* both
+      //     `currentId` and `currentName` with empty strings, leading to
+      //     a silently-dropped tool call at the final `_buildFunctionCall`
+      //     (the root cause of the empty `[toolCalls] []` seen with
+      //     deepseek-v4-flash);
+      //   * for multi-tool responses, arguments for tool N+1 do not get
+      //     concatenated onto the arguments buffer of tool N.
+      final String? incomingId =
+          (toolCall.id != null && toolCall.id!.isNotEmpty)
+              ? toolCall.id
+              : null;
+      final String? incomingName =
+          (toolCall.function.name != null &&
+                  toolCall.function.name!.isNotEmpty)
+              ? toolCall.function.name
+              : null;
+
+      if (incomingId != null && incomingId != currentId) {
         _buildFunctionCall();
-        currentId = toolCall.id!;
+        currentId = incomingId;
       }
-      if (toolCall.function.name != null) currentName = toolCall.function.name!;
+      if (incomingName != null) currentName = incomingName;
       if (toolCall.function.arguments != null)
         currentParameters += toolCall.function.arguments!;
     } else if (delta.finishReason == FinishReasonType.TOOL_CALLS) {
