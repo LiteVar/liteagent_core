@@ -397,7 +397,8 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
       return OpenAIChatCompletionChoiceMessageModel(
           role: OpenAIChatMessageRole.assistant,
           content: null,
-          toolCalls: openAIResponseToolCallList);
+          toolCalls: openAIResponseToolCallList,
+          reasoningContent: _resolveToolCallsReasoningContent(agentMessage));
     }
 
     /// AGENT return TOOL or SUBAGENT result
@@ -447,6 +448,82 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
           OpenAIChatCompletionChoiceMessageContentItemModel.text(
               agentMessage.content as String)
         ]);
+  }
+
+  /// Resolve the value to send for `reasoning_content` on an outgoing
+  /// assistant message that carries `tool_calls`.
+  ///
+  /// Compatibility shim for "thinking-mode" models that require
+  /// `reasoning_content` to be replayed on assistant messages carrying
+  /// `tool_calls`. Some providers (currently DeepSeek V4+, Xiaomi MiMo V2.5+)
+  /// reject multi-turn requests with `400 The reasoning_content in the
+  /// thinking mode must be passed back to the API.` whenever an assistant
+  /// message containing `tool_calls` is missing the `reasoning_content` from
+  /// the turn that produced those tool calls. Mirrors `agentos-api`'s
+  /// `ModelClient._injectReasoningContentPlaceholder`, but here we have
+  /// access to the original [AgentMessage.reasoningContent] (set by
+  /// [_toFunctionCallList] on the non-streaming path), so we replay the real
+  /// value when available and only fall back to an empty string if it is
+  /// missing.
+  ///
+  /// Priority:
+  /// 1. The agent message's own [AgentMessage.reasoningContent] (preserves
+  ///    chain-of-thought context across turns).
+  /// 2. Empty string `""` — only when the upstream model belongs to a family
+  ///    that enforces the replay contract. Enough to pass the validator;
+  ///    chain of thought is lost but multi-turn tool calling keeps working.
+  /// 3. Otherwise null (the field is omitted from the request body).
+  String? _resolveToolCallsReasoningContent(AgentMessage agentMessage) {
+    final own = agentMessage.reasoningContent;
+    if (own != null && own.isNotEmpty) return own;
+    if (_requiresReasoningContentReplay(llmConfig.model)) return '';
+    return null;
+  }
+
+  /// Model families that enforce the thinking-mode `reasoning_content`
+  /// replay contract. Mirrors `agentos-api`'s
+  /// `ModelClient._reasoningContentFamilies`. Add another entry here to
+  /// extend coverage.
+  static final List<_ReasoningContentFamily> _reasoningContentFamilies = [
+    // DeepSeek V4 and above: deepseek-v4, deepseek-v4-pro, deepseek-v4-flash,
+    // and any future v5 / v6 / v4.x release.
+    _ReasoningContentFamily(
+      pattern: RegExp(r'deepseek-v(\d+)(?:\.(\d+))?', caseSensitive: false),
+      minVersion: const [4],
+    ),
+    // Xiaomi MiMo V2.5 and above: MiMo-V2.5, MiMo-V2.6, MiMo-V3, MiMo-V4, ...
+    _ReasoningContentFamily(
+      pattern: RegExp(r'mimo-v(\d+)(?:\.(\d+))?', caseSensitive: false),
+      minVersion: const [2, 5],
+    ),
+  ];
+
+  /// Whether [modelName] belongs to a family that requires
+  /// `reasoning_content` to be replayed on assistant tool-call messages.
+  static bool _requiresReasoningContentReplay(String modelName) {
+    for (final family in _reasoningContentFamilies) {
+      final match = family.pattern.firstMatch(modelName);
+      if (match == null) continue;
+      final major = int.tryParse(match.group(1) ?? '');
+      if (major == null) continue;
+      final minor = int.tryParse(match.group(2) ?? '0') ?? 0;
+      if (_compareVersionParts([major, minor], family.minVersion) >= 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Element-wise numeric comparison padding the shorter list with zeros
+  /// (so `[3]` reads as `[3, 0]` and `[2, 5]` outranks `[2]`).
+  static int _compareVersionParts(List<int> a, List<int> b) {
+    final length = a.length > b.length ? a.length : b.length;
+    for (var i = 0; i < length; i++) {
+      final av = i < a.length ? a[i] : 0;
+      final bv = i < b.length ? b[i] : 0;
+      if (av != bv) return av.compareTo(bv);
+    }
+    return 0;
   }
 
   String _serializeToolReturnContent(String source) {
@@ -661,4 +738,21 @@ class FunctionCallAccumulation extends DeltaAccumulation<List<FunctionCall>> {
       currentParameters = "";
     }
   }
+}
+
+/// Descriptor for a model family that requires `reasoning_content` to be
+/// present on assistant messages with `tool_calls`.
+///
+/// [pattern] must capture the model's numeric version as groups 1 (major)
+/// and optionally 2 (minor). [minVersion] is `[major, minor]` (or `[major]`
+/// when only the major matters) and is compared numerically; the shim is
+/// applied when the parsed version is `>= minVersion`.
+class _ReasoningContentFamily {
+  const _ReasoningContentFamily({
+    required this.pattern,
+    required this.minVersion,
+  });
+
+  final RegExp pattern;
+  final List<int> minVersion;
 }
