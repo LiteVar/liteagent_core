@@ -128,9 +128,15 @@ Map<String, dynamic> _$OpenSpecDtoToJson(OpenSpecDto instance) =>
     };
 
 LLMConfigDto _$LLMConfigDtoFromJson(Map<String, dynamic> json) => LLMConfigDto(
+      provider: json['provider'] as String?,
       baseUrl: json['baseUrl'] as String,
       apiKey: json['apiKey'] as String?,
       model: json['model'] as String,
+      adapter: json['adapter'] as String?,
+      headers: (json['headers'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ),
+      providerOptions: json['providerOptions'] as Map<String, dynamic>?,
       temperature: (json['temperature'] as num?)?.toDouble() ?? 0.0,
       maxTokens: (json['maxTokens'] as num?)?.toInt() ?? 4096,
       contextWindowSize: (json['contextWindowSize'] as num?)?.toInt(),
@@ -141,9 +147,13 @@ LLMConfigDto _$LLMConfigDtoFromJson(Map<String, dynamic> json) => LLMConfigDto(
 
 Map<String, dynamic> _$LLMConfigDtoToJson(LLMConfigDto instance) =>
     <String, dynamic>{
+      if (instance.provider case final value?) 'provider': value,
       'baseUrl': instance.baseUrl,
       if (instance.apiKey case final value?) 'apiKey': value,
       'model': instance.model,
+      if (instance.adapter case final value?) 'adapter': value,
+      if (instance.headers case final value?) 'headers': value,
+      if (instance.providerOptions case final value?) 'providerOptions': value,
       'temperature': instance.temperature,
       'maxTokens': instance.maxTokens,
       if (instance.contextWindowSize case final value?)

@@ -1,9 +1,14 @@
 import 'package:dart_openai_sdk/dart_openai_sdk.dart';
+import 'client/llm_provider_type.dart';
 
 class LLMConfig {
+  String provider;
   String baseUrl;
   String? apiKey;
   String model;
+  String? adapter;
+  Map<String, String>? headers;
+  Map<String, dynamic>? providerOptions;
   double temperature;
   int maxTokens;
   int? contextWindowSize;
@@ -11,15 +16,22 @@ class LLMConfig {
   bool supportsToolCall;
   bool supportsReasoning;
   LLMConfig(
-      {required this.baseUrl,
+      {this.provider = LLMProviderType.openai,
+      this.baseUrl = "",
       this.apiKey,
       required this.model,
+      this.adapter,
+      this.headers,
+      this.providerOptions,
       this.temperature = 0.0,
       this.maxTokens = 4096,
       this.contextWindowSize,
       this.topP = 1.0,
       this.supportsToolCall = true,
-      this.supportsReasoning = false});
+      this.supportsReasoning = false}) {
+    provider = LLMProviderType.normalize(provider);
+    adapter = adapter?.trim().isEmpty == true ? null : adapter?.trim();
+  }
 }
 
 class Completions {

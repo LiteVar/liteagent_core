@@ -1,29 +1,52 @@
 import 'dart:async';
 import 'package:dart_openai_sdk/dart_openai_sdk.dart';
+import 'client/chat_completions_client.dart';
+import 'client/llm_client_factory.dart';
 import 'model.dart';
 
 class OpenAIUtil {
   late LLMConfig llmConfig;
-  late OpenAIClient _client;
+  late ChatCompletionsClient _client;
 
   OpenAIUtil(this.llmConfig, {Duration? requestsTimeout}) {
-    _client = OpenAIClient(
-      apiKey: llmConfig.apiKey,
-      baseUrl: llmConfig.baseUrl,
-      requestsTimeOut: requestsTimeout ?? const Duration(seconds: 300),
-      showLogs: false,
+    _client = LLMClientFactory.create(
+      llmConfig,
+      requestsTimeout: requestsTimeout,
     );
   }
 
-  static Future<bool> checkLLMConfig(String baseUrl, String? apiKey) async {
+  static Future<bool> checkLLMConfig(
+    String baseUrl,
+    String? apiKey, {
+    String provider = "openai",
+    String? model,
+    String? adapter,
+    Map<String, String>? headers,
+    Map<String, dynamic>? providerOptions,
+  }) async {
     try {
-      OpenAIClient tempClient = OpenAIClient(
-        apiKey: apiKey,
-        baseUrl: baseUrl,
-        showLogs: false,
+      final client = LLMClientFactory.create(
+        LLMConfig(
+          provider: provider,
+          baseUrl: baseUrl,
+          apiKey: apiKey,
+          model: model ?? "ping",
+          adapter: adapter,
+          headers: headers,
+          providerOptions: providerOptions,
+        ),
       );
-      bool isConnected = await tempClient.testConnection();
-      return isConnected;
+      return await client.testConnection();
+    } catch (e) {
+      print(e);
+      return false;
+    }
+  }
+
+  static Future<bool> checkLLMConfigByConfig(LLMConfig llmConfig) async {
+    try {
+      final client = LLMClientFactory.create(llmConfig);
+      return await client.testConnection();
     } catch (e) {
       print(e);
       return false;
@@ -37,10 +60,9 @@ class OpenAIUtil {
       bool? enableThinking}) async {
     Map<String, dynamic>? responseFormatJson = null;
     if (responseFormat != null) responseFormatJson = responseFormat.toJson();
-    OpenAIChatCompletionModel chatCompletion = await _client.chat.create(
+    OpenAIChatCompletionModel chatCompletion = await _client.create(
       model: llmConfig.model,
       responseFormat: responseFormatJson,
-      seed: 6,
       messages: messageList,
       tools: toolList,
       temperature: llmConfig.temperature,
@@ -82,10 +104,9 @@ class OpenAIUtil {
     Map<String, dynamic>? responseFormatJson = null;
     if (responseFormat != null) responseFormatJson = responseFormat.toJson();
     Stream<OpenAIStreamChatCompletionModel> chatCompletionStream =
-        await _client.chat.createStream(
+        _client.createStream(
             model: llmConfig.model,
             responseFormat: responseFormatJson,
-            seed: 6,
             messages: messageList,
             tools: toolList,
             temperature: llmConfig.temperature,

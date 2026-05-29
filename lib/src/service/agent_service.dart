@@ -64,8 +64,24 @@ class AgentService {
     agentMessageManageServiceList.addAll(messageManageServiceList);
   }
 
-  Future<bool> testLLMConfig(String baseUrl, String? apiKey) async {
-    return OpenAIUtil.checkLLMConfig(baseUrl, apiKey);
+  Future<bool> testLLMConfig(
+    String baseUrl,
+    String? apiKey, {
+    String provider = "openai",
+    String? model,
+    String? adapter,
+    Map<String, String>? headers,
+    Map<String, dynamic>? providerOptions,
+  }) async {
+    return OpenAIUtil.checkLLMConfig(
+      baseUrl,
+      apiKey,
+      provider: provider,
+      model: model,
+      adapter: adapter,
+      headers: headers,
+      providerOptions: providerOptions,
+    );
   }
 
   void setPresetOpenSpecList(List<PresetOpenSpecDto> presetOpenSpecList) {

@@ -45,7 +45,7 @@ LLMConfig _buildLLMConfig() {
   return LLMConfig(
     baseUrl: env["baseUrl"]!,
     apiKey: env["apiKey"]!,
-    model: "gpt-4o-mini",
+    model: "qwen3.5-27b",
   );
 }
 

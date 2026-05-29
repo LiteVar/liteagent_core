@@ -125,9 +125,13 @@ class OpenSpecDto {
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
 class LLMConfigDto {
+  String? provider;
   String baseUrl;
   String? apiKey;
   String model;
+  String? adapter;
+  Map<String, String>? headers;
+  Map<String, dynamic>? providerOptions;
   double temperature;
   int maxTokens;
   int? contextWindowSize;
@@ -136,9 +140,13 @@ class LLMConfigDto {
   bool supportsReasoning;
 
   LLMConfigDto(
-      {required this.baseUrl,
+      {this.provider,
+      this.baseUrl = "",
       this.apiKey,
       required this.model,
+      this.adapter,
+      this.headers,
+      this.providerOptions,
       this.temperature = 0.0,
       this.maxTokens = 4096,
       this.contextWindowSize,
@@ -152,9 +160,13 @@ class LLMConfigDto {
   Map<String, dynamic> toJson() => _$LLMConfigDtoToJson(this);
 
   factory LLMConfigDto.fromModel(LLMConfig llmConfig) => LLMConfigDto(
+      provider: llmConfig.provider,
       baseUrl: llmConfig.baseUrl,
       apiKey: llmConfig.apiKey,
       model: llmConfig.model,
+      adapter: llmConfig.adapter,
+      headers: llmConfig.headers,
+      providerOptions: llmConfig.providerOptions,
       temperature: llmConfig.temperature,
       maxTokens: llmConfig.maxTokens,
       contextWindowSize: llmConfig.contextWindowSize,
@@ -163,9 +175,13 @@ class LLMConfigDto {
       supportsReasoning: llmConfig.supportsReasoning);
 
   LLMConfig toModel() => LLMConfig(
+      provider: provider ?? "openai",
       baseUrl: baseUrl,
       apiKey: apiKey,
       model: model,
+      adapter: adapter,
+      headers: headers,
+      providerOptions: providerOptions,
       temperature: temperature,
       maxTokens: maxTokens,
       contextWindowSize: contextWindowSize,
