@@ -1,6 +1,6 @@
-import 'package:liteagent_core_dart/src/core/llm/client/adapters/cactus_openai_chat_client_adapter.dart';
 import 'package:liteagent_core_dart/src/core/llm/client/adapters/dart_openai_chat_client_adapter.dart';
 import 'package:liteagent_core_dart/src/core/llm/client/adapters/lite_oneapi_chat_client_adapter.dart';
+import 'package:liteagent_core_dart/src/core/llm/client/adapters/llamadart_openai_chat_client_adapter.dart';
 import 'package:liteagent_core_dart/src/core/llm/client/llm_client_factory.dart';
 import 'package:liteagent_core_dart/src/core/llm/client/llm_provider_type.dart';
 import 'package:liteagent_core_dart/src/core/llm/model.dart';
@@ -34,10 +34,10 @@ void main() {
       expect(config.adapter, isNull);
     });
 
-    test('routes to cactus provider', () {
+    test('routes to llamadart provider', () {
       final client = LLMClientFactory.create(
         LLMConfig(
-          provider: LLMProviderType.cactus,
+          provider: LLMProviderType.llamadart,
           model: 'google/gemma-3-270m-it',
           providerOptions: {
             'models': {
@@ -50,7 +50,21 @@ void main() {
         ),
       );
 
-      expect(client, isA<CactusOpenAIChatClientAdapter>());
+      expect(client, isA<LlamadartOpenAIChatClientAdapter>());
+    });
+
+    test('routes cactus provider aliases to llamadart', () {
+      final client = LLMClientFactory.create(
+        LLMConfig(
+          provider: 'cactus_openai',
+          model: 'google/gemma-3-270m-it',
+          providerOptions: {
+            'modelPath': '/tmp/gemma',
+          },
+        ),
+      );
+
+      expect(client, isA<LlamadartOpenAIChatClientAdapter>());
     });
   });
 }

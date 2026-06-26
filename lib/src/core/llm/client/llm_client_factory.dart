@@ -1,7 +1,7 @@
 import '../model.dart';
-import 'adapters/cactus_openai_chat_client_adapter.dart';
 import 'adapters/dart_openai_chat_client_adapter.dart';
 import 'adapters/lite_oneapi_chat_client_adapter.dart';
+import 'adapters/llamadart_openai_chat_client_adapter.dart';
 import 'chat_completions_client.dart';
 import 'llm_provider_type.dart';
 
@@ -16,8 +16,8 @@ class LLMClientFactory {
           llmConfig,
           requestsTimeout: requestsTimeout,
         );
-      case LLMProviderType.cactus:
-        return CactusOpenAIChatClientAdapter(llmConfig);
+      case LLMProviderType.llamadart:
+        return LlamadartOpenAIChatClientAdapter(llmConfig);
       case LLMProviderType.liteOneApi:
         return LiteOneApiChatClientAdapter(llmConfig);
       default:

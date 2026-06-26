@@ -15,9 +15,9 @@ dependencies:
 
   # OpenAI style api support
   dart_openai_sdk: ^6.1.3
-  cactus_openai:
-    path: ../cactus_openai
-  lite_oneapi: 0.2.2
+  llamadart_openai:
+    path: ../llamadart_openai
+  lite_oneapi: ^0.2.0
 
   # OpenSpec support
   opentool_dart: ^2.0.0

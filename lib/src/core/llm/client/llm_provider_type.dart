@@ -1,6 +1,8 @@
 class LLMProviderType {
   static const String openai = "openai";
-  static const String cactus = "cactus";
+  static const String llamadart = "llamadart";
+  static const String local = llamadart;
+  static const String cactus = llamadart;
   static const String liteOneApi = "lite_oneapi";
 
   static String normalize(String? provider) {
@@ -12,9 +14,12 @@ class LLMProviderType {
     switch (normalized) {
       case "openai":
         return openai;
+      case "local":
+      case "llamadart":
+      case "llamadart_openai":
       case "cactus":
       case "cactus_openai":
-        return cactus;
+        return llamadart;
       case "lite_oneapi":
       case "liteoneapi":
       case "oneapi":
@@ -26,8 +31,6 @@ class LLMProviderType {
 
   static bool isSupported(String? provider) {
     final normalized = normalize(provider);
-    return normalized == openai ||
-        normalized == cactus ||
-        normalized == liteOneApi;
+    return normalized == openai || normalized == llamadart || normalized == liteOneApi;
   }
 }
