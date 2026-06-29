@@ -21,8 +21,7 @@ dependencies:
 
   # OpenSpec support
   opentool_dart: ^2.0.0
-  opentool_daemon:
-    path: ../opentool-hub/opentool-util-daemon
+  opentool_daemon: ^0.2.1
   openapi_dart: ^0.2.0
   openrpc_dart: ^0.2.0
   mcp_dart: ^1.0.2
