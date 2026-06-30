@@ -726,14 +726,15 @@ Output format (Markdown):
         }
 
         AgentMessage toolMessage = AgentMessage(
-            sessionId: functionCallParam.sessionId,
-            originalTaskId: functionCallParam.originalTaskId,
-            parentTaskId: super.parentTaskId,
-            taskId: functionCallParam.taskId,
-            role: ToolRoleType.TOOL,
-            to: ToolRoleType.AGENT,
-            type: ToolMessageType.TOOL_RETURN,
-            content: toolReturn);
+          sessionId: functionCallParam.sessionId,
+          originalTaskId: functionCallParam.originalTaskId,
+          parentTaskId: super.parentTaskId,
+          taskId: functionCallParam.taskId,
+          role: ToolRoleType.TOOL,
+          to: ToolRoleType.AGENT,
+          type: ToolMessageType.TOOL_RETURN,
+          content: toolReturn,
+        );
         Command command = Command(toAgent, toolMessage);
         dispatcherMap.dispatch(command);
       }

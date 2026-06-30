@@ -107,15 +107,15 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
       StreamController<AgentMessage> agentMessageStreamController =
           StreamController<AgentMessage>();
 
-      DeltaAccumulation textAccumulation = _buildTextAccumulation(listenChunk,
-          agentMessageStreamController, agentMessage.originalTaskId);
-      DeltaAccumulation functionCallAccumulation =
-          _buildFunctionCallAccumulation(
-              agentMessageStreamController, agentMessage.originalTaskId);
+      DeltaAccumulation textAccumulation = _buildTextAccumulation(
+          listenChunk, agentMessageStreamController, agentMessage.originalTaskId);
       DeltaAccumulation reasoningAccumulation = _buildReasoningAccumulation(
           listenChunk,
           agentMessageStreamController,
           agentMessage.originalTaskId);
+      DeltaAccumulation functionCallAccumulation =
+          _buildFunctionCallAccumulation(
+              agentMessageStreamController, agentMessage.originalTaskId);
       String finishReasonCache = "";
 
       chatCompletionDeltaStream.listen((chatCompletionDelta) {
@@ -130,10 +130,12 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
             chatCompletionDelta.finishReason ?? finishReasonCache;
 
         // TOTO: check if reasoning is finished
-        if (chatCompletionDelta.delta?.reasoningContent != null) {
+        final reasoningDelta = _reasoningDeltaText(chatCompletionDelta.delta);
+        if (reasoningDelta != null) {
           AgentMessageChunk? reasoningChunk =
               _reasoningDeltaToAgentMessageChunk(
-                  chatCompletionDelta, agentMessage.originalTaskId);
+                  chatCompletionDelta, agentMessage.originalTaskId,
+                  reasoningDelta: reasoningDelta);
           if (reasoningChunk != null && listenChunk != null)
             listenChunk(reasoningChunk);
           reasoningAccumulation.appendDelta(chatCompletionDelta);
@@ -238,8 +240,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
   FunctionCallAccumulation _buildFunctionCallAccumulation(
       StreamController<AgentMessage> agentMessageStreamController,
       String originalTaskId) {
-    return FunctionCallAccumulation(
-        (functionCallList, Completions? completions) {
+    return FunctionCallAccumulation((functionCallList, Completions? completions) {
       AgentMessage agentMessage = AgentMessage(
           sessionId: _sessionId,
           originalTaskId: originalTaskId,
@@ -618,9 +619,18 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
     return null;
   }
 
+  String? _reasoningDeltaText(OpenAIStreamChatCompletionChoiceDeltaModel? delta) {
+    if (delta == null) return null;
+    final reasoning = delta.reasoningContent ?? delta.reasoningTokens ?? '';
+    if (reasoning.isEmpty) return null;
+    return reasoning;
+  }
+
   AgentMessageChunk? _reasoningDeltaToAgentMessageChunk(
-      ChatCompletionDelta chatCompletionDelta, String originalTaskId) {
-    String reasoningContent = chatCompletionDelta.delta?.reasoningContent ?? "";
+      ChatCompletionDelta chatCompletionDelta, String originalTaskId,
+      {String? reasoningDelta}) {
+    String reasoningContent =
+        reasoningDelta ?? _reasoningDeltaText(chatCompletionDelta.delta) ?? '';
     if (reasoningContent.isNotEmpty) {
       return AgentMessageChunk(
           sessionId: _sessionId,
@@ -647,6 +657,9 @@ abstract class DeltaAccumulation<T> {
   DeltaAccumulation(this.onComplete);
 
   void appendDelta(ChatCompletionDelta delta) {
+    if (_hasCompleted) {
+      return;
+    }
     if (_completions == null) _completions = delta.completions;
     _checkComplete();
   }
@@ -656,10 +669,10 @@ abstract class DeltaAccumulation<T> {
     _checkComplete();
   }
 
-  void _checkComplete() {
+  void _checkComplete({bool allowEarly = false}) {
     if (_hasCompleted == false &&
         _finished == true &&
-        (_completions != null || _closed == true)) {
+        (allowEarly || _completions != null || _closed == true)) {
       _hasCompleted = true;
       onComplete(accumulation, _completions);
     }
@@ -692,6 +705,8 @@ class ReasoningAccumulation extends DeltaAccumulation<String> {
     if (delta.delta?.reasoningContent != null) {
       accumulation += delta.delta?.reasoningContent ?? "";
     } else if (delta.finishReason == FinishReasonType.STOP ||
+        delta.finishReason == FinishReasonType.TOOL_CALLS ||
+        delta.finishReason == FinishReasonType.LENGTH ||
         delta.delta?.content?.first?.text != null) {
       super._finished = true;
     }
@@ -710,59 +725,92 @@ class FunctionCallAccumulation extends DeltaAccumulation<List<FunctionCall>> {
 
   @override
   void appendDelta(ChatCompletionDelta delta) {
-    if (delta.finishReason == null && delta.delta != null) {
-      OpenAIResponseToolCall toolCall = delta.delta!.toolCalls!.first;
-      // OpenAI-compatible streaming tool_call deltas carry `id` and
-      // `function.name` only on the *first* chunk of each tool call.
-      // On continuation chunks providers diverge:
-      //   - OpenAI / gpt-4o leave these fields as `null`.
-      //   - DashScope's deepseek-v4-flash sends empty strings `""`
-      //     instead (verified against the upstream SSE stream).
-      // Treat `""` as "not provided" (i.e. equivalent to `null`) so that:
-      //   * a continuation chunk is never mistaken for the start of a
-      //     new tool call — otherwise `"" != currentId` would flush the
-      //     in-progress accumulation prematurely and *clobber* both
-      //     `currentId` and `currentName` with empty strings, leading to
-      //     a silently-dropped tool call at the final `_buildFunctionCall`
-      //     (the root cause of the empty `[toolCalls] []` seen with
-      //     deepseek-v4-flash);
-      //   * for multi-tool responses, arguments for tool N+1 do not get
-      //     concatenated onto the arguments buffer of tool N.
-      final String? incomingId =
-          (toolCall.id != null && toolCall.id!.isNotEmpty)
-              ? toolCall.id
-              : null;
-      final String? incomingName =
-          (toolCall.function.name != null &&
-                  toolCall.function.name!.isNotEmpty)
-              ? toolCall.function.name
-              : null;
-
-      if (incomingId != null && incomingId != currentId) {
-        _buildFunctionCall();
-        currentId = incomingId;
+    final toolCalls = delta.delta?.toolCalls;
+    if (toolCalls != null && toolCalls.isNotEmpty) {
+      for (final toolCall in toolCalls) {
+        _ingestStreamToolCall(toolCall);
       }
-      if (incomingName != null) currentName = incomingName;
-      if (toolCall.function.arguments != null)
-        currentParameters += toolCall.function.arguments!;
-    } else if (delta.finishReason == FinishReasonType.TOOL_CALLS) {
+    }
+
+    if (delta.finishReason == FinishReasonType.TOOL_CALLS) {
       _buildFunctionCall();
-      super._finished = true;
+      if (accumulation.isNotEmpty) {
+        super._finished = true;
+      }
     }
 
     super.appendDelta(delta);
+    if (accumulation.isNotEmpty && _finished) {
+      _checkComplete(allowEarly: true);
+    }
+  }
+
+  void _ingestStreamToolCall(OpenAIResponseToolCall toolCall) {
+    final String? incomingId =
+        (toolCall.id != null && toolCall.id!.isNotEmpty) ? toolCall.id : null;
+    final String? incomingName =
+        (toolCall.function.name != null && toolCall.function.name!.isNotEmpty)
+            ? toolCall.function.name
+            : null;
+    final arguments = toolCall.function.arguments?.trim() ?? '';
+
+    if (incomingName != null &&
+        arguments.isNotEmpty &&
+        arguments.startsWith('{') &&
+        arguments.endsWith('}')) {
+      if (currentName.isNotEmpty) {
+        _buildFunctionCall();
+      }
+      try {
+        final decoded = jsonDecode(arguments);
+        accumulation.add(
+          FunctionCall(
+            id: incomingId ?? incomingName,
+            name: incomingName,
+            arguments: decoded is Map
+                ? Map<String, dynamic>.from(decoded)
+                : <String, dynamic>{},
+          ),
+        );
+        super._finished = true;
+      } catch (_) {
+        currentId = incomingId ?? '';
+        currentName = incomingName;
+        currentParameters = arguments;
+        _buildFunctionCall();
+        if (accumulation.isNotEmpty) {
+          super._finished = true;
+        }
+      }
+      return;
+    }
+
+    if (incomingId != null && incomingId != currentId) {
+      _buildFunctionCall();
+      currentId = incomingId;
+    }
+    if (incomingName != null) currentName = incomingName;
+    if (toolCall.function.arguments != null) {
+      currentParameters += toolCall.function.arguments!;
+    }
   }
 
   void _buildFunctionCall() {
-    if (currentName.isNotEmpty && currentParameters.isNotEmpty) {
-      accumulation.add(FunctionCall(
-          id: currentId,
-          name: currentName,
-          arguments: jsonDecode(currentParameters)));
-      currentId = "";
-      currentName = "";
-      currentParameters = "";
+    if (currentName.isEmpty) {
+      return;
     }
+    accumulation.add(
+      FunctionCall(
+        id: currentId.isNotEmpty ? currentId : currentName,
+        name: currentName,
+        arguments: currentParameters.isNotEmpty
+            ? jsonDecode(currentParameters)
+            : <String, dynamic>{},
+      ),
+    );
+    currentId = "";
+    currentName = "";
+    currentParameters = "";
   }
 }
 

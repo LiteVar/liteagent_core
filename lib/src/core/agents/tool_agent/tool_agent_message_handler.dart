@@ -21,7 +21,10 @@ class LLMFunctionCallingMessageHandler extends AgentMessageHandler {
   @override
   Command? handle(AgentMessage agentMessage) {
     if (agentMessage.type == ToolMessageType.TOOL_CALLS) {
-      List<FunctionCall> functionCallList = agentMessage.content as List<FunctionCall>;
+      final functionCallList = agentMessage.content as List<FunctionCall>;
+      if (functionCallList.isEmpty) {
+        return null;
+      }
       if(reflectionManager.shouldReflect) {
         AgentMessage reflectionMessage = AgentMessage(
           sessionId: agentMessage.sessionId,
@@ -47,7 +50,8 @@ class LLMFunctionCallingMessageHandler extends AgentMessageHandler {
           );
           return Command(toTool, agentToolMessage); // If LLM call function, forward to TOOL.
       }
-    } else if (agentMessage.type == ToolMessageType.TEXT || agentMessage.type == ToolMessageType.IMAGE_URL) {
+    } else if (agentMessage.type == ToolMessageType.TEXT ||
+        agentMessage.type == ToolMessageType.IMAGE_URL) {
       AgentMessage agentUserMessage = AgentMessage(
         sessionId: agentMessage.sessionId,
         originalTaskId: agentMessage.originalTaskId,
