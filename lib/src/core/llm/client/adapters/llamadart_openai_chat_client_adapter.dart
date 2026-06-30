@@ -4,21 +4,16 @@ import '../../model.dart';
 import '../chat_completions_client.dart';
 
 class LlamadartOpenAIChatClientAdapter implements ChatCompletionsClient {
+  final LLMConfig llmConfig;
+
+  late final LlamadartOpenAI _client;
+
   LlamadartOpenAIChatClientAdapter(this.llmConfig) {
     final providerOptions = llmConfig.providerOptions ?? const {};
-    final injected = providerOptions['llamadartClient'];
-    if (injected is LlamadartOpenAI) {
-      _client = injected;
-      return;
-    }
     _client = LlamadartOpenAI.llamadart(
       model: _buildModelOptions(providerOptions),
     );
   }
-
-  final LLMConfig llmConfig;
-
-  late final LlamadartOpenAI _client;
 
   @override
   Future<OpenAIChatCompletionModel> create({
