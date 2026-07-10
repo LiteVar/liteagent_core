@@ -45,6 +45,52 @@ Future<void> main() async {
 }
 ```
 
+### 恢复持久化会话运行态
+
+`AgentService.initSession` 新增可选参数 `SessionRestoreState`，用于恢复因空闲超时、服务重启等原因从内存中消失的 Session。普通创建会话时不要传该参数，core 会继续自动生成新的 Session ID，原有行为不变。
+
+数据库持久化、Session 删除状态和业务过期判断由上层服务负责。本包不依赖 SQLite、Drift 或其他数据库实现。
+
+```dart
+// 从上层持久化实现读取已完成任务的上下文 DTO。
+final List<Map<String, dynamic>> storedMessageJson =
+    await persistence.loadCompletedContext(sessionId);
+
+final contextMessages = storedMessageJson
+    .map((json) => AgentMessageDto.fromJson(json).toModel())
+    .toList();
+
+final restoredSession = await agentService.initSession(
+  capabilityDto,
+  agentId: agentId,
+  restoreState: SessionRestoreState(
+    sessionId: sessionId,
+    contextMessages: contextMessages,
+  ),
+);
+```
+
+恢复行为与数据约束：
+
+- `contextMessages` 必须按原始消息顺序传入，并且只包含已完成任务的上下文。
+- 未完成的工具调用、流式 chunk、等待 callback 的任务不能用于恢复。
+- Assistant 的 `tool_calls` 与工具返回消息必须完整配对。
+- 上下文会通过 defensive copy 写入 `AgentSession.taskDoneAgentMessageList`，不会重新执行历史任务、触发消息监听器、产生流事件或重新广播历史消息。
+- `hasSystemMessage` 会根据恢复的 developer/system 消息自动推导，下一轮不会重复添加 system prompt。
+- `sessionSummary` 和 `summaryMessageCount` 会被重置；后续需要时可由 core 重新生成摘要。
+- 如果相同 ID 的运行态 Session 已存在，会抛出 `SessionAlreadyExistsException`，不会覆盖原 Session。
+- MultiAgent 的根 Session 上下文独立恢复；需要恢复的子 Session 应由上层分别恢复。
+
+`AgentMessageDto` 会序列化 `originalTaskId`，并提供 `toModel()` 用于重建 `AgentMessage`。读取缺少 `originalTaskId` 的旧 JSON 时，会自动回退到 `taskId`。
+
+以下离线示例不需要数据库、LLM API Key 或工具服务：
+
+```bash
+dart run example/service_example/session_restore_example.dart
+```
+
+完整的持久化往返与恢复检查请参考 [`example/service_example/session_restore_example.dart`](example/service_example/session_restore_example.dart)。
+
 ### Tool返回压缩
 
 `CapabilityDto` 支持 `toolReturnPackMinLength`，用于控制发送给大模型前的 tool 返回压缩：

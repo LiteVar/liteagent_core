@@ -5,6 +5,9 @@ import 'exception.dart';
 
 part 'dto.g.dart';
 
+Object? _readOriginalTaskId(Map<dynamic, dynamic> json, String key) =>
+    json[key] ?? json['taskId'];
+
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
 class SessionDto {
   String sessionId;
@@ -194,6 +197,8 @@ class LLMConfigDto {
 class AgentMessageDto {
   String sessionId;
   String? agentId;
+  @JsonKey(readValue: _readOriginalTaskId)
+  String originalTaskId;
   String? parentTaskId;
   String taskId;
   String role;
@@ -211,6 +216,7 @@ class AgentMessageDto {
   AgentMessageDto({
     required this.sessionId,
     this.agentId,
+    String? originalTaskId,
     this.parentTaskId,
     required this.taskId,
     required this.role,
@@ -220,7 +226,7 @@ class AgentMessageDto {
     this.reasoningContent,
     this.completions,
     required this.createTime,
-  });
+  }) : originalTaskId = originalTaskId ?? taskId;
 
   factory AgentMessageDto.fromJson(Map<String, dynamic> json) =>
       _$AgentMessageDtoFromJson(json);
@@ -258,6 +264,7 @@ class AgentMessageDto {
     return AgentMessageDto(
       sessionId: agentMessage.sessionId,
       agentId: agentMessage.agentId,
+      originalTaskId: agentMessage.originalTaskId,
       parentTaskId: agentMessage.parentTaskId,
       taskId: agentMessage.taskId,
       role: agentMessage.role,
@@ -270,6 +277,73 @@ class AgentMessageDto {
           : CompletionsDto.fromModel(agentMessage.completions!),
       createTime: agentMessage.createTime,
     );
+  }
+
+  AgentMessage toModel() {
+    final AgentMessage message = AgentMessage(
+      sessionId: sessionId,
+      agentId: agentId,
+      originalTaskId: originalTaskId,
+      parentTaskId: parentTaskId,
+      taskId: taskId,
+      role: role,
+      to: to,
+      type: type,
+      content: _contentToModel(),
+      reasoningContent: reasoningContent,
+      completions: completions?.toModel(),
+    );
+    message.createTime = createTime;
+    return message;
+  }
+
+  dynamic _contentToModel() {
+    switch (type) {
+      case AgentMessageType.CONTENT_LIST:
+        return (content as List<dynamic>)
+            .map((item) => item is ContentDto
+                ? item.toModel()
+                : ContentDto.fromJson(
+                    Map<String, dynamic>.from(item as Map),
+                  ).toModel())
+            .toList();
+      case AgentMessageType.FUNCTION_CALL:
+        if (content is FunctionCall) return content;
+        return FunctionCall.fromJson(
+          Map<String, dynamic>.from(content as Map),
+        );
+      case AgentMessageType.TOOL_CALLS:
+        return (content as List<dynamic>)
+            .map((item) => item is FunctionCall
+                ? item
+                : FunctionCall.fromJson(
+                    Map<String, dynamic>.from(item as Map),
+                  ))
+            .toList();
+      case AgentMessageType.TOOL_RETURN:
+        if (content is ToolReturn) return content;
+        return ToolReturn.fromJson(
+          Map<String, dynamic>.from(content as Map),
+        );
+      case AgentMessageType.REFLECTION:
+        if (content is Reflection) return content;
+        return (content is ReflectionDto
+                ? content as ReflectionDto
+                : ReflectionDto.fromJson(
+                    Map<String, dynamic>.from(content as Map),
+                  ))
+            .toModel();
+      case AgentMessageType.TASK_STATUS:
+        if (content is TaskStatus) return content;
+        return (content is TaskStatusDto
+                ? content as TaskStatusDto
+                : TaskStatusDto.fromJson(
+                    Map<String, dynamic>.from(content as Map),
+                  ))
+            .toModel();
+      default:
+        return content;
+    }
   }
 }
 
@@ -343,6 +417,13 @@ class CompletionsDto {
       limits: completions.limits == null
           ? null
           : CompletionsLimitsDto.fromModel(completions.limits!));
+
+  Completions toModel() => Completions(
+        tokenUsage: usage.toModel(),
+        id: id,
+        model: model,
+        limits: limits?.toModel(),
+      );
 }
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
@@ -361,6 +442,11 @@ class CompletionsLimitsDto {
       CompletionsLimitsDto(
         maxTokens: limits.maxTokens,
         contextWindowSize: limits.contextWindowSize,
+      );
+
+  CompletionsLimits toModel() => CompletionsLimits(
+        maxTokens: maxTokens,
+        contextWindowSize: contextWindowSize,
       );
 }
 
@@ -387,6 +473,13 @@ class TokenUsageDto {
       completionTokens: tokenUsage.completionTokens,
       totalTokens: tokenUsage.totalTokens,
       contextUsageRatio: tokenUsage.contextUsageRatio);
+
+  TokenUsage toModel() => TokenUsage(
+        promptTokens: promptTokens,
+        completionTokens: completionTokens,
+        totalTokens: totalTokens,
+        contextUsageRatio: contextUsageRatio,
+      );
 }
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
@@ -467,6 +560,11 @@ class ReflectScoreDto {
       _$ReflectScoreDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$ReflectScoreDtoToJson(this);
+
+  ReflectScore toModel() => ReflectScore(
+        score: score,
+        description: description,
+      );
 }
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
@@ -499,6 +597,14 @@ class MessageScoreDto {
       _$MessageScoreDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$MessageScoreDtoToJson(this);
+
+  MessageScore toModel() => MessageScore(
+        contentList: contentList.map((content) => content.toModel()).toList(),
+        messageType: messageType,
+        message: message,
+        reflectScoreList:
+            reflectScoreList.map((score) => score.toModel()).toList(),
+      );
 }
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
@@ -528,6 +634,14 @@ class ReflectionDto {
       _$ReflectionDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$ReflectionDtoToJson(this);
+
+  Reflection toModel() => Reflection(
+        isPass: isPass,
+        messageScore: messageScore.toModel(),
+        passScore: passScore,
+        count: count,
+        maxCount: maxCount,
+      );
 }
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
@@ -549,6 +663,12 @@ class TaskStatusDto {
       _$TaskStatusDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$TaskStatusDtoToJson(this);
+
+  TaskStatus toModel() => TaskStatus(
+        status: status,
+        taskId: taskId,
+        description: description,
+      );
 }
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
@@ -567,6 +687,8 @@ class ContentDto {
       _$ContentDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$ContentDtoToJson(this);
+
+  Content toModel() => Content(type: type, message: message);
 }
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)

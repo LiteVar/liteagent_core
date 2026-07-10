@@ -21,6 +21,21 @@ class SessionAgentNotFoundException implements Exception {
 }
 
 @JsonSerializable(createFactory: false)
+class SessionAlreadyExistsException implements Exception {
+  final int code = 409;
+  late String message;
+
+  SessionAlreadyExistsException({required String sessionId}) {
+    message = "SessionId `$sessionId` already has a running Agent";
+  }
+
+  Map<String, dynamic> toJson() => _$SessionAlreadyExistsExceptionToJson(this);
+
+  @override
+  String toString() => jsonEncode(toJson());
+}
+
+@JsonSerializable(createFactory: false)
 class AgentNotFoundException implements Exception {
   final int code = 404;
   late String message;

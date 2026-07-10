@@ -146,9 +146,21 @@ class AgentService {
     }
   }
 
-  Future<SessionDto> initSession(CapabilityDto capabilityDto,
-      {String? agentId, List<ToolDriver>? customToolDriverList}) async {
-    String sessionId = uniqueId();
+  /// Initializes a new session, or reconstructs an evicted session when
+  /// [restoreState] is supplied.
+  ///
+  /// [restoreState] is only for restoring persisted completed context. Normal
+  /// session creation must leave it unset.
+  Future<SessionDto> initSession(
+    CapabilityDto capabilityDto, {
+    String? agentId,
+    SessionRestoreState? restoreState,
+    List<ToolDriver>? customToolDriverList,
+  }) async {
+    final String sessionId = restoreState?.sessionId ?? uniqueId();
+    if (sessionAgents.containsKey(sessionId)) {
+      throw SessionAlreadyExistsException(sessionId: sessionId);
+    }
     DateTime createTime = DateTime.now();
 
     if (agentId != null) {
@@ -191,6 +203,10 @@ class AgentService {
 
     List<AgentDriver>? subAgentDriverList =
         await _buildAgentDriverList(capabilityDto.sessionList, sessionId);
+    final AgentSession agentSession = _buildSession(
+      sessionId,
+      restoreState: restoreState,
+    );
 
     if (capabilityDto.auto == true) {
       // AutoAgent
@@ -208,7 +224,7 @@ class AgentService {
       AutoMultiAgent autoMultiAgent = await AutoMultiAgent.create(
         sessionId: sessionId,
         llmConfig: llmConfig,
-        agentSession: _buildSession(sessionId),
+        agentSession: agentSession,
         toolDriverList: toolDriverList,
         clientOpenTool: clientOpenTool,
         systemPrompt: fullSystemPrompt,
@@ -230,7 +246,7 @@ class AgentService {
       SessionAgent textAgent = TextAgent(
           sessionId: sessionId,
           llmConfig: llmConfig,
-          agentSession: _buildSession(sessionId),
+          agentSession: agentSession,
           systemPrompt: fullSystemPrompt,
           textReflectPromptList: reflectPromptList ?? [],
           timeoutSeconds: capabilityDto.timeoutSeconds,
@@ -249,7 +265,7 @@ class AgentService {
       SessionAgent toolAgent = ToolAgent(
           sessionId: sessionId,
           llmConfig: llmConfig,
-          agentSession: _buildSession(sessionId),
+          agentSession: agentSession,
           toolDriverList: toolDriverList,
           callbackOpenTool: clientOpenTool,
           systemPrompt: fullSystemPrompt,
@@ -273,7 +289,7 @@ class AgentService {
       SessionAgent toolAgent = MultiAgent(
           sessionId: sessionId,
           llmConfig: llmConfig,
-          agentSession: _buildSession(sessionId),
+          agentSession: agentSession,
           toolDriverList: toolDriverList,
           subAgentDriverList: subAgentDriverList,
           clientOpenTool: clientOpenTool,
@@ -430,8 +446,14 @@ class AgentService {
     return Content(type: contentDto.type, message: contentDto.message);
   }
 
-  AgentSession _buildSession(String sessionId) {
+  AgentSession _buildSession(
+    String sessionId, {
+    SessionRestoreState? restoreState,
+  }) {
     AgentSession agentSession = AgentSession(sessionId: sessionId);
+    if (restoreState != null) {
+      agentSession.restore(restoreState);
+    }
     // agentSession.addAgentMessageListener((AgentMessage agentMessage) {
     //   AgentMessageDto agentMessageDto = AgentMessageDto.fromModel(agentMessage);
     //   _recordAgentMessage(sessionId, agentMessageDto);

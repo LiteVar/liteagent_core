@@ -46,6 +46,52 @@ Future<void> main() async {
 }
 ```
 
+### Restoring persisted session runtime
+
+`AgentService.initSession` accepts the optional `SessionRestoreState` argument for reconstructing a session that was evicted from memory because of an idle timeout or service restart. Normal session creation should omit this argument and continues to generate a new session ID.
+
+The upper-layer service owns database persistence, deletion, and business-expiration decisions. This package does not depend on SQLite, Drift, or any other database implementation.
+
+```dart
+// Load completed context DTOs from your persistence layer.
+final List<Map<String, dynamic>> storedMessageJson =
+    await persistence.loadCompletedContext(sessionId);
+
+final contextMessages = storedMessageJson
+    .map((json) => AgentMessageDto.fromJson(json).toModel())
+    .toList();
+
+final restoredSession = await agentService.initSession(
+  capabilityDto,
+  agentId: agentId,
+  restoreState: SessionRestoreState(
+    sessionId: sessionId,
+    contextMessages: contextMessages,
+  ),
+);
+```
+
+Restoration behavior and constraints:
+
+- `contextMessages` must be in original message order and contain only completed-task context.
+- Incomplete tool calls, streaming chunks, and tasks waiting for callbacks must not be restored.
+- Assistant `tool_calls` and tool-return messages must be complete and correctly paired.
+- Context is copied into `AgentSession.taskDoneAgentMessageList` without replaying tasks, notifying message listeners, emitting stream events, or rebroadcasting historical messages.
+- `hasSystemMessage` is inferred from the restored developer/system message, so the next turn does not add the system prompt again.
+- `sessionSummary` and `summaryMessageCount` are reset; core can regenerate a summary later when needed.
+- Restoring an ID that already belongs to a running session throws `SessionAlreadyExistsException` and does not replace that session.
+- MultiAgent root context is restored independently. Referenced child sessions must be restored separately when needed.
+
+`AgentMessageDto` serializes `originalTaskId` and provides `toModel()` for rebuilding `AgentMessage`. When reading legacy JSON without `originalTaskId`, it falls back to `taskId`.
+
+The offline example requires no database, LLM API key, or tool server:
+
+```bash
+dart run example/service_example/session_restore_example.dart
+```
+
+See [`example/service_example/session_restore_example.dart`](example/service_example/session_restore_example.dart) for a runnable persistence round-trip and restore check.
+
 ### Tool return packing
 
 `CapabilityDto` supports `toolReturnPackMinLength` to control tool-return compression before sending content to LLM:

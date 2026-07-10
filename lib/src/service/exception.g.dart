@@ -13,6 +13,13 @@ Map<String, dynamic> _$SessionAgentNotFoundExceptionToJson(
       'message': instance.message,
     };
 
+Map<String, dynamic> _$SessionAlreadyExistsExceptionToJson(
+        SessionAlreadyExistsException instance) =>
+    <String, dynamic>{
+      'code': instance.code,
+      'message': instance.message,
+    };
+
 Map<String, dynamic> _$AgentNotFoundExceptionToJson(
         AgentNotFoundException instance) =>
     <String, dynamic>{

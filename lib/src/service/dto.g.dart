@@ -129,7 +129,7 @@ Map<String, dynamic> _$OpenSpecDtoToJson(OpenSpecDto instance) =>
 
 LLMConfigDto _$LLMConfigDtoFromJson(Map<String, dynamic> json) => LLMConfigDto(
       provider: json['provider'] as String?,
-      baseUrl: json['baseUrl'] as String,
+      baseUrl: json['baseUrl'] as String? ?? "",
       apiKey: json['apiKey'] as String?,
       model: json['model'] as String,
       adapter: json['adapter'] as String?,
@@ -167,6 +167,7 @@ AgentMessageDto _$AgentMessageDtoFromJson(Map<String, dynamic> json) =>
     AgentMessageDto(
       sessionId: json['sessionId'] as String,
       agentId: json['agentId'] as String?,
+      originalTaskId: _readOriginalTaskId(json, 'originalTaskId') as String?,
       parentTaskId: json['parentTaskId'] as String?,
       taskId: json['taskId'] as String,
       role: json['role'] as String,
@@ -185,6 +186,7 @@ Map<String, dynamic> _$AgentMessageDtoToJson(AgentMessageDto instance) =>
     <String, dynamic>{
       'sessionId': instance.sessionId,
       if (instance.agentId case final value?) 'agentId': value,
+      'originalTaskId': instance.originalTaskId,
       if (instance.parentTaskId case final value?) 'parentTaskId': value,
       'taskId': instance.taskId,
       'role': instance.role,

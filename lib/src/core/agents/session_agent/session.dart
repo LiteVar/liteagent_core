@@ -1,5 +1,7 @@
 import 'dart:async';
 import '../model.dart';
+import 'model.dart';
+import 'session_restore_state.dart';
 
 class AgentSession {
   String sessionId;
@@ -14,6 +16,19 @@ class AgentSession {
 
   AgentSession({required this.sessionId});
 
+  /// Silently restores completed context for the next LLM request.
+  ///
+  /// This intentionally does not populate [listenAgentMessageList] or notify
+  /// listeners. Historical tasks are not replayed or executed.
+  void restore(SessionRestoreState state) {
+    taskDoneAgentMessageList = List<AgentMessage>.from(state.contextMessages);
+    hasSystemMessage = state.contextMessages.any(
+      (message) => message.role == SessionRoleType.SYSTEM,
+    );
+    sessionSummary = null;
+    summaryMessageCount = 0;
+  }
+
   void clearMessage() {
     hasSystemMessage = false;
     listenAgentMessageList = [];
@@ -22,13 +37,17 @@ class AgentSession {
     summaryMessageCount = 0;
   }
 
-  void resetListener() { _agentMessageListenerList = []; }
+  void resetListener() {
+    _agentMessageListenerList = [];
+  }
 
-  void addAgentMessageListener(void Function(AgentMessage) agentMessageListener) {
+  void addAgentMessageListener(
+      void Function(AgentMessage) agentMessageListener) {
     _agentMessageListenerList.add(agentMessageListener);
   }
 
-  void addAgentMessageChunkListener(void Function(AgentMessageChunk) agentMessageChunkListener) {
+  void addAgentMessageChunkListener(
+      void Function(AgentMessageChunk) agentMessageChunkListener) {
     _agentMessageChunkListenerList.add(agentMessageChunkListener);
   }
 
@@ -45,8 +64,10 @@ class AgentSession {
     _broadcast(agentMessage);
   }
 
-  Future<void> addListenAgentMessageChunk(AgentMessageChunk agentMessageChunk) async {
-    _agentMessageChunkListenerList.forEach((agentLLMMessageChunkListener) async {
+  Future<void> addListenAgentMessageChunk(
+      AgentMessageChunk agentMessageChunk) async {
+    _agentMessageChunkListenerList
+        .forEach((agentLLMMessageChunkListener) async {
       agentLLMMessageChunkListener(agentMessageChunk);
     });
   }
@@ -64,5 +85,4 @@ class AgentSession {
       agentLLMMessageListener(agentMessage);
     });
   }
-
 }
