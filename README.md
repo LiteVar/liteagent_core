@@ -81,6 +81,7 @@ Restoration behavior and constraints:
 - `sessionSummary` and `summaryMessageCount` are reset; core can regenerate a summary later when needed.
 - Restoring an ID that already belongs to a running session throws `SessionAlreadyExistsException` and does not replace that session.
 - MultiAgent root context is restored independently. Referenced child sessions must be restored separately when needed.
+- AutoMultiAgent records only each completed user instruction and final answer as cross-turn context. Its Planner consumes the same context for both in-memory and restored sessions; internal planning, node, tool, and stream events are excluded.
 
 `AgentMessageDto` serializes `originalTaskId` and provides `toModel()` for rebuilding `AgentMessage`. When reading legacy JSON without `originalTaskId`, it falls back to `taskId`.
 

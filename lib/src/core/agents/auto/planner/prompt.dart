@@ -3,6 +3,23 @@ import '../wrappers/llm.dart';
 
 /// Auto task planning template
 class PlanningPrompt {
+  static String buildUserInput({
+    required String userCommand,
+    String conversationContext = '',
+  }) {
+    if (conversationContext.trim().isEmpty) return userCommand;
+
+    return '''
+# Previous completed conversation
+$conversationContext
+
+# Current user instruction
+$userCommand
+
+Use the previous conversation only as context. Plan tasks for the current user instruction.
+'''
+        .trim();
+  }
 
   static String getSystemPrompt({
     required List<IndexedLLMConfig> availableModels,
@@ -68,11 +85,12 @@ availableTools:${_formatToolsSection(indexedFunctions)}
     if (models.isEmpty) {
       return "";
     }
-    
+
     StringBuffer buffer = StringBuffer('[');
     for (int i = 0; i < models.length; i++) {
       if (i > 0) buffer.write(',');
-      buffer.write('{"id":"${models[i].index}","name":"${models[i].llmConfig.model}","summary":"${models[i].description}, supportsToolCall:${models[i].llmConfig.supportsToolCall}"}');
+      buffer.write(
+          '{"id":"${models[i].index}","name":"${models[i].llmConfig.model}","summary":"${models[i].description}, supportsToolCall:${models[i].llmConfig.supportsToolCall}"}');
     }
     buffer.write(']');
     return buffer.toString();
@@ -86,9 +104,10 @@ availableTools:${_formatToolsSection(indexedFunctions)}
     StringBuffer buffer = StringBuffer('[');
     for (int i = 0; i < indexedFunctionList.length; i++) {
       if (i > 0) buffer.write(',');
-      buffer.write('{"id":"${indexedFunctionList[i].index}","name":"${indexedFunctionList[i].functionModel.name}","summary":"${indexedFunctionList[i].functionModel.description}"}');
+      buffer.write(
+          '{"id":"${indexedFunctionList[i].index}","name":"${indexedFunctionList[i].functionModel.name}","summary":"${indexedFunctionList[i].functionModel.description}"}');
     }
     buffer.write(']');
     return buffer.toString();
   }
-} 
+}

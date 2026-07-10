@@ -22,6 +22,7 @@ class AutoTaskPlanner {
 
   Future<String> planTasks({
     required String userCommand,
+    String conversationContext = '',
     required List<IndexedLLMConfig> indexedLLMConfigs,
     required List<IndexedFunction> indexedFunctions,
     required String taskId,
@@ -48,7 +49,10 @@ class AutoTaskPlanner {
 
     try {
       return await plannerAgent!.execute(
-        userInput: userCommand,
+        userInput: PlanningPrompt.buildUserInput(
+          userCommand: userCommand,
+          conversationContext: conversationContext,
+        ),
         originalTaskId: taskId,
         parentTaskId: taskId,
         functionName: 'planner',

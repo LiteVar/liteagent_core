@@ -80,6 +80,7 @@ final restoredSession = await agentService.initSession(
 - `sessionSummary` 和 `summaryMessageCount` 会被重置；后续需要时可由 core 重新生成摘要。
 - 如果相同 ID 的运行态 Session 已存在，会抛出 `SessionAlreadyExistsException`，不会覆盖原 Session。
 - MultiAgent 的根 Session 上下文独立恢复；需要恢复的子 Session 应由上层分别恢复。
+- AutoMultiAgent 只把每轮已完成的用户指令和最终回答作为跨轮上下文。无论上下文来自内存还是外部恢复，下一轮 Planner 都会使用同一份上下文；内部规划、节点、工具及流事件不会进入跨轮上下文。
 
 `AgentMessageDto` 会序列化 `originalTaskId`，并提供 `toModel()` 用于重建 `AgentMessage`。读取缺少 `originalTaskId` 的旧 JSON 时，会自动回退到 `taskId`。
 
