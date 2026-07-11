@@ -4,6 +4,7 @@ import 'package:dart_openai_sdk/dart_openai_sdk.dart';
 import 'package:opentool_dart/opentool_client.dart';
 import 'package:token_pack/token_pack.dart';
 import '../text_agent/model.dart';
+import 'context_normalizer.dart';
 import 'exception.dart';
 import '../../llm/openai_util.dart';
 import '../../llm/model.dart';
@@ -37,7 +38,8 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
     _taskId = agentMessage.taskId;
     List<OpenAIChatCompletionChoiceMessageModel> requestMessageList = [];
 
-    for (AgentMessage agentMessage in agentMessageList) {
+    for (AgentMessage agentMessage
+        in normalizeReasoningContext(agentMessageList)) {
       if ((agentMessage.role == AgentRoleType.TOOL ||
               agentMessage.role == AgentRoleType.SUBAGENT) &&
           agentMessage.type == AgentMessageType.TASK_STATUS) {
@@ -77,10 +79,12 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
     AgentMessage agentMessage = agentMessageList
         .lastWhere((agentMessage) => agentMessage.role == AgentRoleType.AGENT);
     _sessionId = agentMessage.sessionId;
+    _parentTaskId = agentMessage.parentTaskId;
     _taskId = agentMessage.taskId;
     List<OpenAIChatCompletionChoiceMessageModel> requestMessageList = [];
 
-    for (AgentMessage agentMessage in agentMessageList) {
+    for (AgentMessage agentMessage
+        in normalizeReasoningContext(agentMessageList)) {
       if ((agentMessage.role == AgentRoleType.TOOL ||
               agentMessage.role == AgentRoleType.SUBAGENT) &&
           agentMessage.type == AgentMessageType.TASK_STATUS) {
@@ -97,8 +101,8 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
         .toList();
 
     try {
-      Stream<ChatCompletionDelta> chatCompletionDeltaStream = await super
-          .chatByStream(
+      Stream<ChatCompletionDelta> chatCompletionDeltaStream =
+          await chatByStream(
               messageList: requestMessageList,
               toolList: tools,
               responseFormat: responseFormat,
@@ -109,9 +113,13 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
 
       DeltaAccumulation textAccumulation = _buildTextAccumulation(listenChunk,
           agentMessageStreamController, agentMessage.originalTaskId);
+      final reasoningBuffer = StringBuffer();
       DeltaAccumulation functionCallAccumulation =
           _buildFunctionCallAccumulation(
-              agentMessageStreamController, agentMessage.originalTaskId);
+        agentMessageStreamController,
+        agentMessage.originalTaskId,
+        reasoningContent: () => reasoningBuffer.toString(),
+      );
       DeltaAccumulation reasoningAccumulation = _buildReasoningAccumulation(
           listenChunk,
           agentMessageStreamController,
@@ -129,15 +137,18 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
         finishReasonCache =
             chatCompletionDelta.finishReason ?? finishReasonCache;
 
-        // TOTO: check if reasoning is finished
         if (chatCompletionDelta.delta?.reasoningContent != null) {
+          reasoningBuffer.write(chatCompletionDelta.delta!.reasoningContent!);
           AgentMessageChunk? reasoningChunk =
               _reasoningDeltaToAgentMessageChunk(
                   chatCompletionDelta, agentMessage.originalTaskId);
           if (reasoningChunk != null && listenChunk != null)
             listenChunk(reasoningChunk);
-          reasoningAccumulation.appendDelta(chatCompletionDelta);
         }
+        // Feed every delta to the reasoning accumulator. The first content or
+        // tool-call delta is also the boundary that closes accumulated
+        // reasoning and emits its durable AgentMessage counterpart.
+        reasoningAccumulation.appendDelta(chatCompletionDelta);
 
         if (chatCompletionDelta.delta?.toolCalls != null ||
             chatCompletionDelta.finishReason == FinishReasonType.TOOL_CALLS ||
@@ -156,8 +167,8 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
         }
       }, onDone: () {
         textAccumulation.close();
-        functionCallAccumulation.close();
         reasoningAccumulation.close();
+        functionCallAccumulation.close();
         agentMessageStreamController.close();
       }, onError: (e) {
         agentMessageStreamController.addError(e);
@@ -207,6 +218,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
       StreamController<AgentMessage> agentMessageStreamController,
       String originalTaskId) {
     return ReasoningAccumulation((reasoning, Completions? completions) {
+      if (reasoning.isEmpty) return;
       if (listenChunk != null) {
         AgentMessageChunk chunkDoneMessageChunk = AgentMessageChunk(
             sessionId: _sessionId,
@@ -236,10 +248,13 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
   }
 
   FunctionCallAccumulation _buildFunctionCallAccumulation(
-      StreamController<AgentMessage> agentMessageStreamController,
-      String originalTaskId) {
+    StreamController<AgentMessage> agentMessageStreamController,
+    String originalTaskId, {
+    String Function()? reasoningContent,
+  }) {
     return FunctionCallAccumulation(
         (functionCallList, Completions? completions) {
+      final reasoning = reasoningContent?.call();
       AgentMessage agentMessage = AgentMessage(
           sessionId: _sessionId,
           originalTaskId: originalTaskId,
@@ -248,6 +263,8 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
           role: AgentRoleType.LLM,
           to: AgentRoleType.AGENT,
           type: AgentMessageType.TOOL_CALLS,
+          reasoningContent:
+              reasoning == null || reasoning.isEmpty ? null : reasoning,
           content: functionCallList,
           completions: completions);
       agentMessageStreamController.add(agentMessage);
@@ -688,11 +705,19 @@ class ReasoningAccumulation extends DeltaAccumulation<String> {
   }
 
   @override
+  void close() {
+    if (accumulation.isNotEmpty) super._finished = true;
+    super.close();
+  }
+
+  @override
   void appendDelta(ChatCompletionDelta delta) {
     if (delta.delta?.reasoningContent != null) {
       accumulation += delta.delta?.reasoningContent ?? "";
     } else if (delta.finishReason == FinishReasonType.STOP ||
-        delta.delta?.content?.first?.text != null) {
+        delta.finishReason == FinishReasonType.TOOL_CALLS ||
+        delta.delta?.content?.first?.text != null ||
+        delta.delta?.toolCalls != null) {
       super._finished = true;
     }
     super.appendDelta(delta);
@@ -729,12 +754,9 @@ class FunctionCallAccumulation extends DeltaAccumulation<List<FunctionCall>> {
       //   * for multi-tool responses, arguments for tool N+1 do not get
       //     concatenated onto the arguments buffer of tool N.
       final String? incomingId =
-          (toolCall.id != null && toolCall.id!.isNotEmpty)
-              ? toolCall.id
-              : null;
+          (toolCall.id != null && toolCall.id!.isNotEmpty) ? toolCall.id : null;
       final String? incomingName =
-          (toolCall.function.name != null &&
-                  toolCall.function.name!.isNotEmpty)
+          (toolCall.function.name != null && toolCall.function.name!.isNotEmpty)
               ? toolCall.function.name
               : null;
 

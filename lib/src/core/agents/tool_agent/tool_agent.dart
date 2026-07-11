@@ -7,6 +7,7 @@ import '../../driver/opentool/opentool_callback_driver.dart';
 import '../../driver/opentool/opentool_driver.dart';
 import '../../driver/tool_driver.dart';
 import '../llm/exception.dart';
+import '../llm/context_normalizer.dart';
 import '../llm/openai_executor.dart';
 import '../model.dart';
 import '../pipeline/model.dart';
@@ -865,7 +866,7 @@ Output format (Markdown):
         filtered.add(sessionMessage);
       }
     }
-    return filtered;
+    return normalizeReasoningContext(filtered);
   }
 
   AgentMessage _buildSummaryMessage(AgentMessage anchor, String summary) {

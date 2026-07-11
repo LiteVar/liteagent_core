@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../../llm/model.dart';
 import '../llm/exception.dart';
+import '../llm/context_normalizer.dart';
 import '../llm/openai_executor.dart';
 import '../model.dart';
 import '../reflection/model.dart';
@@ -304,7 +305,7 @@ Output format (Markdown):
         filtered.add(sessionMessage);
       }
     }
-    return filtered;
+    return normalizeReasoningContext(filtered);
   }
 
   AgentMessage _buildSummaryMessage(AgentMessage anchor, String summary) {
