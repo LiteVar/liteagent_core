@@ -328,9 +328,11 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
         );
       case DataType.ARRAY:
         {
+          final Schema itemsSchema =
+              schema.items ?? Schema(type: DataType.STRING);
           OpenAIFunctionProperty openAIFunctionProperty =
               _toOpenAIFunctionProperty(name,
-                  description ?? (schema.description), schema.items!, required);
+                  description ?? (schema.description), itemsSchema, required);
           return OpenAIFunctionProperty.array(
               name: name,
               description: schema.description,
@@ -339,7 +341,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
         }
       case DataType.OBJECT:
         {
-          Map<String, Schema> properties = schema.properties!;
+          Map<String, Schema> properties = schema.properties ?? {};
           List<String>? requiredList = schema.required;
           Map<String, OpenAIFunctionProperty> openAIFunctionProperties = {};
           properties.forEach((String name, Schema schema0) {
