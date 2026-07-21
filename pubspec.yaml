@@ -20,7 +20,7 @@ dependencies:
   lite_oneapi: ^0.2.0
 
   # OpenSpec support
-  opentool_dart: ^2.0.0
+  opentool_dart: ^2.0.1
   opentool_daemon: ^0.2.1
   openapi_dart: ^0.2.0
   openrpc_dart: ^0.2.0
