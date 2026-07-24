@@ -183,6 +183,14 @@ class AgentService {
             : (capabilityDto.toolReturnPackMinLength! <= 0
                 ? null
                 : capabilityDto.toolReturnPackMinLength);
+    final toolExecutionLimits = ToolExecutionLimits(
+      maxLlmRequests: capabilityDto.maxLlmRequests ?? 64,
+      maxToolRounds: capabilityDto.maxToolRounds ?? 16,
+      maxToolCalls: capabilityDto.maxToolCalls ?? 64,
+      maxConsecutiveIdenticalToolRounds:
+          capabilityDto.maxConsecutiveIdenticalToolRounds ?? 3,
+      maxTaskDurationSeconds: capabilityDto.maxTaskDurationSeconds ?? 300,
+    );
     _sessionLlmConfigMap[sessionId] = llmConfig;
     List<ReflectPrompt>? reflectPromptList = capabilityDto.reflectPromptList
         ?.map((reflectPromptDto) => ReflectPrompt(
@@ -219,7 +227,8 @@ class AgentService {
         clientOpenTool = CallbackOpenTool(
             opentool: capabilityDto.callbackOpenTool!.opentool,
             timeout: capabilityDto.callbackOpenTool!.timeout,
-            fetchClientDriver: this.fetchClientDriver);
+            fetchClientDriver: this.fetchClientDriver,
+            releaseClientDriver: this.releaseClientDriver);
 
       AutoMultiAgent autoMultiAgent = await AutoMultiAgent.create(
         sessionId: sessionId,
@@ -236,6 +245,7 @@ class AgentService {
         enableThinking: capabilityDto.enableThinking,
         llmConfigList: llmConfigList,
         toolReturnPackMinLength: resolvedToolReturnPackMinLength,
+        executionLimits: toolExecutionLimits,
       );
       _attachIdleTimeoutHandler(autoMultiAgent);
       sessionAgents[sessionId] = autoMultiAgent;
@@ -261,7 +271,8 @@ class AgentService {
         clientOpenTool = CallbackOpenTool(
             opentool: capabilityDto.callbackOpenTool!.opentool,
             timeout: capabilityDto.callbackOpenTool!.timeout,
-            fetchClientDriver: this.fetchClientDriver);
+            fetchClientDriver: this.fetchClientDriver,
+            releaseClientDriver: this.releaseClientDriver);
       SessionAgent toolAgent = ToolAgent(
           sessionId: sessionId,
           llmConfig: llmConfig,
@@ -275,7 +286,8 @@ class AgentService {
           toolPipelineStrategy: capabilityDto.toolPipelineStrategy ??
               PipelineStrategyType.PARALLEL,
           enableThinking: capabilityDto.enableThinking,
-          toolReturnPackMinLength: resolvedToolReturnPackMinLength);
+          toolReturnPackMinLength: resolvedToolReturnPackMinLength,
+          executionLimits: toolExecutionLimits);
       _attachIdleTimeoutHandler(toolAgent);
       sessionAgents[sessionId] = toolAgent;
     } else {
@@ -285,7 +297,8 @@ class AgentService {
         clientOpenTool = CallbackOpenTool(
             opentool: capabilityDto.callbackOpenTool!.opentool,
             timeout: capabilityDto.callbackOpenTool!.timeout,
-            fetchClientDriver: this.fetchClientDriver);
+            fetchClientDriver: this.fetchClientDriver,
+            releaseClientDriver: this.releaseClientDriver);
       SessionAgent toolAgent = MultiAgent(
           sessionId: sessionId,
           llmConfig: llmConfig,
@@ -300,7 +313,8 @@ class AgentService {
           toolPipelineStrategy: capabilityDto.toolPipelineStrategy ??
               PipelineStrategyType.PARALLEL,
           enableThinking: capabilityDto.enableThinking,
-          toolReturnPackMinLength: resolvedToolReturnPackMinLength);
+          toolReturnPackMinLength: resolvedToolReturnPackMinLength,
+          executionLimits: toolExecutionLimits);
       _attachIdleTimeoutHandler(toolAgent);
       sessionAgents[sessionId] = toolAgent;
     }
@@ -737,6 +751,28 @@ class AgentService {
       registerPendingCall: _registerPendingCallbackDriver,
       unregisterPendingCall: _unregisterPendingCallbackDriver,
     );
+  }
+
+  void releaseClientDriver(
+      String sessionId, OpenToolCallbackDriver clientDriver) {
+    if (identical(callbackOpenToolMap[sessionId], clientDriver)) {
+      callbackOpenToolMap.remove(sessionId);
+    }
+    final sessionDrivers = _callbackDriversBySessionId[sessionId];
+    sessionDrivers?.remove(clientDriver);
+    if (sessionDrivers?.isEmpty ?? false) {
+      _callbackDriversBySessionId.remove(sessionId);
+    }
+
+    final sessionIds = _callbackDriverSessionIds[clientDriver];
+    sessionIds?.remove(sessionId);
+    if (sessionIds?.isEmpty ?? false) {
+      _callbackDriverSessionIds.remove(clientDriver);
+    }
+    _callbackDriversByFunctionCallId.removeWhere(
+      (_, registeredDriver) => identical(registeredDriver, clientDriver),
+    );
+    clientDriver.setPendingCallHooks();
   }
 
   void clientDriverCallback(String sessionId, ot.ToolReturn toolReturn) {

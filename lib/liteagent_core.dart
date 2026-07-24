@@ -6,6 +6,7 @@ export 'src/core/agents/session_agent/session_agent.dart';
 export 'src/core/agents/session_agent/exception.dart';
 export 'src/core/agents/session_agent/session.dart';
 export 'src/core/agents/session_agent/session_restore_state.dart';
+export 'src/core/agents/session_agent/task_execution_state.dart';
 export 'src/core/agents/session_agent/model.dart';
 export 'src/core/agents/text_agent/text_agent.dart';
 export 'src/core/agents/text_agent/text_agent_message_handler.dart';

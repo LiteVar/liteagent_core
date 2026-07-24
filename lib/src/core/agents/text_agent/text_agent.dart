@@ -59,14 +59,13 @@ Output format (Markdown):
           systemPrompt: reflectPrompt.prompt,
           sessionId: this.sessionId,
           parentTaskId: this.parentTaskId);
-      AgentReflector agentReflector = AgentReflector(
-          agent: reflectorAgent, subscribeCompletions: subscribeCompletions);
+      AgentReflector agentReflector =
+          AgentReflector(agent: reflectorAgent, subscribeCompletions: subscribeCompletions);
       reflectionManager.addReflector(agentReflector);
     });
 
     manager.registerHandler(
-        role: TextRoleType.USER,
-        handler: UserMessageHandler(reflectionManager, toLLM));
+        role: TextRoleType.USER, handler: UserMessageHandler(reflectionManager, toLLM));
     manager.registerHandler(
         role: TextRoleType.ASSISTANT,
         handler: LLMMessageHandler(reflectionManager, toReflection, toUser));
@@ -82,14 +81,17 @@ Output format (Markdown):
 
   @override
   Future<void> toAgent(AgentMessage agentMessage) async {
+    if (!isTaskActive(agentMessage.taskId)) return;
     agentSession.addListenAgentMessage(agentMessage);
     Command? nextCommand = manager.handleMessage(agentMessage);
     if (nextCommand != null) dispatcherMap.dispatch(nextCommand);
   }
 
   Future<void> toReflection(AgentMessage agentMessage) async {
-    Reflection reflection = await reflectionManager.reflect(agentMessage.type,
-        agentMessage.content as String, agentMessage.originalTaskId);
+    if (!isTaskActive(agentMessage.taskId)) return;
+    Reflection reflection = await reflectionManager.reflect(
+        agentMessage.type, agentMessage.content as String, agentMessage.originalTaskId);
+    if (!isTaskActive(agentMessage.taskId)) return;
     AgentMessage reflectionMessage = AgentMessage(
         sessionId: agentMessage.sessionId,
         originalTaskId: agentMessage.originalTaskId,
@@ -109,39 +111,22 @@ Output format (Markdown):
   }
 
   Future<void> toUser(AgentMessage sessionMessage) async {
+    if (!isTaskActive(sessionMessage.taskId)) return;
     agentSession.addListenAgentMessage(sessionMessage);
-
-    pipeline.completeAsync(sessionMessage.taskId);
-    clearTaskLLMConfig(sessionMessage.originalTaskId);
-    AgentMessage clientMessage = AgentMessage(
-        sessionId: sessionMessage.sessionId,
-        originalTaskId: sessionMessage.originalTaskId,
-        parentTaskId: this.parentTaskId,
-        taskId: sessionMessage.taskId,
-        role: TextRoleType.AGENT,
-        to: TextRoleType.CLIENT,
-        type: TextMessageType.TASK_STATUS,
-        content: TaskStatus(
-            status: TaskStatusType.DONE, taskId: sessionMessage.taskId));
-    Command clientCommand = Command(toClient, clientMessage);
-    dispatcherMap.dispatch(clientCommand);
-    List<AgentMessage> taskDoneMessageList =
-        dispatcherMap.getTaskMessageList(sessionMessage.taskId);
-    agentSession.addTaskDoneAgentMessageList(taskDoneMessageList);
-    timeout.start(handleIdleTimeout);
+    await finishTask(
+      taskId: sessionMessage.taskId,
+      status: TaskStatusType.DONE,
+      saveTaskHistory: true,
+    );
   }
 
-  Future<List<AgentMessage>> prepareAgentLLMMessageList(
-      AgentMessage agentMessage) async {
+  Future<List<AgentMessage>> prepareAgentLLMMessageList(AgentMessage agentMessage) async {
     List<AgentMessage> sessionMessageList =
         List<AgentMessage>.from(agentSession.taskDoneAgentMessageList);
-    List<AgentMessage> taskMessageList =
-        dispatcherMap.getTaskMessageList(agentMessage.taskId);
+    List<AgentMessage> taskMessageList = dispatcherMap.getTaskMessageList(agentMessage.taskId);
 
-    List<AgentMessage> sessionContextMessages =
-        _filterContextMessages(sessionMessageList);
-    List<AgentMessage> taskContextMessages =
-        _filterContextMessages(taskMessageList);
+    List<AgentMessage> sessionContextMessages = _filterContextMessages(sessionMessageList);
+    List<AgentMessage> taskContextMessages = _filterContextMessages(taskMessageList);
 
     bool shouldSummarize = _shouldSummarize();
     if (shouldSummarize) {
@@ -150,8 +135,7 @@ Output format (Markdown):
 
     List<AgentMessage> agentLLMMessageList = [];
     if (shouldSummarize && agentSession.sessionSummary?.isNotEmpty == true) {
-      agentLLMMessageList.add(
-          _buildSummaryMessage(agentMessage, agentSession.sessionSummary!));
+      agentLLMMessageList.add(_buildSummaryMessage(agentMessage, agentSession.sessionSummary!));
       if (sessionContextMessages.length > _contextKeepMessageCount) {
         sessionContextMessages = sessionContextMessages.sublist(
           sessionContextMessages.length - _contextKeepMessageCount,
@@ -165,10 +149,10 @@ Output format (Markdown):
   }
 
   Future<void> toLLM(AgentMessage agentMessage) async {
+    if (!isTaskActive(agentMessage.taskId)) return;
     agentSession.addListenAgentMessage(agentMessage);
-    final LLMConfig? effectiveLLMConfig = resolveTaskLLMConfig(
-        agentMessage.originalTaskId,
-        defaultLLMConfig: llmConfig);
+    final LLMConfig? effectiveLLMConfig =
+        resolveTaskLLMConfig(agentMessage.originalTaskId, defaultLLMConfig: llmConfig);
     if (effectiveLLMConfig == null) {
       pushException(
         agentMessage.sessionId,
@@ -179,18 +163,18 @@ Output format (Markdown):
       return;
     }
 
-    List<AgentMessage> agentLLMMessageList =
-        await prepareAgentLLMMessageList(agentMessage);
+    List<AgentMessage> agentLLMMessageList = await prepareAgentLLMMessageList(agentMessage);
     try {
       if (super.agentSession.isStream) {
-        Stream<AgentMessage> agentMessageStream =
-            await OpenAIExecutor(effectiveLLMConfig).requestByStream(
+        Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(effectiveLLMConfig)
+            .requestByStream(
                 agentMessageList: agentLLMMessageList,
                 enableThinking: enableThinking,
                 listenChunk: listenChunk);
 
         agentMessageStream.listen(
             (newAgentMessage) {
+              if (!isTaskActive(agentMessage.taskId)) return;
               Command nextCommand = Command(toAgent, newAgentMessage);
               dispatcherMap.dispatch(nextCommand);
             },
@@ -201,37 +185,24 @@ Output format (Markdown):
             });
       } else {
         AgentMessage newAgentMessage = await OpenAIExecutor(effectiveLLMConfig)
-            .request(
-                agentMessageList: agentLLMMessageList,
-                enableThinking: enableThinking);
+            .request(agentMessageList: agentLLMMessageList, enableThinking: enableThinking);
+        if (!isTaskActive(agentMessage.taskId)) return;
         Command nextCommand = Command(toAgent, newAgentMessage);
         dispatcherMap.dispatch(nextCommand);
       }
     } on LLMException catch (e) {
-      pushException(agentMessage.sessionId, agentMessage.taskId,
-          agentMessage.originalTaskId, jsonEncode(e.toJson()));
+      pushException(agentMessage.sessionId, agentMessage.taskId, agentMessage.originalTaskId,
+          jsonEncode(e.toJson()));
     }
   }
 
-  void pushException(String sessionId, String taskId, String originalTaskId,
-      String exceptionMessage) {
-    pipeline.completeAsync(taskId);
-    clearTaskLLMConfig(originalTaskId);
-    AgentMessage agentMessage = AgentMessage(
-        sessionId: sessionId,
-        originalTaskId: originalTaskId,
-        parentTaskId: this.parentTaskId,
-        taskId: taskId,
-        role: TextRoleType.AGENT,
-        to: TextRoleType.CLIENT,
-        type: TextMessageType.TASK_STATUS,
-        content: TaskStatus(
-            status: TaskStatusType.EXCEPTION,
-            taskId: taskId,
-            description: {"error": exceptionMessage}));
-    Command exceptionCommand = Command(toClient, agentMessage);
-    dispatcherMap.stop(agentMessage.taskId, exceptionCommand);
-    timeout.start(handleIdleTimeout);
+  void pushException(
+      String sessionId, String taskId, String originalTaskId, String exceptionMessage) {
+    finishTask(
+      taskId: taskId,
+      status: TaskStatusType.EXCEPTION,
+      description: {"error": exceptionMessage},
+    );
   }
 
   void listenChunk(AgentMessageChunk agentMessageChunk) {
@@ -264,8 +235,7 @@ Output format (Markdown):
     return null;
   }
 
-  Future<void> _updateSessionSummary(
-      List<AgentMessage> sessionContextMessages) async {
+  Future<void> _updateSessionSummary(List<AgentMessage> sessionContextMessages) async {
     if (sessionContextMessages.length <= _contextKeepMessageCount) return;
 
     int cutoff = sessionContextMessages.length - _contextKeepMessageCount;
@@ -345,8 +315,7 @@ Output format (Markdown):
       return content
           .map((item) {
             if (item.type == ContentType.TEXT) return item.message;
-            if (item.type == ContentType.IMAGE_URL)
-              return '[image] ${item.message}';
+            if (item.type == ContentType.IMAGE_URL) return '[image] ${item.message}';
             return item.message;
           })
           .join('\\n')

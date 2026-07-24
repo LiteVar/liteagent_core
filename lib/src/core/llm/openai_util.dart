@@ -147,7 +147,11 @@ class OpenAIUtil {
 
       return ChatCompletionDelta(
           delta: delta, finishReason: finishReason, completions: completions);
-    });
+        });
+  }
+
+  Future<void> cancel() {
+    return _client.cancelActiveRequests();
   }
 
   CompletionsLimits? _resolveCompletionsLimits() {

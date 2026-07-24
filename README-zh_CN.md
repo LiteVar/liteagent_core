@@ -111,6 +111,34 @@ CapabilityDto capabilityDto = CapabilityDto(
 );
 ```
 
+### Function calling 安全限制
+
+`ToolAgent`、`MultiAgent` 和 `AutoMultiAgent` 会执行 task 级别的安全限制，避免模型无限调用工具。直接使用 Agent API 时可传入 `ToolExecutionLimits`；通过 `AgentService` 使用时，可在 `CapabilityDto` 中设置对应的可选字段。
+
+默认限制：
+
+- `maxLlmRequests: 64`
+- `maxToolRounds: 16`
+- `maxToolCalls: 64`
+- `maxConsecutiveIdenticalToolRounds: 3`
+- `maxTaskDurationSeconds: 300`
+
+当工具名称及规范化后的 JSON 参数相同时，两次调用会被视为相同调用；模型服务生成的 function-call ID 不参与比较。超过任意限制后，当前 task 会终止，并且只产生一个 `TaskStatusType.EXCEPTION` 状态，其 description 中包含 `code: tool_loop_limit_exceeded`。
+
+```dart
+final agent = ToolAgent(
+  sessionId: sessionId,
+  llmConfig: llmConfig,
+  agentSession: session,
+  toolDriverList: drivers,
+  executionLimits: const ToolExecutionLimits(
+    maxToolRounds: 8,
+    maxToolCalls: 24,
+    maxConsecutiveIdenticalToolRounds: 2,
+  ),
+);
+```
+
 ### Skills
 
 `CapabilityDto` 和 `SimpleCapabilityDto` 支持可选的 `skills` 字段。每个元素都应该是一份完整的 `SKILL.md` 文本，并遵循 [Agent Skills specification](https://agentskills.io/specification)。

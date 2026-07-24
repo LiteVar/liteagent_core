@@ -172,6 +172,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
         agentMessageStreamController.close();
       }, onError: (e) {
         agentMessageStreamController.addError(e);
+        agentMessageStreamController.close();
       });
 
       return agentMessageStreamController.stream;

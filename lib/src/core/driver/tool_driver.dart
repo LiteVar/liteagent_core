@@ -9,5 +9,6 @@ abstract class ToolDriver {
     FunctionCall functionCall,
     void Function(String event, ToolReturn toolReturn) onStream,
   ) async {}
+  Future<void> cancel(String functionCallId) async {}
   Future<void> dispose() async {}
 }

@@ -25,4 +25,6 @@ abstract class ChatCompletionsClient {
   });
 
   Future<bool> testConnection();
+
+  Future<void> cancelActiveRequests();
 }

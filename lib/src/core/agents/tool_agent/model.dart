@@ -36,8 +36,8 @@ class ToolStatusDescription {
   ToolStatusDescription({this.functionCallIdList = const []});
 
   Map<String, dynamic> toJson() => {
-    'functionCallIdList': functionCallIdList,
-  };
+        'functionCallIdList': functionCallIdList,
+      };
 }
 
 class FunctionCallType {
@@ -52,13 +52,56 @@ class FunctionCallParam {
   String? type;
   int index;
   FunctionCall functionCall;
-  FunctionCallParam({required this.sessionId, required this.taskId, required this.originalTaskId, this.type, required this.index, required this.functionCall});
+  FunctionCallParam(
+      {required this.sessionId,
+      required this.taskId,
+      required this.originalTaskId,
+      this.type,
+      required this.index,
+      required this.functionCall});
 }
 
 class CallbackOpenTool {
   String opentool;
   int? timeout;
   void Function(String sessionId, OpenToolCallbackDriver clientDriver)? fetchClientDriver;
+  void Function(String sessionId, OpenToolCallbackDriver clientDriver)? releaseClientDriver;
 
-  CallbackOpenTool({required this.opentool, this.timeout, this.fetchClientDriver});
+  CallbackOpenTool({
+    required this.opentool,
+    this.timeout,
+    this.fetchClientDriver,
+    this.releaseClientDriver,
+  });
+}
+
+class ToolExecutionLimits {
+  final int _maxLlmRequests;
+  final int _maxToolRounds;
+  final int _maxToolCalls;
+  final int _maxConsecutiveIdenticalToolRounds;
+  final int _maxTaskDurationSeconds;
+
+  const ToolExecutionLimits({
+    int maxLlmRequests = 64,
+    int maxToolRounds = 16,
+    int maxToolCalls = 64,
+    int maxConsecutiveIdenticalToolRounds = 3,
+    int maxTaskDurationSeconds = 300,
+  })  : _maxLlmRequests = maxLlmRequests,
+        _maxToolRounds = maxToolRounds,
+        _maxToolCalls = maxToolCalls,
+        _maxConsecutiveIdenticalToolRounds = maxConsecutiveIdenticalToolRounds,
+        _maxTaskDurationSeconds = maxTaskDurationSeconds;
+
+  int get maxLlmRequests => _positiveOrDefault(_maxLlmRequests, 64);
+  int get maxToolRounds => _positiveOrDefault(_maxToolRounds, 16);
+  int get maxToolCalls => _positiveOrDefault(_maxToolCalls, 64);
+  int get maxConsecutiveIdenticalToolRounds =>
+      _positiveOrDefault(_maxConsecutiveIdenticalToolRounds, 3);
+  int get maxTaskDurationSeconds => _positiveOrDefault(_maxTaskDurationSeconds, 300);
+
+  static int _positiveOrDefault(int value, int fallback) {
+    return value > 0 ? value : fallback;
+  }
 }

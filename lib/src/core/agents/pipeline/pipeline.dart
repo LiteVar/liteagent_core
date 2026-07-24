@@ -6,8 +6,8 @@ import 'package:unique_id_dart/unique_id_dart.dart';
 /// Support job for parallel, serial, reject strategy
 class Pipeline<T> {
   final String pipelineStrategyType;
-  final List<T> _jobList = [];    // for parallel
-  final Queue<T> _jobQueue = Queue<T>();   //for serial
+  final List<T> _jobList = []; // for parallel
+  final Queue<T> _jobQueue = Queue<T>(); //for serial
   late Future<void> Function(T job) process;
   bool _isProcessing = false;
 
@@ -17,13 +17,23 @@ class Pipeline<T> {
     _jobList.add(job);
   }
 
-  Future<AddStatus> run(Future<void> Function(T job) process, {Future<void> Function()? onComplete}) async {
+  void removeWhere(bool Function(T job) test) {
+    _jobList.removeWhere(test);
+    _jobQueue.removeWhere(test);
+  }
+
+  Future<AddStatus> run(Future<void> Function(T job) process,
+      {Future<void> Function()? onComplete}) async {
     this.process = process;
     switch (pipelineStrategyType) {
-      case PipelineStrategyType.PARALLEL: return _runParallel(onComplete);
-      case PipelineStrategyType.SERIAL: return _runSerial(onComplete);
-      case PipelineStrategyType.REJECT: return _runReject(onComplete);
-      default: return AddStatus.ERROR_STRATEGY;
+      case PipelineStrategyType.PARALLEL:
+        return _runParallel(onComplete);
+      case PipelineStrategyType.SERIAL:
+        return _runSerial(onComplete);
+      case PipelineStrategyType.REJECT:
+        return _runReject(onComplete);
+      default:
+        return AddStatus.ERROR_STRATEGY;
     }
   }
 
@@ -54,7 +64,7 @@ class Pipeline<T> {
   }
 
   Future<AddStatus> _runReject(Future<void> Function()? onComplete) async {
-    if(_isProcessing) return AddStatus.REJECT;
+    if (_isProcessing) return AddStatus.REJECT;
     _isProcessing = true;
     for (var job in _jobList) {
       _jobQueue.add(job);
@@ -78,8 +88,8 @@ class Pipeline<T> {
 
 class PipelineAsync<T> {
   final String pipelineStrategyType;
-  final List<T> _jobList = [];    // for parallel
-  final List<(String, T, String)> _jobQueue = [];   //for serial、reject
+  final List<T> _jobList = []; // for parallel
+  final List<(String, T, String)> _jobQueue = []; //for serial、reject
   late Future<void> Function(T job, String originalTaskId) process;
   bool _isProcessing = false;
 
@@ -92,26 +102,33 @@ class PipelineAsync<T> {
     _jobList.add(job);
   }
 
-  Future<AddStatusAsync> runAsync(Future<void> Function(T job, String originalTaskId) process, {String? asyncId, required String originalTaskId, Future<void> Function()? onComplete}) async {
+  Future<AddStatusAsync> runAsync(Future<void> Function(T job, String originalTaskId) process,
+      {String? asyncId,
+      required String originalTaskId,
+      Future<void> Function()? onComplete}) async {
     this.process = process;
-    if(asyncId == null) asyncId = uniqueId();
+    if (asyncId == null) asyncId = uniqueId();
     var userCompleter = Completer<void>();
     var queueCompleter = Completer<void>();
     _userCompleterMap[asyncId] = userCompleter;
     _queueCompleterMap[asyncId] = queueCompleter;
 
     switch (pipelineStrategyType) {
-      case PipelineStrategyType.PARALLEL: return _runParallelAsync(onComplete, asyncId, originalTaskId);
-      case PipelineStrategyType.SERIAL: return _runSerialAsync(onComplete, asyncId, originalTaskId);
-      case PipelineStrategyType.REJECT: return _runRejectAsync(onComplete, asyncId, originalTaskId);
-      default: return AddStatusAsync(addStatus: AddStatus.ERROR_STRATEGY, asyncId: asyncId);
+      case PipelineStrategyType.PARALLEL:
+        return _runParallelAsync(onComplete, asyncId, originalTaskId);
+      case PipelineStrategyType.SERIAL:
+        return _runSerialAsync(onComplete, asyncId, originalTaskId);
+      case PipelineStrategyType.REJECT:
+        return _runRejectAsync(onComplete, asyncId, originalTaskId);
+      default:
+        return AddStatusAsync(addStatus: AddStatus.ERROR_STRATEGY, asyncId: asyncId);
     }
   }
 
   void completeAsync(String asyncId) {
-    if (_userCompleterMap.containsKey(asyncId)) {
-      _userCompleterMap[asyncId]!.complete();
-      _userCompleterMap.remove(asyncId);
+    final completer = _userCompleterMap[asyncId];
+    if (completer != null && !completer.isCompleted) {
+      completer.complete();
     }
     // if(pipelineStrategyType == PipelineStrategyType.PARALLEL) {
     //   Future<void> Function()? onComplete = _asyncCompleteMap[asyncId];
@@ -138,7 +155,10 @@ class PipelineAsync<T> {
     // }
   }
 
-  Future<AddStatusAsync> _runParallelAsync(Future<void> Function()? onComplete, String asyncId, String originalTaskId) async {
+  Future<AddStatusAsync> _runParallelAsync(
+      Future<void> Function()? onComplete, String asyncId, String originalTaskId) async {
+    final userCompleter = _userCompleterMap[asyncId]!;
+    final queueCompleter = _queueCompleterMap[asyncId]!;
     final List<Future<void>> futures = [];
     for (var job in _jobList) {
       futures.add(process(job, originalTaskId));
@@ -147,18 +167,30 @@ class PipelineAsync<T> {
 
     Future(() async {
       await Future.wait(futures);
-      _queueCompleterMap[asyncId]!.complete();
+      if (!queueCompleter.isCompleted) queueCompleter.complete();
     });
 
     Future(() async {
-      await Future.wait([_userCompleterMap[asyncId]!.future, _queueCompleterMap[asyncId]!.future,]);
-      if (onComplete != null) await onComplete();
+      try {
+        await Future.wait([userCompleter.future, queueCompleter.future]);
+        if (onComplete != null) await onComplete();
+      } finally {
+        if (identical(_userCompleterMap[asyncId], userCompleter)) {
+          _userCompleterMap.remove(asyncId);
+        }
+        if (identical(_queueCompleterMap[asyncId], queueCompleter)) {
+          _queueCompleterMap.remove(asyncId);
+        }
+      }
     });
 
     return AddStatusAsync(addStatus: AddStatus.SUCCESS, asyncId: asyncId);
   }
 
-  Future<AddStatusAsync> _runSerialAsync(Future<void> Function()? onComplete, String asyncId, String originalTaskId) async {
+  Future<AddStatusAsync> _runSerialAsync(
+      Future<void> Function()? onComplete, String asyncId, String originalTaskId) async {
+    final userCompleter = _userCompleterMap[asyncId]!;
+    final queueCompleter = _queueCompleterMap[asyncId]!;
     for (var job in _jobList) {
       _jobQueue.add((asyncId, job, originalTaskId));
     }
@@ -169,17 +201,25 @@ class PipelineAsync<T> {
     });
 
     Future(() async {
-      await Future.wait([_userCompleterMap[asyncId]!.future, _queueCompleterMap[asyncId]!.future]);
-      if (onComplete != null) await onComplete();
-      _userCompleterMap.remove(asyncId);
-      _queueCompleterMap.remove(asyncId);
+      try {
+        await Future.wait([userCompleter.future, queueCompleter.future]);
+        if (onComplete != null) await onComplete();
+      } finally {
+        if (identical(_userCompleterMap[asyncId], userCompleter)) {
+          _userCompleterMap.remove(asyncId);
+        }
+        if (identical(_queueCompleterMap[asyncId], queueCompleter)) {
+          _queueCompleterMap.remove(asyncId);
+        }
+      }
     });
 
     return AddStatusAsync(addStatus: AddStatus.SUCCESS, asyncId: asyncId);
   }
 
-  Future<AddStatusAsync> _runRejectAsync(Future<void> Function()? onComplete, String asyncId, String originalTaskId) async {
-    if(_jobQueue.isNotEmpty) return AddStatusAsync(addStatus: AddStatus.REJECT, asyncId: asyncId);
+  Future<AddStatusAsync> _runRejectAsync(
+      Future<void> Function()? onComplete, String asyncId, String originalTaskId) async {
+    if (_jobQueue.isNotEmpty) return AddStatusAsync(addStatus: AddStatus.REJECT, asyncId: asyncId);
     return _runSerialAsync(onComplete, asyncId, originalTaskId);
   }
 
@@ -191,7 +231,7 @@ class PipelineAsync<T> {
     try {
       await process(job, originalTaskId);
     } finally {
-      if(_queueCompleterMap.containsKey(asyncId)) {
+      if (_queueCompleterMap.containsKey(asyncId)) {
         _queueCompleterMap[asyncId]!.complete();
       }
       if (_userCompleterMap.containsKey(asyncId)) {

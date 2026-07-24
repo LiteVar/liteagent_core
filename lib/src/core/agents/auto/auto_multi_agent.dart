@@ -5,6 +5,7 @@ import '../llm/model.dart';
 import '../model.dart';
 import '../session_agent/model.dart';
 import '../session_agent/session.dart';
+import '../session_agent/task_execution_state.dart';
 import '../tool_agent/tool_agent.dart';
 import '../reflection/model.dart';
 import '../pipeline/model.dart';
@@ -26,8 +27,7 @@ abstract class AutoMessageSender {
 
   Future<void> sendFunctionCallStart(String taskId, ot.FunctionCall call);
 
-  Future<void> sendFunctionCallDone(
-      String taskId, ot.FunctionCall call, String result);
+  Future<void> sendFunctionCallDone(String taskId, ot.FunctionCall call, String result);
 }
 
 class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
@@ -55,6 +55,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
     super.timeoutSeconds = 3600,
     super.streamCallTimeoutSeconds,
     super.toolReturnPackMinLength,
+    super.executionLimits,
     List<ReflectPrompt> toolReflectPromptList = const [],
     String taskPipelineStrategy = PipelineStrategyType.PARALLEL,
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
@@ -80,6 +81,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
     bool? enableThinking,
     List<LLMConfig>? llmConfigList,
     int? toolReturnPackMinLength,
+    ToolExecutionLimits executionLimits = const ToolExecutionLimits(),
   }) async {
     try {
       AutoMultiAgent instance = AutoMultiAgent._internal(
@@ -97,6 +99,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
         enableThinking: enableThinking,
         llmConfigList: llmConfigList,
         toolReturnPackMinLength: toolReturnPackMinLength,
+        executionLimits: executionLimits,
       );
 
       instance._initializeIndexedLLMConfigs(llmConfigList);
@@ -159,6 +162,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
     if (fetchTaskId != null) fetchTaskId(taskId);
     dispatcherMap.create(taskId);
     final String resolvedOriginalTaskId = originalTaskId ?? taskId;
+    registerTaskExecution(taskId, resolvedOriginalTaskId);
     this.originalTaskId = resolvedOriginalTaskId;
     if (requestLLMConfig != null) {
       setTaskLLMConfig(resolvedOriginalTaskId, requestLLMConfig);
@@ -250,11 +254,9 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
     }
 
     if (callbackOpenTool != null) {
-      ot.OpenTool opentool =
-          await ot.OpenToolJsonLoader().load(callbackOpenTool!.opentool);
-      OpenToolCallbackDriver callbackDriver = OpenToolCallbackDriver(
-          opentool, (_) {},
-          timeout: callbackOpenTool!.timeout ?? 60);
+      ot.OpenTool opentool = await ot.OpenToolJsonLoader().load(callbackOpenTool!.opentool);
+      OpenToolCallbackDriver callbackDriver =
+          OpenToolCallbackDriver(opentool, (_) {}, timeout: callbackOpenTool!.timeout ?? 60);
       List<ot.FunctionModel> callbackFunctions = callbackDriver.parse();
 
       for (ot.FunctionModel functionModel in callbackFunctions) {
@@ -315,9 +317,8 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
     }
 
     List<dynamic> planningJson = jsonDecode(cleanedResult);
-    List<AutoTaskNode> taskNodes = planningJson
-        .map((json) => AutoTaskNode.fromJson(json as Map<String, dynamic>))
-        .toList();
+    List<AutoTaskNode> taskNodes =
+        planningJson.map((json) => AutoTaskNode.fromJson(json as Map<String, dynamic>)).toList();
     if (taskNodes.isEmpty) {
       await _sendDoneMessage(taskId, originalTaskId, cleanedResult);
       return;
@@ -365,12 +366,10 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
   String? _conversationRole(AgentMessage message) {
     if (message.role == SessionRoleType.USER) return 'User';
     if (message.role == AgentRoleType.LLM) return 'Assistant';
-    if (message.role == SessionRoleType.AGENT &&
-        message.to == AgentRoleType.LLM) {
+    if (message.role == SessionRoleType.AGENT && message.to == AgentRoleType.LLM) {
       return 'User';
     }
-    if (message.role == SessionRoleType.AGENT &&
-        message.to == SessionRoleType.USER) {
+    if (message.role == SessionRoleType.AGENT && message.to == SessionRoleType.USER) {
       return 'Assistant';
     }
     return null;
@@ -416,8 +415,8 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
     await sendAgentMessage(clientMessage);
   }
 
-  Future<void> _sendDoneMessage(
-      String taskId, String originalTaskId, String finalResult) async {
+  Future<void> _sendDoneMessage(String taskId, String originalTaskId, String finalResult) async {
+    if (!isTaskActive(taskId)) return;
     clearTaskLLMConfig(originalTaskId);
     AgentMessage finalAnswerMessage = AgentMessage(
         sessionId: sessionId,
@@ -438,27 +437,28 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
       ]);
     }
 
-    AgentMessage clientMessage = AgentMessage(
-        sessionId: sessionId,
-        originalTaskId: originalTaskId,
-        parentTaskId: parentTaskId,
-        taskId: taskId,
-        role: SessionRoleType.AGENT,
-        to: SessionRoleType.CLIENT,
-        type: SessionMessageType.TASK_STATUS,
-        content: TaskStatus(status: TaskStatusType.DONE, taskId: taskId));
-    await sendAgentMessage(clientMessage);
-    timeout.start(handleIdleTimeout);
+    await finishTask(taskId: taskId, status: TaskStatusType.DONE);
   }
 
   @override
   Future<void> sendAgentMessage(AgentMessage message) async {
+    if (!isTaskActive(message.taskId)) return;
     await agentSession.addListenAgentMessage(message);
   }
 
   @override
-  Future<void> sendFunctionCallStart(
-      String taskId, ot.FunctionCall call) async {
+  Future<void> onTaskTerminating(TaskExecutionState state) async {
+    _pendingContextUserMessages.remove(state.taskId);
+    if (state.terminalStatus != TaskStatusType.DONE) {
+      taskPlanner.stop();
+      nodeExecutor.stop();
+      summarizer.stop();
+    }
+    await super.onTaskTerminating(state);
+  }
+
+  @override
+  Future<void> sendFunctionCallStart(String taskId, ot.FunctionCall call) async {
     AgentMessage subAgentMessage = AgentMessage(
         sessionId: sessionId,
         originalTaskId: originalTaskId,
@@ -481,14 +481,12 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
         content: TaskStatus(
             status: MultiAgentStatusType.START,
             taskId: taskId,
-            description:
-                ToolStatusDescription(functionCallIdList: [call.id]).toJson()));
+            description: ToolStatusDescription(functionCallIdList: [call.id]).toJson()));
     sendAgentMessage(clientMessage);
   }
 
   @override
-  Future<void> sendFunctionCallDone(
-      String taskId, ot.FunctionCall call, String result) async {
+  Future<void> sendFunctionCallDone(String taskId, ot.FunctionCall call, String result) async {
     AgentMessage subAgentReturnMessage = AgentMessage(
         sessionId: sessionId,
         originalTaskId: originalTaskId,
@@ -511,8 +509,7 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
         content: TaskStatus(
             status: MultiAgentStatusType.DONE,
             taskId: taskId,
-            description:
-                ToolStatusDescription(functionCallIdList: [call.id]).toJson()));
+            description: ToolStatusDescription(functionCallIdList: [call.id]).toJson()));
     sendAgentMessage(subAgentStatusMessage);
   }
 }

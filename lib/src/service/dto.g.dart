@@ -79,6 +79,13 @@ CapabilityDto _$CapabilityDtoFromJson(Map<String, dynamic> json) =>
       enableThinking: json['enableThinking'] as bool?,
       toolReturnPackMinLength:
           (json['toolReturnPackMinLength'] as num?)?.toInt(),
+      maxLlmRequests: (json['maxLlmRequests'] as num?)?.toInt(),
+      maxToolRounds: (json['maxToolRounds'] as num?)?.toInt(),
+      maxToolCalls: (json['maxToolCalls'] as num?)?.toInt(),
+      maxConsecutiveIdenticalToolRounds:
+          (json['maxConsecutiveIdenticalToolRounds'] as num?)?.toInt(),
+      maxTaskDurationSeconds:
+          (json['maxTaskDurationSeconds'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
@@ -108,6 +115,13 @@ Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
       if (instance.enableThinking case final value?) 'enableThinking': value,
       if (instance.toolReturnPackMinLength case final value?)
         'toolReturnPackMinLength': value,
+      if (instance.maxLlmRequests case final value?) 'maxLlmRequests': value,
+      if (instance.maxToolRounds case final value?) 'maxToolRounds': value,
+      if (instance.maxToolCalls case final value?) 'maxToolCalls': value,
+      if (instance.maxConsecutiveIdenticalToolRounds case final value?)
+        'maxConsecutiveIdenticalToolRounds': value,
+      if (instance.maxTaskDurationSeconds case final value?)
+        'maxTaskDurationSeconds': value,
     };
 
 OpenSpecDto _$OpenSpecDtoFromJson(Map<String, dynamic> json) => OpenSpecDto(

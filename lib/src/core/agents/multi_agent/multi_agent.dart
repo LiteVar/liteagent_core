@@ -1,18 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:opentool_dart/opentool_client.dart';
-import '../../llm/model.dart';
 import '../../driver/agent_driver.dart';
 import '../../driver/tool_driver.dart';
-import '../llm/exception.dart';
 import '../llm/context_normalizer.dart';
-import '../llm/openai_executor.dart';
 import '../model.dart';
 import '../pipeline/model.dart';
 import '../pipeline/pipeline.dart';
 import '../reflection/model.dart';
 import '../session_agent/dispatcher.dart';
 import '../session_agent/model.dart';
+import '../session_agent/task_execution_state.dart';
 import '../simple_agent.dart';
 import '../text_agent/text_agent_message_handler.dart';
 import '../tool_agent/model.dart';
@@ -42,8 +40,7 @@ Output format (Markdown):
 ''';
   static const String _subAgentFunctionName = "callSubAgent";
   static const String _subAgentNameKey = "agentName";
-  static const String _subAgentFunctionDescription =
-      "Call a sub-agent by name.";
+  static const String _subAgentFunctionDescription = "Call a sub-agent by name.";
   List<AgentDriver> subAgentDriverList;
   late Pipeline<FunctionCallParam> subAgentPipeLine;
   final Map<String, SeparatedFunctionCallList> _separatedFunctionCallMap = {};
@@ -63,6 +60,7 @@ Output format (Markdown):
     required this.subAgentDriverList,
     bool? enableThinking,
     int? toolReturnPackMinLength,
+    ToolExecutionLimits executionLimits = const ToolExecutionLimits(),
   }) : super(
           sessionId: sessionId,
           toolDriverList: toolDriverList,
@@ -76,6 +74,7 @@ Output format (Markdown):
           toolPipelineStrategy: toolPipelineStrategy,
           enableThinking: enableThinking,
           toolReturnPackMinLength: toolReturnPackMinLength,
+          executionLimits: executionLimits,
         ) {
     manager.registerHandler(
         role: MultiAgentRoleType.USER,
@@ -83,89 +82,28 @@ Output format (Markdown):
             toLLM)); //override TextAgent User handler, for save List<Content>
     manager.registerHandler(
         role: MultiAgentRoleType.ASSISTANT,
-        handler: MultiAgentFunctionCallingMessageHandler(
-            toolReflectionManager,
-            toReflection,
-            toUser,
-            _partitionFunctionCallMessage)); //override TextAgent LLM handler
+        handler: MultiAgentFunctionCallingMessageHandler(toolReflectionManager, toReflection,
+            toUser, _partitionFunctionCallMessage)); //override TextAgent LLM handler
     manager.registerHandler(
-        role: MultiAgentRoleType.TOOL,
-        handler: MultiAgentToolMessageHandler(onFunctionCallResult));
+        role: MultiAgentRoleType.TOOL, handler: MultiAgentToolMessageHandler(onFunctionCallResult));
     manager.registerHandler(
-        role: MultiAgentRoleType.SUBAGENT,
-        handler: SubAgentMessageHandler(onFunctionCallResult));
+        role: MultiAgentRoleType.SUBAGENT, handler: SubAgentMessageHandler(onFunctionCallResult));
     manager.registerHandler(
         role: MultiAgentRoleType.REFLECTION,
-        handler: MultiAgentReflectionMessageHandler(
-            toolReflectionManager,
-            toLLM,
+        handler: MultiAgentReflectionMessageHandler(toolReflectionManager, toLLM,
             _partitionFunctionCallMessage)); //toTool, onToolRetry: super.onReflectionRetry));
 
     subAgentPipeLine = Pipeline(toolPipelineStrategy);
   }
 
   @override
-  Future<void> toLLM(AgentMessage agentMessage) async {
-    agentSession.addListenAgentMessage(agentMessage);
-    final LLMConfig? effectiveLLMConfig = resolveTaskLLMConfig(
-        agentMessage.originalTaskId,
-        defaultLLMConfig: llmConfig);
-    if (effectiveLLMConfig == null) {
-      pushException(
-        agentMessage.sessionId,
-        agentMessage.taskId,
-        agentMessage.originalTaskId,
-        jsonEncode(LLMException(message: "LLM config is required").toJson()),
-      );
-      return;
-    }
-
-    final toolDrivers = await prepareToolDrivers(agentMessage);
-    await Future.wait(toolDrivers.map((driver) => driver.init()));
-    List<FunctionModel> functionModelList =
-        await buildFunctionModelList(toolDrivers);
-
-    List<FunctionModel> subAgentFunctionModelList =
-        await _buildFunctionModelList(this.subAgentDriverList);
-    functionModelList.addAll(subAgentFunctionModelList);
-
-    try {
-      List<AgentMessage> agentLLMMessageList =
-          await prepareAgentLLMMessageList(agentMessage);
-      if (super.agentSession.isStream) {
-        Stream<AgentMessage> agentMessageStream = await OpenAIExecutor(
-          effectiveLLMConfig,
-          toolReturnPackMinLength: resolvedToolReturnPackMinLength,
-        ).requestByStream(
-            agentMessageList: agentLLMMessageList,
-            functionModelList: functionModelList,
-            enableThinking: enableThinking,
-            listenChunk: listenChunk);
-        agentMessageStream.listen(
-            (newAgentMessage) {
-              Command nextCommand = Command(toAgent, newAgentMessage);
-              dispatcherMap.dispatch(nextCommand);
-            },
-            onDone: () {},
-            onError: (e) {
-              pushException(agentMessage.sessionId, agentMessage.taskId,
-                  agentMessage.originalTaskId, e.toString());
-            });
-      } else {
-        AgentMessage llmMessage = await OpenAIExecutor(
-          effectiveLLMConfig,
-          toolReturnPackMinLength: resolvedToolReturnPackMinLength,
-        ).request(
-            agentMessageList: agentLLMMessageList,
-            functionModelList: functionModelList,
-            enableThinking: enableThinking);
-        Command nextCommand = Command(toAgent, llmMessage);
-        dispatcherMap.dispatch(nextCommand);
-      }
-    } on LLMException catch (e) {
-      pushException(agentMessage.sessionId, agentMessage.taskId,
-          agentMessage.originalTaskId, jsonEncode(e.toJson()));
-    }
+  Future<List<FunctionModel>> buildAvailableFunctionModelList(
+    AgentMessage agentMessage,
+    List<ToolDriver> drivers,
+  ) async {
+    final functionModelList = await buildFunctionModelList(drivers);
+    functionModelList.addAll(await _buildFunctionModelList(subAgentDriverList));
+    return functionModelList;
   }
 
   SeparatedFunctionCallList _separateFunctionCallList(
@@ -175,8 +113,7 @@ Output format (Markdown):
     List<ToolDriver> drivers = getToolDriversForOriginalTask(originalTaskId);
 
     for (FunctionCall functionCall in functionCallList) {
-      int toolIndex = drivers.indexWhere(
-          (toolDriver) => toolDriver.hasFunction(functionCall.name));
+      int toolIndex = drivers.indexWhere((toolDriver) => toolDriver.hasFunction(functionCall.name));
       if (toolIndex >= 0) {
         toolFunctionCalls.add(functionCall);
       } else {
@@ -193,8 +130,7 @@ Output format (Markdown):
         hasSubAgentFunctionCallsDone: subAgentFunctionCalls.isEmpty);
   }
 
-  Future<List<FunctionModel>> _buildFunctionModelList(
-      List<AgentDriver> subAgentDriverList) async {
+  Future<List<FunctionModel>> _buildFunctionModelList(List<AgentDriver> subAgentDriverList) async {
     if (subAgentDriverList.isEmpty) {
       return [];
     }
@@ -214,10 +150,9 @@ Output format (Markdown):
     for (final functionModel in agentFunctionModelList) {
       agentNameList.add(functionModel.name);
       final String rawDescription = functionModel.description.trim();
-      final String description =
-          rawDescription.isNotEmpty ? rawDescription : functionModel.name;
-      final String shortDescription = baseDriver.truncateWithEllipsis(
-          description, baseDriver.llmFunctionDescriptionMaxLength);
+      final String description = rawDescription.isNotEmpty ? rawDescription : functionModel.name;
+      final String shortDescription =
+          baseDriver.truncateWithEllipsis(description, baseDriver.llmFunctionDescriptionMaxLength);
       agentNameDescriptions.add("${functionModel.name} - $shortDescription");
     }
     final String agentNameDescription =
@@ -247,14 +182,12 @@ Output format (Markdown):
   }
 
   void _partitionFunctionCallMessage(AgentMessage agentMessage) {
+    if (!isTaskActive(agentMessage.taskId)) return;
     if (agentMessage.type == MultiAgentMessageType.TOOL_CALLS) {
-      List<FunctionCall> functionCallList =
-          agentMessage.content as List<FunctionCall>;
+      List<FunctionCall> functionCallList = agentMessage.content as List<FunctionCall>;
       final SeparatedFunctionCallList separatedFunctionCallList =
-          _separateFunctionCallList(
-              agentMessage.originalTaskId, functionCallList);
-      _separatedFunctionCallMap[agentMessage.taskId] =
-          separatedFunctionCallList;
+          _separateFunctionCallList(agentMessage.originalTaskId, functionCallList);
+      _separatedFunctionCallMap[agentMessage.taskId] = separatedFunctionCallList;
       if (separatedFunctionCallList.toolFunctionCalls.isNotEmpty) {
         AgentMessage toolMessage = AgentMessage(
             sessionId: agentMessage.sessionId,
@@ -286,6 +219,7 @@ Output format (Markdown):
   }
 
   void onFunctionCallResult(String from, AgentMessage agentMessage) {
+    if (!isTaskActive(agentMessage.taskId)) return;
     // agentSession.addListenAgentMessage(agentMessage);
     final SeparatedFunctionCallList? separatedFunctionCallList =
         _separatedFunctionCallMap[agentMessage.taskId];
@@ -300,8 +234,7 @@ Output format (Markdown):
     } else if (separatedFunctionCallList.subAgentFunctionCalls.isNotEmpty &&
         from == MultiAgentRoleType.SUBAGENT &&
         agentMessage.type == MultiAgentMessageType.TASK_STATUS &&
-        (agentMessage.content as TaskStatus).status ==
-            MultiAgentStatusType.DONE) {
+        (agentMessage.content as TaskStatus).status == MultiAgentStatusType.DONE) {
       separatedFunctionCallList.hasSubAgentFunctionCallsDone = true;
     }
     if (separatedFunctionCallList.hasToolFunctionCallsDone &&
@@ -313,17 +246,13 @@ Output format (Markdown):
   }
 
   @override
-  Future<List<AgentMessage>> prepareAgentLLMMessageList(
-      AgentMessage agentMessage) async {
+  Future<List<AgentMessage>> prepareAgentLLMMessageList(AgentMessage agentMessage) async {
     List<AgentMessage> sessionMessageList =
         List<AgentMessage>.from(agentSession.taskDoneAgentMessageList);
-    List<AgentMessage> taskMessageList =
-        dispatcherMap.getTaskMessageList(agentMessage.taskId);
+    List<AgentMessage> taskMessageList = dispatcherMap.getTaskMessageList(agentMessage.taskId);
 
-    List<AgentMessage> sessionContextMessages =
-        _filterContextMessages(sessionMessageList);
-    List<AgentMessage> taskContextMessages =
-        _filterContextMessages(taskMessageList);
+    List<AgentMessage> sessionContextMessages = _filterContextMessages(sessionMessageList);
+    List<AgentMessage> taskContextMessages = _filterContextMessages(taskMessageList);
 
     bool shouldSummarize = _shouldSummarize();
     if (shouldSummarize) {
@@ -332,8 +261,7 @@ Output format (Markdown):
 
     List<AgentMessage> agentLLMMessageList = [];
     if (shouldSummarize && agentSession.sessionSummary?.isNotEmpty == true) {
-      agentLLMMessageList.add(
-          _buildSummaryMessage(agentMessage, agentSession.sessionSummary!));
+      agentLLMMessageList.add(_buildSummaryMessage(agentMessage, agentSession.sessionSummary!));
       if (sessionContextMessages.length > _contextKeepMessageCount) {
         sessionContextMessages = sessionContextMessages.sublist(
           sessionContextMessages.length - _contextKeepMessageCount,
@@ -363,8 +291,7 @@ Output format (Markdown):
     return null;
   }
 
-  Future<void> _updateSessionSummary(
-      List<AgentMessage> sessionContextMessages) async {
+  Future<void> _updateSessionSummary(List<AgentMessage> sessionContextMessages) async {
     if (sessionContextMessages.length <= _contextKeepMessageCount) return;
 
     int cutoff = sessionContextMessages.length - _contextKeepMessageCount;
@@ -448,8 +375,7 @@ Output format (Markdown):
       return content
           .map((item) {
             if (item.type == ContentType.TEXT) return item.message;
-            if (item.type == ContentType.IMAGE_URL)
-              return '[image] ${item.message}';
+            if (item.type == ContentType.IMAGE_URL) return '[image] ${item.message}';
             return item.message;
           })
           .join('\n')
@@ -463,24 +389,21 @@ Output format (Markdown):
   }
 
   Future<void> requestSubAgents(AgentMessage agentMessage) async {
-    List<FunctionCall> functionCallList =
-        agentMessage.content as List<FunctionCall>;
-    final String promptKey = subAgentDriverList.isNotEmpty
-        ? subAgentDriverList.first.promptKey
-        : "prompt";
+    if (!isTaskActive(agentMessage.taskId)) return;
+    List<FunctionCall> functionCallList = agentMessage.content as List<FunctionCall>;
+    final String promptKey =
+        subAgentDriverList.isNotEmpty ? subAgentDriverList.first.promptKey : "prompt";
 
     for (FunctionCall functionCall in functionCallList) {
       final dynamic agentNameValue = functionCall.arguments[_subAgentNameKey];
       if (agentNameValue is! String || agentNameValue.trim().isEmpty) {
-        _dispatchSubAgentError(
-            agentMessage, functionCall, "Missing or invalid agentName.");
+        _dispatchSubAgentError(agentMessage, functionCall, "Missing or invalid agentName.");
         continue;
       }
-      int subAgentIndex = subAgentDriverList
-          .indexWhere((agentDriver) => agentDriver.hasFunction(agentNameValue));
+      int subAgentIndex =
+          subAgentDriverList.indexWhere((agentDriver) => agentDriver.hasFunction(agentNameValue));
       if (subAgentIndex < 0) {
-        _dispatchSubAgentError(
-            agentMessage, functionCall, "Unknown agent `$agentNameValue`.");
+        _dispatchSubAgentError(agentMessage, functionCall, "Unknown agent `$agentNameValue`.");
         continue;
       }
       final Map<String, dynamic> subAgentArguments =
@@ -488,8 +411,7 @@ Output format (Markdown):
       subAgentArguments.remove(_subAgentNameKey);
       final dynamic promptValue = subAgentArguments[promptKey];
       if (promptValue is! String || promptValue.isEmpty) {
-        _dispatchSubAgentError(
-            agentMessage, functionCall, "Missing or invalid prompt.");
+        _dispatchSubAgentError(agentMessage, functionCall, "Missing or invalid prompt.");
         continue;
       }
       final FunctionCall subAgentFunctionCall = FunctionCall(
@@ -511,6 +433,7 @@ Output format (Markdown):
         functionCallList.map((functionCall) => functionCall.id).toList();
 
     subAgentPipeLine.run(_requestSubAgent, onComplete: () async {
+      if (!isTaskActive(agentMessage.taskId)) return;
       AgentMessage subAgentDoneMessage = AgentMessage(
           sessionId: agentMessage.sessionId,
           originalTaskId: agentMessage.originalTaskId,
@@ -522,16 +445,14 @@ Output format (Markdown):
           content: TaskStatus(
               status: MultiAgentStatusType.DONE,
               taskId: agentMessage.taskId,
-              description:
-                  ToolStatusDescription(functionCallIdList: functionCallIdList)
-                      .toJson()));
+              description: ToolStatusDescription(functionCallIdList: functionCallIdList).toJson()));
       Command command = Command(toAgent, subAgentDoneMessage);
       dispatcherMap.dispatch(command);
     });
   }
 
-  void _dispatchSubAgentError(AgentMessage agentMessage,
-      FunctionCall functionCall, String errorMessage) {
+  void _dispatchSubAgentError(
+      AgentMessage agentMessage, FunctionCall functionCall, String errorMessage) {
     AgentMessage subAgentErrorMessage = AgentMessage(
       sessionId: agentMessage.sessionId,
       originalTaskId: agentMessage.originalTaskId,
@@ -547,16 +468,30 @@ Output format (Markdown):
   }
 
   Future<void> _requestSubAgent(FunctionCallParam functionCallParam) async {
+    if (!isTaskActive(functionCallParam.taskId)) return;
     try {
-      if (functionCallParam.type == null ||
-          functionCallParam.type == FunctionCallType.SUBAGENT) {
+      if (functionCallParam.type == null || functionCallParam.type == FunctionCallType.SUBAGENT) {
         AgentDriver agentDriver = subAgentDriverList[functionCallParam.index];
+        registerActiveToolCall(
+          functionCallParam.taskId,
+          functionCallParam.functionCall.id,
+          agentDriver,
+        );
         agentDriver.setParentTaskId(functionCallParam.taskId);
         agentDriver.addAgentMessageListener((AgentMessage agentMessage) {
           agentSession.addListenAgentMessage(agentMessage);
         });
-        ToolReturn toolReturn = await agentDriver.callAgent(
-            functionCallParam.functionCall, functionCallParam.originalTaskId);
+        late ToolReturn toolReturn;
+        try {
+          toolReturn = await agentDriver.callAgent(
+              functionCallParam.functionCall, functionCallParam.originalTaskId);
+        } finally {
+          unregisterActiveToolCall(
+            functionCallParam.taskId,
+            functionCallParam.functionCall.id,
+          );
+        }
+        if (!isTaskActive(functionCallParam.taskId)) return;
         AgentMessage toolMessage = AgentMessage(
             sessionId: functionCallParam.sessionId,
             originalTaskId: functionCallParam.originalTaskId,
@@ -577,9 +512,9 @@ Output format (Markdown):
   }
 
   Future<void> toSubAgent(AgentMessage agentMessage) async {
+    if (!isTaskActive(agentMessage.taskId)) return;
     if (agentMessage.type == MultiAgentMessageType.TOOL_CALLS) {
-      List<FunctionCall> functionCallList =
-          agentMessage.content as List<FunctionCall>;
+      List<FunctionCall> functionCallList = agentMessage.content as List<FunctionCall>;
       List<String> functionCallIdList =
           functionCallList.map((functionCall) => functionCall.id).toList();
       agentSession.addListenAgentMessage(agentMessage);
@@ -596,11 +531,17 @@ Output format (Markdown):
               content: TaskStatus(
                   status: MultiAgentStatusType.START,
                   taskId: agentMessage.taskId,
-                  description: ToolStatusDescription(
-                          functionCallIdList: functionCallIdList)
-                      .toJson())));
+                  description:
+                      ToolStatusDescription(functionCallIdList: functionCallIdList).toJson())));
       dispatcherMap.dispatch(clientCommand);
       requestSubAgents(agentMessage);
     }
+  }
+
+  @override
+  Future<void> onTaskTerminating(TaskExecutionState state) async {
+    subAgentPipeLine.removeWhere((job) => job.taskId == state.taskId);
+    _separatedFunctionCallMap.remove(state.taskId);
+    await super.onTaskTerminating(state);
   }
 }

@@ -6,11 +6,15 @@ import '../chat_completions_client.dart';
 class LlamadartOpenAIChatClientAdapter implements ChatCompletionsClient {
   final LLMConfig llmConfig;
 
-  late final LlamadartOpenAI _client;
+  late LlamadartOpenAI _client;
 
   LlamadartOpenAIChatClientAdapter(this.llmConfig) {
+    _client = _buildClient();
+  }
+
+  LlamadartOpenAI _buildClient() {
     final providerOptions = llmConfig.providerOptions ?? const {};
-    _client = LlamadartOpenAI.llamadart(
+    return LlamadartOpenAI.llamadart(
       model: _buildModelOptions(providerOptions),
     );
   }
@@ -73,6 +77,13 @@ class LlamadartOpenAIChatClientAdapter implements ChatCompletionsClient {
     } catch (_) {
       return false;
     }
+  }
+
+  @override
+  Future<void> cancelActiveRequests() async {
+    final activeClient = _client;
+    _client = _buildClient();
+    await activeClient.dispose();
   }
 
   LocalModelOptions _buildModelOptions(Map<String, dynamic> providerOptions) {

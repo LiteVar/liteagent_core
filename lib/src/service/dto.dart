@@ -74,6 +74,11 @@ class CapabilityDto extends SimpleCapabilityDto {
   List<LLMConfigDto>? llmConfigList;
   bool? enableThinking;
   int? toolReturnPackMinLength;
+  int? maxLlmRequests;
+  int? maxToolRounds;
+  int? maxToolCalls;
+  int? maxConsecutiveIdenticalToolRounds;
+  int? maxTaskDurationSeconds;
 
   CapabilityDto({
     super.llmConfig,
@@ -90,6 +95,11 @@ class CapabilityDto extends SimpleCapabilityDto {
     this.llmConfigList,
     this.enableThinking,
     this.toolReturnPackMinLength,
+    this.maxLlmRequests,
+    this.maxToolRounds,
+    this.maxToolCalls,
+    this.maxConsecutiveIdenticalToolRounds,
+    this.maxTaskDurationSeconds,
   });
 
   factory CapabilityDto.fromJson(Map<String, dynamic> json) =>

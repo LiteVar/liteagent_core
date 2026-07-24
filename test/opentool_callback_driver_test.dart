@@ -69,12 +69,10 @@ void main() {
       final secondEvents = <String>[];
 
       await driver.streamCall(_functionCall('call-1'), (event, toolReturn) {
-        firstEvents.add(
-            '$event:${toolReturn.result['value'] ?? toolReturn.result['done']}');
+        firstEvents.add('$event:${toolReturn.result['value'] ?? toolReturn.result['done']}');
       });
       await driver.streamCall(_functionCall('call-2'), (event, toolReturn) {
-        secondEvents.add(
-            '$event:${toolReturn.result['value'] ?? toolReturn.result['done']}');
+        secondEvents.add('$event:${toolReturn.result['value'] ?? toolReturn.result['done']}');
       });
 
       driver.streamCallback(
@@ -121,12 +119,30 @@ void main() {
         isFalse,
       );
     });
+
+    test('cancel clears pending state and rejects a late callback', () async {
+      final driver = OpenToolCallbackDriver(
+        _buildOpenTool(stream: false),
+        (_) {},
+        timeout: 30,
+      );
+
+      final resultFuture = driver.call(_functionCall('call-cancelled'));
+      await driver.cancel('call-cancelled');
+      final result = await resultFuture;
+
+      expect(result.result['error'], contains('cancelled'));
+      expect(
+        driver.callback(
+          ot.ToolReturn(id: 'call-cancelled', result: {'value': 'late'}),
+        ),
+        isFalse,
+      );
+    });
   });
 
   group('AgentService callback routing', () {
-    test(
-        'routes child callback return by functionCall id even via root session',
-        () async {
+    test('routes child callback return by functionCall id even via root session', () async {
       final service = AgentService();
       final rootDriver = OpenToolCallbackDriver(
         _buildOpenTool(stream: false),
@@ -159,6 +175,29 @@ void main() {
 
       expect(rootResult.result['value'], 'root');
       expect(childResult.result['value'], 'child');
+    });
+
+    test('released callback driver is removed from session routing', () async {
+      final service = AgentService();
+      final driver = OpenToolCallbackDriver(
+        _buildOpenTool(stream: false),
+        (_) {},
+        timeout: 30,
+      );
+      service.fetchClientDriver('session', driver);
+      final resultFuture = driver.call(_functionCall('released-call'));
+
+      await driver.cancel('released-call');
+      service.releaseClientDriver('session', driver);
+
+      expect(
+        () => service.clientDriverCallback(
+          'session',
+          ot.ToolReturn(id: 'released-call', result: {'value': 'late'}),
+        ),
+        throwsA(isA<SessionAgentNotFoundException>()),
+      );
+      await resultFuture;
     });
   });
 }

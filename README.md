@@ -112,6 +112,39 @@ CapabilityDto capabilityDto = CapabilityDto(
 );
 ```
 
+### Function-calling safety limits
+
+`ToolAgent`, `MultiAgent`, and `AutoMultiAgent` enforce task-level limits so a model cannot
+call tools indefinitely. The direct API accepts `ToolExecutionLimits`; `CapabilityDto`
+exposes the same values as optional fields.
+
+Default limits:
+
+- `maxLlmRequests: 64`
+- `maxToolRounds: 16`
+- `maxToolCalls: 64`
+- `maxConsecutiveIdenticalToolRounds: 3`
+- `maxTaskDurationSeconds: 300`
+
+Calls are considered identical when the tool name and canonical JSON arguments match;
+the provider-generated function-call ID is ignored. A limit violation terminates the
+task with one `TaskStatusType.EXCEPTION` status whose description contains
+`code: tool_loop_limit_exceeded`.
+
+```dart
+final agent = ToolAgent(
+  sessionId: sessionId,
+  llmConfig: llmConfig,
+  agentSession: session,
+  toolDriverList: drivers,
+  executionLimits: const ToolExecutionLimits(
+    maxToolRounds: 8,
+    maxToolCalls: 24,
+    maxConsecutiveIdenticalToolRounds: 2,
+  ),
+);
+```
+
 ### Skills
 
 `CapabilityDto` and `SimpleCapabilityDto` support an optional `skills` field. Each item should be a complete `SKILL.md` string that follows the [Agent Skills specification](https://agentskills.io/specification).

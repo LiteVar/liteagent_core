@@ -7,10 +7,8 @@ class OpenToolCallbackDriver extends OpenToolDriver {
   final void Function(FunctionCall functionCall) listenCallbackFunctionCall;
   final int timeout;
   final Map<String, Completer<ToolReturn>> _callToolReturnCompleterMap = {};
-  void Function(String functionCallId, OpenToolCallbackDriver driver)?
-      _registerPendingCall;
-  void Function(String functionCallId, OpenToolCallbackDriver driver)?
-      _unregisterPendingCall;
+  void Function(String functionCallId, OpenToolCallbackDriver driver)? _registerPendingCall;
+  void Function(String functionCallId, OpenToolCallbackDriver driver)? _unregisterPendingCall;
 
   final Map<String, StreamController<EventToolReturn>> _streamCallMap = {};
 
@@ -21,10 +19,8 @@ class OpenToolCallbackDriver extends OpenToolDriver {
   }) : super(opentool);
 
   void setPendingCallHooks({
-    void Function(String functionCallId, OpenToolCallbackDriver driver)?
-        registerPendingCall,
-    void Function(String functionCallId, OpenToolCallbackDriver driver)?
-        unregisterPendingCall,
+    void Function(String functionCallId, OpenToolCallbackDriver driver)? registerPendingCall,
+    void Function(String functionCallId, OpenToolCallbackDriver driver)? unregisterPendingCall,
   }) {
     _registerPendingCall = registerPendingCall;
     _unregisterPendingCall = unregisterPendingCall;
@@ -54,10 +50,7 @@ class OpenToolCallbackDriver extends OpenToolDriver {
         Duration(seconds: timeout),
         onTimeout: () => ToolReturn(
           id: functionCall.id,
-          result: {
-            "error":
-                "Function `${functionCall.toJson()}` timeout after ${timeout}s."
-          },
+          result: {"error": "Function `${functionCall.toJson()}` timeout after ${timeout}s."},
         ),
       );
     } finally {
@@ -84,10 +77,7 @@ class OpenToolCallbackDriver extends OpenToolDriver {
       onTimeout: (sink) {
         ToolReturn toolReturn = ToolReturn(
           id: functionCall.id,
-          result: {
-            "error":
-                "Function `${functionCall.toJson()}` timeout after ${timeout}s."
-          },
+          result: {"error": "Function `${functionCall.toJson()}` timeout after ${timeout}s."},
         );
         onStream(EventType.ERROR, toolReturn);
         _streamCallMap.remove(functionCall.id);
@@ -104,8 +94,7 @@ class OpenToolCallbackDriver extends OpenToolDriver {
         _clearPendingCall(functionCall.id);
       },
       onError: (e) {
-        onStream(EventType.ERROR,
-            ToolReturn(id: functionCall.id, result: {"error": e.toString()}));
+        onStream(EventType.ERROR, ToolReturn(id: functionCall.id, result: {"error": e.toString()}));
         _streamCallMap.remove(functionCall.id);
         _clearPendingCall(functionCall.id);
         streamController.close();
@@ -126,8 +115,7 @@ class OpenToolCallbackDriver extends OpenToolDriver {
     StreamController<EventToolReturn>? eventToolReturnStreamController =
         _streamCallMap[toolReturn.id];
     if (eventToolReturnStreamController != null) {
-      EventToolReturn eventToolReturn =
-          EventToolReturn(event: event, toolReturn: toolReturn);
+      EventToolReturn eventToolReturn = EventToolReturn(event: event, toolReturn: toolReturn);
       eventToolReturnStreamController.add(eventToolReturn);
       if (event == EventType.DONE || event == EventType.ERROR) {
         _streamCallMap.remove(toolReturn.id);
@@ -137,5 +125,24 @@ class OpenToolCallbackDriver extends OpenToolDriver {
       return true;
     }
     return false;
+  }
+
+  @override
+  Future<void> cancel(String functionCallId) async {
+    final completer = _callToolReturnCompleterMap.remove(functionCallId);
+    if (completer != null && !completer.isCompleted) {
+      completer.complete(
+        ToolReturn(
+          id: functionCallId,
+          result: const {"error": "Function call cancelled."},
+        ),
+      );
+    }
+
+    final streamController = _streamCallMap.remove(functionCallId);
+    if (streamController != null && !streamController.isClosed) {
+      await streamController.close();
+    }
+    _clearPendingCall(functionCallId);
   }
 }
