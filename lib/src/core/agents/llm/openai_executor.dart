@@ -416,7 +416,7 @@ class OpenAIExecutor extends OpenAIUtil implements LLMExecutor {
 
       return OpenAIChatCompletionChoiceMessageModel(
           role: OpenAIChatMessageRole.assistant,
-          content: null,
+          content: [OpenAIChatCompletionChoiceMessageContentItemModel.text('')],
           toolCalls: openAIResponseToolCallList,
           reasoningContent: _resolveToolCallsReasoningContent(agentMessage));
     }
