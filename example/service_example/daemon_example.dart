@@ -6,11 +6,10 @@ import 'package:opentool_dart/opentool_client.dart';
 ///
 /// Preparation:
 /// 1. Start the OpenTool Daemon locally (`opentool-daemon serve`).
-/// 2. Optionally add `daemonHost`, `daemonPort`, and `daemonApiKey` entries to
+/// 2. Set [daemonApiKey] when the example should list tool API keys.
 
-String daemonApiKey = "<CREATE by DAEMON CLI>";
+String daemonApiKey = '';
 Future<void> main() async {
-
   final String daemonHost = HostType.LOCALHOST;
   final int daemonPort = DAEMON_DEFAULT_PORT;
 
@@ -34,27 +33,27 @@ Future<void> main() async {
   }
 
   if (daemonApiKey.isNotEmpty) {
-    await _listToolsWithApiKeys(
-      daemonService,
-      daemonApiKey,
-    );
+    await _listToolsWithApiKeys(daemonService, daemonApiKey);
   } else {
     print('[apiKey] Skipped.');
   }
 }
 
 Future<List<OpenToolServerDto>> _listServers(
-    DaemonService daemonService) async {
+  DaemonService daemonService,
+) async {
   final servers = await daemonService.getServers();
   if (servers.isEmpty) {
     print(
-        '[servers] No server artifacts found. Use opentool-daemon CLI to pull.');
+      '[servers] No server artifacts found. Use opentool-daemon CLI to pull.',
+    );
   } else {
     print('[servers] ${servers.length} available:');
     for (final server in servers) {
       print(
         '  - ${server.alias} (${server.id}) '
-        '${server.registry}/${server.repo}:${server.tag}',
+        '${server.registry}/${server.namespace}/${server.name}:'
+        '${server.version}',
       );
     }
   }
@@ -77,12 +76,9 @@ Future<List<ToolDto>> _listTools(DaemonService daemonService) async {
   return tools;
 }
 
-Future<void> _startToolOnce(
-  DaemonService daemonService,
-  String toolId,
-) async {
+Future<void> _startToolOnce(DaemonService daemonService, String toolId) async {
   print('[startTool] Booting $toolId');
-  final result = await daemonService.startTool(
+  await daemonService.startTool(
     toolId,
     timeoutSeconds: 60,
     onLog: (CommandResultDto chunk) {
@@ -91,8 +87,11 @@ Future<void> _startToolOnce(
         print('  ${chunk.command}: $output');
       }
     },
+    onError: (CommandResultDto error) {
+      print('  ${error.command}: ${error.error ?? 'Tool startup failed'}');
+    },
   );
-  _logCommandResult('[startTool] done', result);
+  print('[startTool] $toolId is ready');
 
   final stopResult = await daemonService.stopTool(toolId);
   print('[stopTool] Stopped ${stopResult.id}');

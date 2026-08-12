@@ -1,13 +1,13 @@
-import 'dart:async';
 import 'package:opentool_daemon/opentool_daemon_client.dart';
 import 'package:opentool_dart/opentool_client.dart';
 
 class DaemonService {
   final DaemonClient _client;
 
-  DaemonService(
-      {String host = HostType.LOCALHOST, int port = DAEMON_DEFAULT_PORT})
-      : _client = DaemonClient(host: host, port: port);
+  DaemonService({
+    String host = HostType.LOCALHOST,
+    int port = DAEMON_DEFAULT_PORT,
+  }) : _client = DaemonClient(host: host, port: port);
 
   Future<List<OpenToolServerDto>> getServers() {
     return _client.listServer();
@@ -38,30 +38,22 @@ class DaemonService {
     return _client.listTool(allParam);
   }
 
-  Future<CommandResultDto> startTool(
+  /// Starts a tool and completes only after the daemon reports that it is ready.
+  ///
+  /// Startup failures are reported through [onError] and are also propagated by
+  /// the returned future as a [DaemonApiException].
+  Future<void> startTool(
     String toolId, {
     int timeoutSeconds = -1,
     void Function(CommandResultDto log)? onLog,
-  }) async {
-    final completer = Completer<CommandResultDto>();
-    _client.startTool(
+    void Function(CommandResultDto error)? onError,
+  }) {
+    return _client.startTool(
       toolId,
       timeoutSeconds: timeoutSeconds,
-      onData: (CommandResultDto chunk) {
-        onLog?.call(chunk);
-      },
-      onError: (CommandResultDto result) {
-        if (!completer.isCompleted) {
-          completer.complete(result);
-        }
-      },
-      onStreamError: (Object error, StackTrace stackTrace) {
-        if (!completer.isCompleted) {
-          completer.completeError(error, stackTrace);
-        }
-      },
+      onData: (CommandResultDto chunk) => onLog?.call(chunk),
+      onError: (CommandResultDto error) => onError?.call(error),
     );
-    return completer.future;
   }
 
   Future<ToolIdDto> stopTool(String toolId) {
