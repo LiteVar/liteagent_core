@@ -25,9 +25,10 @@ class SessionAgentDriver extends AgentDriver {
       FunctionModel functionModel = FunctionModel(
           name: namedSessionAgent.name,
           description: namedSessionAgent.description ??
-              (namedSessionAgent.agent.systemPrompt ??
-                  truncateWithEllipsis(
-                      namedSessionAgent.agent.systemPrompt!, llmFunctionDescriptionMaxLength)),
+              truncateWithEllipsis(
+                namedSessionAgent.agent.systemPrompt ?? '',
+                llmFunctionDescriptionMaxLength,
+              ),
           parameters: [parameter]);
       functionModelList.add(functionModel);
     });

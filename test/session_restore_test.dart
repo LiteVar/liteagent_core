@@ -7,8 +7,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('AgentService session restore', () {
-    test('normal initialization still generates an empty new session',
-        () async {
+    test('normal initialization still generates an empty new session', () async {
       final agentService = service.AgentService();
 
       final result = await agentService.initSession(_capability());
@@ -52,8 +51,7 @@ void main() {
       expect(agent.agentSession.taskDoneAgentMessageList, hasLength(2));
     });
 
-    test('duplicate restored session id is rejected without replacement',
-        () async {
+    test('duplicate restored session id is rejected without replacement', () async {
       final agentService = service.AgentService();
       final restoreState = service.SessionRestoreState(
         sessionId: 'running-session',
@@ -102,15 +100,16 @@ void main() {
 
     test('restores only the MultiAgent root session', () async {
       final agentService = service.AgentService();
-      final child = await agentService.initSession(_capability());
-      final childAgent = agentService.getSessionAgent(child.sessionId)!;
       final contextMessages = <AgentMessage>[
         _message(taskId: 'root-task', role: AgentRoleType.LLM),
       ];
       final rootCapability = service.CapabilityDto(
         systemPrompt: 'root system prompt',
-        sessionList: <service.SessionNameDto>[
-          service.SessionNameDto(sessionId: child.sessionId, name: 'child'),
+        subAgentList: <service.AgentDto>[
+          service.AgentDto(
+            name: 'child',
+            capability: _capability(),
+          ),
         ],
       );
 
@@ -128,8 +127,18 @@ void main() {
         rootAgent!.agentSession.taskDoneAgentMessageList,
         orderedEquals(contextMessages),
       );
-      expect(childAgent.agentSession.taskDoneAgentMessageList, isEmpty);
-      expect(agentService.getSessionAgent(child.sessionId), same(childAgent));
+      final tree = agentService.getSessionTree(result.sessionId);
+      expect(tree, hasLength(2));
+      expect(tree.first.sessionId, result.sessionId);
+      expect(tree.first.parentSessionId, isNull);
+      expect(tree.first.isInlineChild, isFalse);
+      expect(tree[1].name, 'child');
+      expect(tree[1].parentSessionId, result.sessionId);
+      expect(tree[1].isInlineChild, isTrue);
+      expect(
+        agentService.getSessionAgent(tree[1].sessionId)!.agentSession.taskDoneAgentMessageList,
+        isEmpty,
+      );
     });
 
     test('restores AutoMultiAgent context without replaying it', () async {

@@ -15,20 +15,6 @@ Map<String, dynamic> _$SessionDtoToJson(SessionDto instance) =>
       'sessionId': instance.sessionId,
     };
 
-SessionNameDto _$SessionNameDtoFromJson(Map<String, dynamic> json) =>
-    SessionNameDto(
-      sessionId: json['sessionId'] as String,
-      name: json['name'] as String?,
-      description: json['description'] as String?,
-    );
-
-Map<String, dynamic> _$SessionNameDtoToJson(SessionNameDto instance) =>
-    <String, dynamic>{
-      'sessionId': instance.sessionId,
-      if (instance.name case final value?) 'name': value,
-      if (instance.description case final value?) 'description': value,
-    };
-
 SimpleCapabilityDto _$SimpleCapabilityDtoFromJson(Map<String, dynamic> json) =>
     SimpleCapabilityDto(
       llmConfig: json['llmConfig'] == null
@@ -62,8 +48,8 @@ CapabilityDto _$CapabilityDtoFromJson(Map<String, dynamic> json) =>
           ? null
           : CallbackOpenToolDto.fromJson(
               json['callbackOpenTool'] as Map<String, dynamic>),
-      sessionList: (json['sessionList'] as List<dynamic>?)
-          ?.map((e) => SessionNameDto.fromJson(e as Map<String, dynamic>))
+      subAgentList: (json['subAgentList'] as List<dynamic>?)
+          ?.map((e) => AgentDto.fromJson(e as Map<String, dynamic>))
           .toList(),
       reflectPromptList: (json['reflectPromptList'] as List<dynamic>?)
           ?.map((e) => ReflectPromptDto.fromJson(e as Map<String, dynamic>))
@@ -84,8 +70,7 @@ CapabilityDto _$CapabilityDtoFromJson(Map<String, dynamic> json) =>
       maxToolCalls: (json['maxToolCalls'] as num?)?.toInt(),
       maxConsecutiveIdenticalToolRounds:
           (json['maxConsecutiveIdenticalToolRounds'] as num?)?.toInt(),
-      maxTaskDurationSeconds:
-          (json['maxTaskDurationSeconds'] as num?)?.toInt(),
+      maxTaskDurationSeconds: (json['maxTaskDurationSeconds'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
@@ -98,9 +83,9 @@ Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
         'openSpecList': value,
       if (instance.callbackOpenTool?.toJson() case final value?)
         'callbackOpenTool': value,
-      if (instance.sessionList?.map((e) => e.toJson()).toList()
+      if (instance.subAgentList?.map((e) => e.toJson()).toList()
           case final value?)
-        'sessionList': value,
+        'subAgentList': value,
       if (instance.reflectPromptList?.map((e) => e.toJson()).toList()
           case final value?)
         'reflectPromptList': value,

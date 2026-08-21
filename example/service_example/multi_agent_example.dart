@@ -12,26 +12,44 @@ import '../listener.dart';
 AgentService agentService = AgentService();
 
 Future<void> main() async {
-
   LLMConfigDto llmConfig = _buildLLMConfig(model: "gpt-4o");
 
-  String systemPrompt = "You play the role of a tool caller. You can help me decide which tool to call to complete the task according to my requirements. You can only call one tool at a time. \n\nYou support the following tools:\n\n 1. Translation\n 2. Add, delete, modify and query tools";
+  String systemPrompt =
+      "You play the role of a tool caller. You can help me decide which tool to call to complete the task according to my requirements. You can only call one tool at a time. \n\nYou support the following tools:\n\n 1. Translation\n 2. Add, delete, modify and query tools";
   String prompt = "Find the text with ID 0 and translate it into Chinese.";
 
-  SessionDto sessionDto1 = await _buildTextAgent();
-  print("[session1] ${sessionDto1.sessionId}");
-  SessionDto sessionDto2 = await _buildToolAgent();
-  print("[session2] ${sessionDto2.sessionId}");
+  final List<ToolDriver> globalToolDriverList = await _buildCustomDriverList();
+  agentService = AgentService(globalToolDriverList: globalToolDriverList);
 
-  CapabilityDto capabilityDto = CapabilityDto(llmConfig: llmConfig, systemPrompt: systemPrompt,
-    sessionList: [SessionNameDto(sessionId: sessionDto1.sessionId, name: "translator"), SessionNameDto(sessionId: sessionDto2.sessionId, name: "CRUDTools")]
+  CapabilityDto capabilityDto = CapabilityDto(
+    llmConfig: llmConfig,
+    systemPrompt: systemPrompt,
+    subAgentList: [
+      AgentDto(
+        name: "translator",
+        capability: CapabilityDto(
+          llmConfig: llmConfig,
+          systemPrompt: "Playing as a translator, knowing how to translate between languages.",
+        ),
+      ),
+      AgentDto(
+        name: "CRUDTools",
+        capability: CapabilityDto(
+          llmConfig: llmConfig,
+          systemPrompt:
+              "A storage management tool that knows how to add, delete, modify, and query my texts.",
+        ),
+      ),
+    ],
   );
 
   SessionDto sessionDto = await agentService.initSession(capabilityDto);
   print("[session] ${sessionDto.sessionId}");
 
-  UserTaskDto userTaskDto = UserTaskDto(content: [ContentDto(type: ContentType.TEXT, message: prompt)]);
-  await agentService.startSession(sessionDto.sessionId, userTaskDto, listen, listenChunk: listenChunk);
+  UserTaskDto userTaskDto =
+      UserTaskDto(content: [ContentDto(type: ContentType.TEXT, message: prompt)]);
+  await agentService.startSession(sessionDto.sessionId, userTaskDto, listen,
+      listenChunk: listenChunk);
 
   await sleep(20);
 
@@ -56,24 +74,6 @@ LLMConfigDto _buildLLMConfig({String model = "gpt-4o-mini"}) {
   );
 }
 
-Future<SessionDto> _buildTextAgent() async {
-  LLMConfigDto llmConfig = _buildLLMConfig();
-
-  String systemPrompt = "Playing as a translator, knowing how to translate between languages.";
-
-  CapabilityDto capabilityDto = CapabilityDto(llmConfig: llmConfig, systemPrompt: systemPrompt);
-  return await agentService.initSession(capabilityDto);
-}
-
-Future<SessionDto> _buildToolAgent() async {
-  LLMConfigDto llmConfig = _buildLLMConfig();
-
-  String systemPrompt = "A storage management tool that knows how to add, delete, modify, and query my texts.";
-
-  CapabilityDto capabilityDto = CapabilityDto(llmConfig: llmConfig, systemPrompt: systemPrompt);
-  return await agentService.initSession(capabilityDto, customToolDriverList: await _buildCustomDriverList());
-}
-
 Future<void> sleep(int seconds) async {
   for (int i = seconds; i > 0; i--) {
     print(i);
@@ -82,13 +82,12 @@ Future<void> sleep(int seconds) async {
 }
 
 Future<List<ToolDriver>> _buildCustomDriverList() async {
-  String folder = "${io.Directory.current.path}${io.Platform.pathSeparator}example${io.Platform.pathSeparator}custom_driver";
-  List<String> fileNameList = [
-    "mock-tool.json"
-  ];
+  String folder =
+      "${io.Directory.current.path}${io.Platform.pathSeparator}example${io.Platform.pathSeparator}custom_driver";
+  List<String> fileNameList = ["mock-tool.json"];
 
   List<ToolDriver> toolDriverList = [];
-  for(String fileName in fileNameList) {
+  for (String fileName in fileNameList) {
     String jsonPath = "$folder${io.Platform.pathSeparator}$fileName";
     OpenTool openTool = await OpenToolJsonLoader().loadFromFile(jsonPath);
     OpenToolDriver mockDriver = MockDriver(openTool);

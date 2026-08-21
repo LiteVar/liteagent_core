@@ -1,3 +1,9 @@
+## 2.0.0
+
+- replace sessionId-referenced sub-agents with recursive inline subAgentList
+- add runtime Agent tree inspection and transactional tree cleanup
+- reject inline sub-agents for AutoMultiAgent
+
 ## 1.0.0
 
 - separate MultiAgent from ToolAgent

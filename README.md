@@ -183,11 +183,25 @@ When provided, skills are appended below `systemPrompt` in this format:
 
 ```dart
 Future<void> main() async {
-  SessionDto sessionDto1 = await _buildTextAgent();
-  SessionDto sessionDto2 = await _buildToolAgent();
-
-  CapabilityDto capabilityDto = CapabilityDto(llmConfig: llmConfig, systemPrompt: systemPrompt,
-      sessionList: [sessionDto1, sessionDto2]
+  CapabilityDto capabilityDto = CapabilityDto(
+    llmConfig: llmConfig,
+    systemPrompt: systemPrompt,
+    subAgentList: [
+      AgentDto(
+        name: 'translator',
+        capability: CapabilityDto(
+          llmConfig: llmConfig,
+          systemPrompt: 'You are a translator agent.',
+        ),
+      ),
+      AgentDto(
+        name: 'CRUDTools',
+        capability: CapabilityDto(
+          llmConfig: llmConfig,
+          systemPrompt: 'You are a database tools agent.',
+        ),
+      ),
+    ],
   );
 
   SessionDto sessionDto = await agentService.initChat(capabilityDto, listen);

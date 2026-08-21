@@ -1,12 +1,10 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:liteagent_core_dart/liteagent_core.dart';
 import 'package:opentool_dart/opentool_client.dart';
-import 'exception.dart';
 
 part 'dto.g.dart';
 
-Object? _readOriginalTaskId(Map<dynamic, dynamic> json, String key) =>
-    json[key] ?? json['taskId'];
+Object? _readOriginalTaskId(Map<dynamic, dynamic> json, String key) => json[key] ?? json['taskId'];
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
 class SessionDto {
@@ -14,30 +12,9 @@ class SessionDto {
 
   SessionDto({required this.sessionId});
 
-  factory SessionDto.fromJson(Map<String, dynamic> json) =>
-      _$SessionDtoFromJson(json);
+  factory SessionDto.fromJson(Map<String, dynamic> json) => _$SessionDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$SessionDtoToJson(this);
-}
-
-@JsonSerializable(includeIfNull: false, explicitToJson: true)
-class SessionNameDto extends SessionDto {
-  String?
-      name; // OpenAI: The name of the function to be called. Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.
-  String? description;
-
-  SessionNameDto({required super.sessionId, String? name, this.description}) {
-    final regex = RegExp(r'^[a-zA-Z0-9_-]{1,64}$');
-    if (name != null && !regex.hasMatch(name)) {
-      throw AgentNameException(agentName: name);
-    }
-    this.name = name;
-  }
-
-  factory SessionNameDto.fromJson(Map<String, dynamic> json) =>
-      _$SessionNameDtoFromJson(json);
-
-  Map<String, dynamic> toJson() => _$SessionNameDtoToJson(this);
 }
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
@@ -65,7 +42,7 @@ class SimpleCapabilityDto {
 class CapabilityDto extends SimpleCapabilityDto {
   List<OpenSpecDto>? openSpecList;
   CallbackOpenToolDto? callbackOpenTool;
-  List<SessionNameDto>? sessionList;
+  List<AgentDto>? subAgentList;
   List<ReflectPromptDto>? reflectPromptList;
   int timeoutSeconds;
   String taskPipelineStrategy;
@@ -86,7 +63,7 @@ class CapabilityDto extends SimpleCapabilityDto {
     super.skills,
     this.openSpecList,
     this.callbackOpenTool,
-    this.sessionList,
+    this.subAgentList,
     this.reflectPromptList,
     this.timeoutSeconds = 3600,
     this.taskPipelineStrategy = PipelineStrategyType.PARALLEL,
@@ -102,8 +79,7 @@ class CapabilityDto extends SimpleCapabilityDto {
     this.maxTaskDurationSeconds,
   });
 
-  factory CapabilityDto.fromJson(Map<String, dynamic> json) =>
-      _$CapabilityDtoFromJson(json);
+  factory CapabilityDto.fromJson(Map<String, dynamic> json) => _$CapabilityDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$CapabilityDtoToJson(this);
 }
@@ -124,14 +100,9 @@ class OpenSpecDto {
   ApiKeyDto? apiKey;
   // String? openToolId; //When protocol is open tool, this is the tool id
 
-  OpenSpecDto(
-      {required this.openSpec,
-      required this.protocol,
-      this.apiKey,
-      this.serverUrl});
+  OpenSpecDto({required this.openSpec, required this.protocol, this.apiKey, this.serverUrl});
 
-  factory OpenSpecDto.fromJson(Map<String, dynamic> json) =>
-      _$OpenSpecDtoFromJson(json);
+  factory OpenSpecDto.fromJson(Map<String, dynamic> json) => _$OpenSpecDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$OpenSpecDtoToJson(this);
 }
@@ -167,8 +138,7 @@ class LLMConfigDto {
       this.supportsToolCall = true,
       this.supportsReasoning = false});
 
-  factory LLMConfigDto.fromJson(Map<String, dynamic> json) =>
-      _$LLMConfigDtoFromJson(json);
+  factory LLMConfigDto.fromJson(Map<String, dynamic> json) => _$LLMConfigDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$LLMConfigDtoToJson(this);
 
@@ -218,8 +188,7 @@ class AgentMessageDto {
   String? reasoningContent;
 
   @JsonKey(includeIfNull: false)
-  CompletionsDto?
-      completions; //When role is llm, this is current llm calling token usage
+  CompletionsDto? completions; //When role is llm, this is current llm calling token usage
 
   DateTime createTime;
 
@@ -238,8 +207,7 @@ class AgentMessageDto {
     required this.createTime,
   }) : originalTaskId = originalTaskId ?? taskId;
 
-  factory AgentMessageDto.fromJson(Map<String, dynamic> json) =>
-      _$AgentMessageDtoFromJson(json);
+  factory AgentMessageDto.fromJson(Map<String, dynamic> json) => _$AgentMessageDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$AgentMessageDtoToJson(this);
 
@@ -415,8 +383,7 @@ class CompletionsDto {
     this.limits,
   });
 
-  factory CompletionsDto.fromJson(Map<String, dynamic> json) =>
-      _$CompletionsDtoFromJson(json);
+  factory CompletionsDto.fromJson(Map<String, dynamic> json) => _$CompletionsDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$CompletionsDtoToJson(this);
 
@@ -424,9 +391,8 @@ class CompletionsDto {
       usage: TokenUsageDto.fromModel(completions.tokenUsage),
       id: completions.id,
       model: completions.model,
-      limits: completions.limits == null
-          ? null
-          : CompletionsLimitsDto.fromModel(completions.limits!));
+      limits:
+          completions.limits == null ? null : CompletionsLimitsDto.fromModel(completions.limits!));
 
   Completions toModel() => Completions(
         tokenUsage: usage.toModel(),
@@ -448,8 +414,7 @@ class CompletionsLimitsDto {
 
   Map<String, dynamic> toJson() => _$CompletionsLimitsDtoToJson(this);
 
-  factory CompletionsLimitsDto.fromModel(CompletionsLimits limits) =>
-      CompletionsLimitsDto(
+  factory CompletionsLimitsDto.fromModel(CompletionsLimits limits) => CompletionsLimitsDto(
         maxTokens: limits.maxTokens,
         contextWindowSize: limits.contextWindowSize,
       );
@@ -473,8 +438,7 @@ class TokenUsageDto {
       required this.totalTokens,
       this.contextUsageRatio});
 
-  factory TokenUsageDto.fromJson(Map<String, dynamic> json) =>
-      _$TokenUsageDtoFromJson(json);
+  factory TokenUsageDto.fromJson(Map<String, dynamic> json) => _$TokenUsageDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$TokenUsageDtoToJson(this);
 
@@ -499,8 +463,7 @@ class ApiKeyDto {
 
   ApiKeyDto({required this.type, required this.apiKey});
 
-  factory ApiKeyDto.fromJson(Map<String, dynamic> json) =>
-      _$ApiKeyDtoFromJson(json);
+  factory ApiKeyDto.fromJson(Map<String, dynamic> json) => _$ApiKeyDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$ApiKeyDtoToJson(this);
 }
@@ -513,14 +476,9 @@ class UserTaskDto {
   String? extraSystemPrompt;
   LLMConfigDto? llmConfig;
 
-  UserTaskDto(
-      {required this.content,
-      this.isChunk,
-      this.extraSystemPrompt,
-      this.llmConfig});
+  UserTaskDto({required this.content, this.isChunk, this.extraSystemPrompt, this.llmConfig});
 
-  factory UserTaskDto.fromJson(Map<String, dynamic> json) =>
-      _$UserTaskDtoFromJson(json);
+  factory UserTaskDto.fromJson(Map<String, dynamic> json) => _$UserTaskDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$UserTaskDtoToJson(this);
 }
@@ -548,8 +506,7 @@ class SessionTaskDto {
 
   SessionTaskDto({required this.sessionId, this.taskId});
 
-  factory SessionTaskDto.fromJson(Map<String, dynamic> json) =>
-      _$SessionTaskDtoFromJson(json);
+  factory SessionTaskDto.fromJson(Map<String, dynamic> json) => _$SessionTaskDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$SessionTaskDtoToJson(this);
 }
@@ -563,11 +520,9 @@ class ReflectScoreDto {
   ReflectScoreDto({required this.score, this.description});
 
   factory ReflectScoreDto.fromModel(ReflectScore reflectScore) =>
-      ReflectScoreDto(
-          score: reflectScore.score, description: reflectScore.description);
+      ReflectScoreDto(score: reflectScore.score, description: reflectScore.description);
 
-  factory ReflectScoreDto.fromJson(Map<String, dynamic> json) =>
-      _$ReflectScoreDtoFromJson(json);
+  factory ReflectScoreDto.fromJson(Map<String, dynamic> json) => _$ReflectScoreDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$ReflectScoreDtoToJson(this);
 
@@ -589,22 +544,18 @@ class MessageScoreDto {
       required this.message,
       required this.reflectScoreList});
 
-  factory MessageScoreDto.fromModel(MessageScore messageScore) =>
-      MessageScoreDto(
-          contentList: messageScore.contentList
-              .map((content) =>
-                  ContentDto(type: content.type, message: content.message))
-              .toList(),
-          messageType: messageScore.messageType,
-          message: messageScore.message,
-          reflectScoreList: messageScore.reflectScoreList
-              .map((reflectScore) => ReflectScoreDto(
-                  score: reflectScore.score,
-                  description: reflectScore.description))
-              .toList());
+  factory MessageScoreDto.fromModel(MessageScore messageScore) => MessageScoreDto(
+      contentList: messageScore.contentList
+          .map((content) => ContentDto(type: content.type, message: content.message))
+          .toList(),
+      messageType: messageScore.messageType,
+      message: messageScore.message,
+      reflectScoreList: messageScore.reflectScoreList
+          .map((reflectScore) =>
+              ReflectScoreDto(score: reflectScore.score, description: reflectScore.description))
+          .toList());
 
-  factory MessageScoreDto.fromJson(Map<String, dynamic> json) =>
-      _$MessageScoreDtoFromJson(json);
+  factory MessageScoreDto.fromJson(Map<String, dynamic> json) => _$MessageScoreDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$MessageScoreDtoToJson(this);
 
@@ -612,8 +563,7 @@ class MessageScoreDto {
         contentList: contentList.map((content) => content.toModel()).toList(),
         messageType: messageType,
         message: message,
-        reflectScoreList:
-            reflectScoreList.map((score) => score.toModel()).toList(),
+        reflectScoreList: reflectScoreList.map((score) => score.toModel()).toList(),
       );
 }
 
@@ -640,8 +590,7 @@ class ReflectionDto {
       count: result.count,
       maxCount: result.maxCount);
 
-  factory ReflectionDto.fromJson(Map<String, dynamic> json) =>
-      _$ReflectionDtoFromJson(json);
+  factory ReflectionDto.fromJson(Map<String, dynamic> json) => _$ReflectionDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$ReflectionDtoToJson(this);
 
@@ -665,12 +614,9 @@ class TaskStatusDto {
   TaskStatusDto({required this.status, required this.taskId, this.description});
 
   factory TaskStatusDto.fromModel(TaskStatus taskStatus) => TaskStatusDto(
-      status: taskStatus.status,
-      taskId: taskStatus.taskId,
-      description: taskStatus.description);
+      status: taskStatus.status, taskId: taskStatus.taskId, description: taskStatus.description);
 
-  factory TaskStatusDto.fromJson(Map<String, dynamic> json) =>
-      _$TaskStatusDtoFromJson(json);
+  factory TaskStatusDto.fromJson(Map<String, dynamic> json) => _$TaskStatusDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$TaskStatusDtoToJson(this);
 
@@ -693,8 +639,7 @@ class ContentDto {
   factory ContentDto.fromModel(Content content) =>
       ContentDto(type: content.type, message: content.message);
 
-  factory ContentDto.fromJson(Map<String, dynamic> json) =>
-      _$ContentDtoFromJson(json);
+  factory ContentDto.fromJson(Map<String, dynamic> json) => _$ContentDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$ContentDtoToJson(this);
 
@@ -708,8 +653,7 @@ class ReflectPromptDto {
 
   ReflectPromptDto({required this.llmConfig, required this.prompt});
 
-  factory ReflectPromptDto.fromJson(Map<String, dynamic> json) =>
-      _$ReflectPromptDtoFromJson(json);
+  factory ReflectPromptDto.fromJson(Map<String, dynamic> json) => _$ReflectPromptDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$ReflectPromptDtoToJson(this);
 }
@@ -771,8 +715,7 @@ class AgentIdDto {
   String agentId;
   AgentIdDto({required this.agentId});
 
-  factory AgentIdDto.fromJson(Map<String, dynamic> json) =>
-      _$AgentIdDtoFromJson(json);
+  factory AgentIdDto.fromJson(Map<String, dynamic> json) => _$AgentIdDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$AgentIdDtoToJson(this);
 }
@@ -783,8 +726,7 @@ class AgentDto {
   CapabilityDto capability;
   AgentDto({required this.name, required this.capability});
 
-  factory AgentDto.fromJson(Map<String, dynamic> json) =>
-      _$AgentDtoFromJson(json);
+  factory AgentDto.fromJson(Map<String, dynamic> json) => _$AgentDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$AgentDtoToJson(this);
 }
@@ -803,8 +745,7 @@ class AgentInfoDto extends AgentIdDto {
     this.updateTime,
   });
 
-  factory AgentInfoDto.fromJson(Map<String, dynamic> json) =>
-      _$AgentInfoDtoFromJson(json);
+  factory AgentInfoDto.fromJson(Map<String, dynamic> json) => _$AgentInfoDtoFromJson(json);
 
   @override
   Map<String, dynamic> toJson() => _$AgentInfoDtoToJson(this);
@@ -815,8 +756,7 @@ class SessionAgentMessageDto {
   String sessionId;
   // String taskId;
   AgentMessageDto agentMessageDto;
-  SessionAgentMessageDto(
-      {required this.sessionId, required this.agentMessageDto});
+  SessionAgentMessageDto({required this.sessionId, required this.agentMessageDto});
 
   factory SessionAgentMessageDto.fromJson(Map<String, dynamic> json) =>
       _$SessionAgentMessageDtoFromJson(json);
@@ -864,8 +804,7 @@ class SessionInfoDto {
     this.topic,
   });
 
-  factory SessionInfoDto.fromJson(Map<String, dynamic> json) =>
-      _$SessionInfoDtoFromJson(json);
+  factory SessionInfoDto.fromJson(Map<String, dynamic> json) => _$SessionInfoDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$SessionInfoDtoToJson(this);
 }

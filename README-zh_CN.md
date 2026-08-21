@@ -177,11 +177,25 @@ Focus on concise synthesis. Preserve facts, constraints, and open questions.
 
 ```dart
 Future<void> main() async {
-  SessionDto sessionDto1 = await _buildTextAgent();
-  SessionDto sessionDto2 = await _buildToolAgent();
-
-  CapabilityDto capabilityDto = CapabilityDto(llmConfig: llmConfig, systemPrompt: systemPrompt,
-      sessionList: [sessionDto1, sessionDto2]
+  CapabilityDto capabilityDto = CapabilityDto(
+    llmConfig: llmConfig,
+    systemPrompt: systemPrompt,
+    subAgentList: [
+      AgentDto(
+        name: 'translator',
+        capability: CapabilityDto(
+          llmConfig: llmConfig,
+          systemPrompt: '你是翻译 Agent。',
+        ),
+      ),
+      AgentDto(
+        name: 'CRUDTools',
+        capability: CapabilityDto(
+          llmConfig: llmConfig,
+          systemPrompt: '你是数据库工具 Agent。',
+        ),
+      ),
+    ],
   );
 
   SessionDto sessionDto = await agentService.initChat(capabilityDto, listen);
