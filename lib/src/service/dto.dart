@@ -43,7 +43,6 @@ class CapabilityDto extends SimpleCapabilityDto {
   List<OpenSpecDto>? openSpecList;
   CallbackOpenToolDto? callbackOpenTool;
   List<AgentDto>? subAgentList;
-  List<ReflectPromptDto>? reflectPromptList;
   int timeoutSeconds;
   String taskPipelineStrategy;
   String? toolPipelineStrategy;
@@ -64,7 +63,6 @@ class CapabilityDto extends SimpleCapabilityDto {
     this.openSpecList,
     this.callbackOpenTool,
     this.subAgentList,
-    this.reflectPromptList,
     this.timeoutSeconds = 3600,
     this.taskPipelineStrategy = PipelineStrategyType.PARALLEL,
     this.toolPipelineStrategy,
@@ -229,9 +227,6 @@ class AgentMessageDto {
       case AgentMessageType.TOOL_RETURN:
         message = agentMessage.content as ToolReturn;
         break;
-      case AgentMessageType.REFLECTION:
-        message = ReflectionDto.fromModel(agentMessage.content as Reflection);
-        break;
       case AgentMessageType.TASK_STATUS:
         message = TaskStatusDto.fromModel(agentMessage.content as TaskStatus);
         break;
@@ -303,14 +298,6 @@ class AgentMessageDto {
         return ToolReturn.fromJson(
           Map<String, dynamic>.from(content as Map),
         );
-      case AgentMessageType.REFLECTION:
-        if (content is Reflection) return content;
-        return (content is ReflectionDto
-                ? content as ReflectionDto
-                : ReflectionDto.fromJson(
-                    Map<String, dynamic>.from(content as Map),
-                  ))
-            .toModel();
       case AgentMessageType.TASK_STATUS:
         if (content is TaskStatus) return content;
         return (content is TaskStatusDto
@@ -512,98 +499,6 @@ class SessionTaskDto {
 }
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
-class ReflectScoreDto {
-  int score;
-
-  @JsonKey(includeIfNull: false)
-  String? description;
-  ReflectScoreDto({required this.score, this.description});
-
-  factory ReflectScoreDto.fromModel(ReflectScore reflectScore) =>
-      ReflectScoreDto(score: reflectScore.score, description: reflectScore.description);
-
-  factory ReflectScoreDto.fromJson(Map<String, dynamic> json) => _$ReflectScoreDtoFromJson(json);
-
-  Map<String, dynamic> toJson() => _$ReflectScoreDtoToJson(this);
-
-  ReflectScore toModel() => ReflectScore(
-        score: score,
-        description: description,
-      );
-}
-
-@JsonSerializable(includeIfNull: false, explicitToJson: true)
-class MessageScoreDto {
-  List<ContentDto> contentList;
-  String messageType; //Follow AgentMessage.type
-  String message;
-  List<ReflectScoreDto> reflectScoreList;
-  MessageScoreDto(
-      {required this.contentList,
-      required this.messageType,
-      required this.message,
-      required this.reflectScoreList});
-
-  factory MessageScoreDto.fromModel(MessageScore messageScore) => MessageScoreDto(
-      contentList: messageScore.contentList
-          .map((content) => ContentDto(type: content.type, message: content.message))
-          .toList(),
-      messageType: messageScore.messageType,
-      message: messageScore.message,
-      reflectScoreList: messageScore.reflectScoreList
-          .map((reflectScore) =>
-              ReflectScoreDto(score: reflectScore.score, description: reflectScore.description))
-          .toList());
-
-  factory MessageScoreDto.fromJson(Map<String, dynamic> json) => _$MessageScoreDtoFromJson(json);
-
-  Map<String, dynamic> toJson() => _$MessageScoreDtoToJson(this);
-
-  MessageScore toModel() => MessageScore(
-        contentList: contentList.map((content) => content.toModel()).toList(),
-        messageType: messageType,
-        message: message,
-        reflectScoreList: reflectScoreList.map((score) => score.toModel()).toList(),
-      );
-}
-
-@JsonSerializable(includeIfNull: false, explicitToJson: true)
-class ReflectionDto {
-  final bool isPass;
-  final MessageScoreDto messageScore;
-  final int passScore;
-  final int count;
-  final int maxCount;
-
-  ReflectionDto({
-    required this.isPass,
-    required this.messageScore,
-    required this.passScore,
-    required this.count,
-    required this.maxCount,
-  });
-
-  factory ReflectionDto.fromModel(Reflection result) => ReflectionDto(
-      isPass: result.isPass,
-      messageScore: MessageScoreDto.fromModel(result.messageScore),
-      passScore: result.passScore,
-      count: result.count,
-      maxCount: result.maxCount);
-
-  factory ReflectionDto.fromJson(Map<String, dynamic> json) => _$ReflectionDtoFromJson(json);
-
-  Map<String, dynamic> toJson() => _$ReflectionDtoToJson(this);
-
-  Reflection toModel() => Reflection(
-        isPass: isPass,
-        messageScore: messageScore.toModel(),
-        passScore: passScore,
-        count: count,
-        maxCount: maxCount,
-      );
-}
-
-@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class TaskStatusDto {
   String status;
   String taskId;
@@ -644,18 +539,6 @@ class ContentDto {
   Map<String, dynamic> toJson() => _$ContentDtoToJson(this);
 
   Content toModel() => Content(type: type, message: message);
-}
-
-@JsonSerializable(includeIfNull: false, explicitToJson: true)
-class ReflectPromptDto {
-  LLMConfigDto llmConfig;
-  String prompt;
-
-  ReflectPromptDto({required this.llmConfig, required this.prompt});
-
-  factory ReflectPromptDto.fromJson(Map<String, dynamic> json) => _$ReflectPromptDtoFromJson(json);
-
-  Map<String, dynamic> toJson() => _$ReflectPromptDtoToJson(this);
 }
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)

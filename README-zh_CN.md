@@ -205,24 +205,6 @@ Future<void> main() async {
 }
 ```
 
-- Reflection支持
-
-```dart
-Future<void> main() async {
-  CapabilityDto capabilityDto = CapabilityDto(
-      llmConfig: _buildLLMConfig(),
-      systemPrompt: _buildSystemPrompt(),
-      openSpecList: await _buildOpenSpecList(),
-      /// Add reflection prompt list here
-      toolReflectionList: await _buildToolReflectionList()
-  );
-  SessionDto sessionDto = await agentService.initChat(capabilityDto, listen);
-  String prompt = "<用户消息，例如：调用某个工具>";
-  UserTaskDto userTaskDto = UserTaskDto(taskId: "<用于区分不同任务，不超过36个字符>", contentList: [UserMessageDto(type: UserMessageDtoType.text, message: prompt)]);
-  await agentService.startChat(sessionDto.id, userTaskDto);
-}
-```
-
 ### 方法2: 使用ToolAgent
 
 - 例子：`/example/agent_example`

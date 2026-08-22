@@ -10,7 +10,6 @@ class MultiAgentRoleType {
   static const String ASSISTANT = ToolRoleType.ASSISTANT; // llm
   static const String TOOL = ToolRoleType.TOOL; // external tools
   static const String CLIENT = ToolRoleType.CLIENT; // external caller
-  static const String REFLECTION = ToolRoleType.REFLECTION; // reflection
 }
 
 class MultiAgentMessageType {

@@ -5,10 +5,6 @@ import '../llm/exception.dart';
 import '../llm/context_normalizer.dart';
 import '../llm/openai_executor.dart';
 import '../model.dart';
-import '../reflection/model.dart';
-import '../reflection/reflector.dart';
-import '../reflection/reflector_agent.dart';
-import '../reflection/reflector_manager.dart';
 import '../session_agent/agent_message_handler.dart';
 import '../session_agent/dispatcher.dart';
 import '../session_agent/model.dart';
@@ -40,8 +36,6 @@ Output format (Markdown):
 
   LLMConfig? llmConfig;
   bool? enableThinking;
-  ReflectorManager reflectionManager = ReflectorManager();
-  Completions? currAgentReflectorCompletions;
   AgentMessageHandlerManager manager = AgentMessageHandlerManager();
 
   TextAgent(
@@ -50,33 +44,13 @@ Output format (Markdown):
       required super.agentSession,
       String? super.systemPrompt,
       super.timeoutSeconds = 600,
-      List<ReflectPrompt> textReflectPromptList = const [],
       super.taskPipelineStrategy,
       this.enableThinking}) {
-    textReflectPromptList.forEach((reflectPrompt) {
-      ReflectorAgent reflectorAgent = ReflectorAgent(
-          llmExecutor: OpenAIExecutor(reflectPrompt.llmConfig),
-          systemPrompt: reflectPrompt.prompt,
-          sessionId: this.sessionId,
-          parentTaskId: this.parentTaskId);
-      AgentReflector agentReflector =
-          AgentReflector(agent: reflectorAgent, subscribeCompletions: subscribeCompletions);
-      reflectionManager.addReflector(agentReflector);
-    });
-
     manager.registerHandler(
-        role: TextRoleType.USER, handler: UserMessageHandler(reflectionManager, toLLM));
+        role: TextRoleType.USER, handler: UserMessageHandler(toLLM));
     manager.registerHandler(
         role: TextRoleType.ASSISTANT,
-        handler: LLMMessageHandler(reflectionManager, toReflection, toUser));
-    manager.registerHandler(
-        role: TextRoleType.REFLECTION,
-        handler: TextReflectionMessageHandler(reflectionManager, toLLM, toUser,
-            onTextRetry: onReflectionRetry));
-  }
-
-  void subscribeCompletions(Completions? completions) {
-    currAgentReflectorCompletions = completions;
+        handler: LLMMessageHandler(toUser));
   }
 
   @override
@@ -85,29 +59,6 @@ Output format (Markdown):
     agentSession.addListenAgentMessage(agentMessage);
     Command? nextCommand = manager.handleMessage(agentMessage);
     if (nextCommand != null) dispatcherMap.dispatch(nextCommand);
-  }
-
-  Future<void> toReflection(AgentMessage agentMessage) async {
-    if (!isTaskActive(agentMessage.taskId)) return;
-    Reflection reflection = await reflectionManager.reflect(
-        agentMessage.type, agentMessage.content as String, agentMessage.originalTaskId);
-    if (!isTaskActive(agentMessage.taskId)) return;
-    AgentMessage reflectionMessage = AgentMessage(
-        sessionId: agentMessage.sessionId,
-        originalTaskId: agentMessage.originalTaskId,
-        parentTaskId: this.parentTaskId,
-        taskId: agentMessage.taskId,
-        role: TextRoleType.REFLECTION,
-        to: TextRoleType.AGENT,
-        type: TextMessageType.REFLECTION,
-        content: reflection,
-        completions: currAgentReflectorCompletions);
-    Command reflectionCommand = Command(toAgent, reflectionMessage);
-    dispatcherMap.dispatch(reflectionCommand);
-  }
-
-  void onReflectionRetry(AgentMessage agentMessage) {
-    dispatcherMap.clearTaskMessageList(agentMessage.taskId);
   }
 
   Future<void> toUser(AgentMessage sessionMessage) async {

@@ -12,10 +12,6 @@ import '../llm/openai_executor.dart';
 import '../model.dart';
 import '../pipeline/model.dart';
 import '../pipeline/pipeline.dart';
-import '../reflection/model.dart';
-import '../reflection/reflector.dart';
-import '../reflection/reflector_agent.dart';
-import '../reflection/reflector_manager.dart';
 import '../session_agent/dispatcher.dart';
 import '../session_agent/model.dart';
 import '../session_agent/task_execution_state.dart';
@@ -49,7 +45,6 @@ Output format (Markdown):
 ''';
 
   List<ToolDriver> toolDriverList;
-  ReflectorManager toolReflectionManager = ReflectorManager();
   late Pipeline<FunctionCallParam> toolPipeLine;
   CallbackOpenTool? callbackOpenTool;
   final int streamCallTimeoutSeconds;
@@ -71,7 +66,6 @@ Output format (Markdown):
     required super.agentSession,
     String? super.systemPrompt,
     super.timeoutSeconds = 3600,
-    List<ReflectPrompt> toolReflectPromptList = const [],
     super.taskPipelineStrategy,
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
     this.streamCallTimeoutSeconds = 60,
@@ -79,31 +73,14 @@ Output format (Markdown):
     this.executionLimits = const ToolExecutionLimits(),
     super.enableThinking,
   }) {
-    toolReflectPromptList.forEach((reflectPrompt) {
-      ReflectorAgent reflectorAgent = ReflectorAgent(
-          llmExecutor: OpenAIExecutor(reflectPrompt.llmConfig),
-          systemPrompt: reflectPrompt.prompt,
-          sessionId: this.sessionId,
-          parentTaskId: this.parentTaskId);
-      AgentReflector agentReflector =
-          AgentReflector(agent: reflectorAgent, subscribeCompletions: subscribeCompletions);
-      toolReflectionManager.addReflector(agentReflector);
-    });
-
     manager.registerHandler(
         role: TextRoleType.USER,
-        handler: UserMessageHandler(toolReflectionManager,
-            toLLM)); //override TextAgent User handler, for save List<Content>
+        handler: UserMessageHandler(toLLM));
     manager.registerHandler(
         role: ToolRoleType.ASSISTANT,
-        handler: LLMFunctionCallingMessageHandler(
-            toolReflectionManager, toReflection, toUser, toTool)); //override TextAgent LLM handler
+        handler: LLMFunctionCallingMessageHandler(toUser, toTool));
     manager.registerHandler(
         role: ToolRoleType.TOOL, handler: ToolMessageHandler(toLLM, onToolReturn: onToolReturn));
-    manager.registerHandler(
-        role: ToolRoleType.REFLECTION,
-        handler: ToolReflectionMessageHandler(toolReflectionManager, toLLM, toTool,
-            onToolRetry: super.onReflectionRetry));
 
     toolPipeLine = Pipeline(toolPipelineStrategy);
   }
@@ -443,33 +420,6 @@ Output format (Markdown):
       if (!streamListenerStarted) {
         _unregisterLLMExecutor(agentMessage.taskId, executor);
       }
-    }
-  }
-
-  @override
-  Future<void> toReflection(AgentMessage agentMessage) async {
-    if (!isTaskActive(agentMessage.taskId)) return;
-    if (agentMessage.type == ToolMessageType.TOOL_CALLS) {
-      List<FunctionCall> functionCallList = agentMessage.content as List<FunctionCall>;
-      List<Map<String, dynamic>> functionCallJsonList =
-          functionCallList.map((functionCall) => functionCall.toJson()).toList();
-      Reflection reflection = await toolReflectionManager.reflect(
-          agentMessage.type, jsonEncode(functionCallJsonList), agentMessage.originalTaskId);
-      if (!isTaskActive(agentMessage.taskId)) return;
-      AgentMessage reflectionMessage = AgentMessage(
-          sessionId: agentMessage.sessionId,
-          originalTaskId: agentMessage.originalTaskId,
-          parentTaskId: agentMessage.parentTaskId,
-          taskId: agentMessage.taskId,
-          role: TextRoleType.REFLECTION,
-          to: TextRoleType.AGENT,
-          type: TextMessageType.REFLECTION,
-          content: reflection,
-          completions: currAgentReflectorCompletions);
-      Command reflectionCommand = Command(toAgent, reflectionMessage);
-      dispatcherMap.dispatch(reflectionCommand);
-    } else {
-      super.toReflection(agentMessage);
     }
   }
 

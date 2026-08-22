@@ -211,24 +211,6 @@ Future<void> main() async {
 }
 ```
 
-- Reflection support
-
-```dart
-Future<void> main() async {
-  CapabilityDto capabilityDto = CapabilityDto(
-      llmConfig: _buildLLMConfig(),
-      systemPrompt: _buildSystemPrompt(),
-      openSpecList: await _buildOpenSpecList(),
-      /// Add reflection prompt list here
-      toolReflectionList: await _buildToolReflectionList()
-  );
-  SessionDto sessionDto = await agentService.initChat(capabilityDto, listen);
-  String prompt = "<USER PROMPT, e.g. call any one tool>";
-  UserTaskDto userTaskDto = UserTaskDto(taskId: "<Identify different tasks, NOT more than 36 chars>", contentList: [UserMessageDto(type: UserMessageDtoType.text, message: prompt)]);
-  await agentService.startChat(sessionDto.id, userTaskDto);
-}
-```
-
 ### Method 2: ToolAgent
 
 - According to `/example/agent_example`

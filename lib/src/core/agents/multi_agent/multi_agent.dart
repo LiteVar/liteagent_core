@@ -7,7 +7,6 @@ import '../llm/context_normalizer.dart';
 import '../model.dart';
 import '../pipeline/model.dart';
 import '../pipeline/pipeline.dart';
-import '../reflection/model.dart';
 import '../session_agent/dispatcher.dart';
 import '../session_agent/model.dart';
 import '../session_agent/task_execution_state.dart';
@@ -54,7 +53,6 @@ Output format (Markdown):
     String? systemPrompt,
     int timeoutSeconds = 3600,
     int streamCallTimeoutSeconds = 60,
-    List<ReflectPrompt> toolReflectPromptList = const [],
     String taskPipelineStrategy = PipelineStrategyType.PARALLEL,
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
     required this.subAgentDriverList,
@@ -78,20 +76,14 @@ Output format (Markdown):
         ) {
     manager.registerHandler(
         role: MultiAgentRoleType.USER,
-        handler: UserMessageHandler(toolReflectionManager,
-            toLLM)); //override TextAgent User handler, for save List<Content>
+        handler: UserMessageHandler(toLLM));
     manager.registerHandler(
         role: MultiAgentRoleType.ASSISTANT,
-        handler: MultiAgentFunctionCallingMessageHandler(toolReflectionManager, toReflection,
-            toUser, _partitionFunctionCallMessage)); //override TextAgent LLM handler
+        handler: MultiAgentFunctionCallingMessageHandler(toUser, _partitionFunctionCallMessage));
     manager.registerHandler(
         role: MultiAgentRoleType.TOOL, handler: MultiAgentToolMessageHandler(onFunctionCallResult));
     manager.registerHandler(
         role: MultiAgentRoleType.SUBAGENT, handler: SubAgentMessageHandler(onFunctionCallResult));
-    manager.registerHandler(
-        role: MultiAgentRoleType.REFLECTION,
-        handler: MultiAgentReflectionMessageHandler(toolReflectionManager, toLLM,
-            _partitionFunctionCallMessage)); //toTool, onToolRetry: super.onReflectionRetry));
 
     subAgentPipeLine = Pipeline(toolPipelineStrategy);
   }

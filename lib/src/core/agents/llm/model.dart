@@ -27,7 +27,6 @@ class AgentMessageType {
   static const String TOOL_CALLS = "toolCalls"; //List<FunctionCall>
   static const String TOOL_RETURN = "toolReturn"; //ToolReturn
   static const String CONTENT_LIST = "contentList"; //List<Content>
-  static const String REFLECTION = "reflection"; //Reflection
   static const String TASK_STATUS = "taskStatus"; //TaskStatus
   static const String FUNCTION_CALL = "functionCall"; //FunctionCall
   static const String REASONING = "reasoning"; //String

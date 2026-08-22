@@ -7,7 +7,6 @@ import '../session_agent/model.dart';
 import '../session_agent/session.dart';
 import '../session_agent/task_execution_state.dart';
 import '../tool_agent/tool_agent.dart';
-import '../reflection/model.dart';
 import '../pipeline/model.dart';
 import 'planner/planner.dart';
 import 'executor/executor.dart';
@@ -56,13 +55,11 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
     super.streamCallTimeoutSeconds,
     super.toolReturnPackMinLength,
     super.executionLimits,
-    List<ReflectPrompt> toolReflectPromptList = const [],
     String taskPipelineStrategy = PipelineStrategyType.PARALLEL,
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
     super.enableThinking,
     List<LLMConfig>? llmConfigList,
   }) : super(
-            toolReflectPromptList: toolReflectPromptList,
             taskPipelineStrategy: taskPipelineStrategy,
             toolPipelineStrategy: toolPipelineStrategy) {}
 
@@ -75,7 +72,6 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
     String? systemPrompt,
     int timeoutSeconds = 3600,
     int streamCallTimeoutSeconds = 60,
-    List<ReflectPrompt> toolReflectPromptList = const [],
     String taskPipelineStrategy = PipelineStrategyType.PARALLEL,
     String toolPipelineStrategy = PipelineStrategyType.PARALLEL,
     bool? enableThinking,
@@ -93,7 +89,6 @@ class AutoMultiAgent extends ToolAgent implements AutoMessageSender {
         systemPrompt: systemPrompt,
         timeoutSeconds: timeoutSeconds,
         streamCallTimeoutSeconds: streamCallTimeoutSeconds,
-        toolReflectPromptList: toolReflectPromptList,
         taskPipelineStrategy: taskPipelineStrategy,
         toolPipelineStrategy: toolPipelineStrategy,
         enableThinking: enableThinking,

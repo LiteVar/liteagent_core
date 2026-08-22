@@ -51,9 +51,6 @@ CapabilityDto _$CapabilityDtoFromJson(Map<String, dynamic> json) =>
       subAgentList: (json['subAgentList'] as List<dynamic>?)
           ?.map((e) => AgentDto.fromJson(e as Map<String, dynamic>))
           .toList(),
-      reflectPromptList: (json['reflectPromptList'] as List<dynamic>?)
-          ?.map((e) => ReflectPromptDto.fromJson(e as Map<String, dynamic>))
-          .toList(),
       timeoutSeconds: (json['timeoutSeconds'] as num?)?.toInt() ?? 3600,
       taskPipelineStrategy: json['taskPipelineStrategy'] as String? ??
           PipelineStrategyType.PARALLEL,
@@ -86,9 +83,6 @@ Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
       if (instance.subAgentList?.map((e) => e.toJson()).toList()
           case final value?)
         'subAgentList': value,
-      if (instance.reflectPromptList?.map((e) => e.toJson()).toList()
-          case final value?)
-        'reflectPromptList': value,
       'timeoutSeconds': instance.timeoutSeconds,
       'taskPipelineStrategy': instance.taskPipelineStrategy,
       if (instance.toolPipelineStrategy case final value?)
@@ -298,58 +292,6 @@ Map<String, dynamic> _$SessionTaskDtoToJson(SessionTaskDto instance) =>
       if (instance.taskId case final value?) 'taskId': value,
     };
 
-ReflectScoreDto _$ReflectScoreDtoFromJson(Map<String, dynamic> json) =>
-    ReflectScoreDto(
-      score: (json['score'] as num).toInt(),
-      description: json['description'] as String?,
-    );
-
-Map<String, dynamic> _$ReflectScoreDtoToJson(ReflectScoreDto instance) =>
-    <String, dynamic>{
-      'score': instance.score,
-      if (instance.description case final value?) 'description': value,
-    };
-
-MessageScoreDto _$MessageScoreDtoFromJson(Map<String, dynamic> json) =>
-    MessageScoreDto(
-      contentList: (json['contentList'] as List<dynamic>)
-          .map((e) => ContentDto.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      messageType: json['messageType'] as String,
-      message: json['message'] as String,
-      reflectScoreList: (json['reflectScoreList'] as List<dynamic>)
-          .map((e) => ReflectScoreDto.fromJson(e as Map<String, dynamic>))
-          .toList(),
-    );
-
-Map<String, dynamic> _$MessageScoreDtoToJson(MessageScoreDto instance) =>
-    <String, dynamic>{
-      'contentList': instance.contentList.map((e) => e.toJson()).toList(),
-      'messageType': instance.messageType,
-      'message': instance.message,
-      'reflectScoreList':
-          instance.reflectScoreList.map((e) => e.toJson()).toList(),
-    };
-
-ReflectionDto _$ReflectionDtoFromJson(Map<String, dynamic> json) =>
-    ReflectionDto(
-      isPass: json['isPass'] as bool,
-      messageScore: MessageScoreDto.fromJson(
-          json['messageScore'] as Map<String, dynamic>),
-      passScore: (json['passScore'] as num).toInt(),
-      count: (json['count'] as num).toInt(),
-      maxCount: (json['maxCount'] as num).toInt(),
-    );
-
-Map<String, dynamic> _$ReflectionDtoToJson(ReflectionDto instance) =>
-    <String, dynamic>{
-      'isPass': instance.isPass,
-      'messageScore': instance.messageScore.toJson(),
-      'passScore': instance.passScore,
-      'count': instance.count,
-      'maxCount': instance.maxCount,
-    };
-
 TaskStatusDto _$TaskStatusDtoFromJson(Map<String, dynamic> json) =>
     TaskStatusDto(
       status: json['status'] as String,
@@ -373,19 +315,6 @@ Map<String, dynamic> _$ContentDtoToJson(ContentDto instance) =>
     <String, dynamic>{
       'type': instance.type,
       'message': instance.message,
-    };
-
-ReflectPromptDto _$ReflectPromptDtoFromJson(Map<String, dynamic> json) =>
-    ReflectPromptDto(
-      llmConfig:
-          LLMConfigDto.fromJson(json['llmConfig'] as Map<String, dynamic>),
-      prompt: json['prompt'] as String,
-    );
-
-Map<String, dynamic> _$ReflectPromptDtoToJson(ReflectPromptDto instance) =>
-    <String, dynamic>{
-      'llmConfig': instance.llmConfig.toJson(),
-      'prompt': instance.prompt,
     };
 
 AgentMessageChunkDto _$AgentMessageChunkDtoFromJson(

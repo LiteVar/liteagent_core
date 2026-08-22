@@ -126,28 +126,6 @@ void main() {
       expect(taskStatus.taskId, 'task');
       expect(taskStatus.description, <String, dynamic>{'result': 'done'});
 
-      final reflection = _roundTripContent(
-        AgentMessageType.REFLECTION,
-        Reflection(
-          isPass: true,
-          messageScore: MessageScore(
-            contentList: <Content>[
-              Content(type: ContentType.TEXT, message: 'answer'),
-            ],
-            messageType: AgentMessageType.TEXT,
-            message: 'answer',
-            reflectScoreList: <ReflectScore>[
-              ReflectScore(score: 9, description: 'good'),
-            ],
-          ),
-          passScore: 8,
-          count: 1,
-          maxCount: 3,
-        ),
-      ) as Reflection;
-      expect(reflection.isPass, isTrue);
-      expect(reflection.messageScore.contentList.single.message, 'answer');
-      expect(reflection.messageScore.reflectScoreList.single.score, 9);
     });
   });
 }

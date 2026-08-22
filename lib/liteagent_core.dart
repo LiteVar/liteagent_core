@@ -17,7 +17,6 @@ export 'src/core/agents/tool_agent/model.dart';
 export 'src/core/agents/multi_agent/multi_agent.dart';
 export 'src/core/agents/multi_agent/multi_agent_message_handler.dart';
 export 'src/core/agents/multi_agent/model.dart';
-export 'src/core/agents/reflection/model.dart';
 export 'src/core/agents/auto/auto_multi_agent.dart';
 export 'src/core/agents/auto/models/node.dart';
 export 'src/core/agents/auto/planner/planner.dart';

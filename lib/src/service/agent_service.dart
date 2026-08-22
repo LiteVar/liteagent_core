@@ -509,16 +509,6 @@ class AgentService {
       maxConsecutiveIdenticalToolRounds: capability.maxConsecutiveIdenticalToolRounds ?? 3,
       maxTaskDurationSeconds: capability.maxTaskDurationSeconds ?? 300,
     );
-    final List<ReflectPrompt> reflectPromptList = capability.reflectPromptList
-            ?.map(
-              (reflectPromptDto) => ReflectPrompt(
-                llmConfig: reflectPromptDto.llmConfig.toModel(),
-                prompt: reflectPromptDto.prompt,
-              ),
-            )
-            .toList() ??
-        <ReflectPrompt>[];
-
     final List<ToolDriver> toolDriverList = <ToolDriver>[];
     toolDriverList.addAll(globalDriverList);
     final List<OpenSpecDto> presetOpenSpecList = _presetOpenSpecList
@@ -576,7 +566,6 @@ class AgentService {
       llmConfig: llmConfig,
       agentSession: agentSession,
       fullSystemPrompt: fullSystemPrompt,
-      reflectPromptList: reflectPromptList,
       toolDriverList: toolDriverList,
       subAgentDriverList: subAgentDriverList,
       resolvedToolReturnPackMinLength: resolvedToolReturnPackMinLength,
@@ -605,7 +594,6 @@ class AgentService {
     required LLMConfig? llmConfig,
     required AgentSession agentSession,
     required String fullSystemPrompt,
-    required List<ReflectPrompt> reflectPromptList,
     required List<ToolDriver> toolDriverList,
     required List<AgentDriver>? subAgentDriverList,
     required int? resolvedToolReturnPackMinLength,
@@ -625,7 +613,6 @@ class AgentService {
         toolDriverList: toolDriverList,
         clientOpenTool: clientOpenTool,
         systemPrompt: fullSystemPrompt,
-        toolReflectPromptList: reflectPromptList,
         timeoutSeconds: capability.timeoutSeconds,
         taskPipelineStrategy: capability.taskPipelineStrategy,
         toolPipelineStrategy: capability.toolPipelineStrategy ?? PipelineStrategyType.PARALLEL,
@@ -645,7 +632,6 @@ class AgentService {
         subAgentDriverList: subAgentDriverList,
         clientOpenTool: clientOpenTool,
         systemPrompt: fullSystemPrompt,
-        toolReflectPromptList: reflectPromptList,
         timeoutSeconds: capability.timeoutSeconds,
         taskPipelineStrategy: capability.taskPipelineStrategy,
         toolPipelineStrategy: capability.toolPipelineStrategy ?? PipelineStrategyType.PARALLEL,
@@ -661,7 +647,6 @@ class AgentService {
         llmConfig: llmConfig,
         agentSession: agentSession,
         systemPrompt: fullSystemPrompt,
-        textReflectPromptList: reflectPromptList,
         timeoutSeconds: capability.timeoutSeconds,
         taskPipelineStrategy: capability.taskPipelineStrategy,
         enableThinking: capability.enableThinking,
@@ -675,7 +660,6 @@ class AgentService {
       toolDriverList: toolDriverList,
       callbackOpenTool: clientOpenTool,
       systemPrompt: fullSystemPrompt,
-      toolReflectPromptList: reflectPromptList,
       timeoutSeconds: capability.timeoutSeconds,
       taskPipelineStrategy: capability.taskPipelineStrategy,
       toolPipelineStrategy: capability.toolPipelineStrategy ?? PipelineStrategyType.PARALLEL,
