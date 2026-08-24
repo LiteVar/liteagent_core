@@ -345,15 +345,6 @@ Map<String, dynamic> _$AgentMessageChunkDtoToJson(
       'createTime': instance.createTime.toIso8601String(),
     };
 
-AgentIdDto _$AgentIdDtoFromJson(Map<String, dynamic> json) => AgentIdDto(
-      agentId: json['agentId'] as String,
-    );
-
-Map<String, dynamic> _$AgentIdDtoToJson(AgentIdDto instance) =>
-    <String, dynamic>{
-      'agentId': instance.agentId,
-    };
-
 AgentDto _$AgentDtoFromJson(Map<String, dynamic> json) => AgentDto(
       name: json['name'] as String,
       capability:
@@ -363,30 +354,6 @@ AgentDto _$AgentDtoFromJson(Map<String, dynamic> json) => AgentDto(
 Map<String, dynamic> _$AgentDtoToJson(AgentDto instance) => <String, dynamic>{
       'name': instance.name,
       'capability': instance.capability.toJson(),
-    };
-
-AgentInfoDto _$AgentInfoDtoFromJson(Map<String, dynamic> json) => AgentInfoDto(
-      agentId: json['agentId'] as String,
-      name: json['name'] as String,
-      capability:
-          CapabilityDto.fromJson(json['capability'] as Map<String, dynamic>),
-      createTime: json['createTime'] == null
-          ? null
-          : DateTime.parse(json['createTime'] as String),
-      updateTime: json['updateTime'] == null
-          ? null
-          : DateTime.parse(json['updateTime'] as String),
-    );
-
-Map<String, dynamic> _$AgentInfoDtoToJson(AgentInfoDto instance) =>
-    <String, dynamic>{
-      'agentId': instance.agentId,
-      'name': instance.name,
-      'capability': instance.capability.toJson(),
-      if (instance.createTime?.toIso8601String() case final value?)
-        'createTime': value,
-      if (instance.updateTime?.toIso8601String() case final value?)
-        'updateTime': value,
     };
 
 SessionAgentMessageDto _$SessionAgentMessageDtoFromJson(

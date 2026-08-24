@@ -594,16 +594,6 @@ class AgentMessageChunkDto {
 }
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
-class AgentIdDto {
-  String agentId;
-  AgentIdDto({required this.agentId});
-
-  factory AgentIdDto.fromJson(Map<String, dynamic> json) => _$AgentIdDtoFromJson(json);
-
-  Map<String, dynamic> toJson() => _$AgentIdDtoToJson(this);
-}
-
-@JsonSerializable(includeIfNull: false, explicitToJson: true)
 class AgentDto {
   String name;
   CapabilityDto capability;
@@ -612,26 +602,6 @@ class AgentDto {
   factory AgentDto.fromJson(Map<String, dynamic> json) => _$AgentDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$AgentDtoToJson(this);
-}
-
-@JsonSerializable(includeIfNull: false, explicitToJson: true)
-class AgentInfoDto extends AgentIdDto {
-  String name;
-  CapabilityDto capability;
-  DateTime? createTime;
-  DateTime? updateTime;
-  AgentInfoDto({
-    required super.agentId,
-    required this.name,
-    required this.capability,
-    this.createTime,
-    this.updateTime,
-  });
-
-  factory AgentInfoDto.fromJson(Map<String, dynamic> json) => _$AgentInfoDtoFromJson(json);
-
-  @override
-  Map<String, dynamic> toJson() => _$AgentInfoDtoToJson(this);
 }
 
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
