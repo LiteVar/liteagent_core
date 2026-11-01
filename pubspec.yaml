@@ -4,7 +4,7 @@ version: 2.0.0
 repository: https://github.com/LiteVar/lite_agent_core_dart
 
 environment:
-  sdk: ">=3.8.0 <4.0.0"
+  sdk: ">=3.13.0 <4.0.0"
 
 dependencies:
   unique_id_dart: ^1.0.0
@@ -20,8 +20,8 @@ dependencies:
   lite_oneapi: ^0.2.3
 
   # OpenSpec support
-  opentool_dart: ^2.0.1
-  opentool_daemon: ^0.5.0
+  opentool_dart: ^3.0.0
+  opentool_daemon: ^0.5.3
   openapi_dart: ^0.2.0
   openrpc_dart: ^0.2.0
   mcp_dart: ^1.0.2
