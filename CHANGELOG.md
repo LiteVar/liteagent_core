@@ -1,3 +1,7 @@
+## 3.0.1
+
+- upgrade dart_openai_sdk to 6.2.0
+
 ## 3.0.0
 
 - remove built-in Llamadart local inference provider and its provider aliases
