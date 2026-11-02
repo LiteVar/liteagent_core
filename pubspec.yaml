@@ -1,7 +1,7 @@
 name: liteagent_core_dart
 description: LLM AI Agent sessions service in Dart.
 version: 3.0.0
-repository: https://github.com/LiteVar/lite_agent_core_dart
+repository: https://github.com/LiteVar/liteagent_core_dart
 
 environment:
   sdk: ">=3.13.0 <4.0.0"
