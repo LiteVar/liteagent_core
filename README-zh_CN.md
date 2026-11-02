@@ -7,41 +7,38 @@
 ## 功能
 
 - 支持纯文本的agent，无需JSON Spec
-- 支持 [OpenAPI](https://github.com/djbird2046/openapi_dart)/[OpenRPC](https://github.com/djbird2046/openrpc_dart)/[OpenModbus](https://github.com/LiteVar/openmodbus_dart)/[OpenTool](https://github.com/LiteVar/opentool_dart) 的JSON文本描述
-- 支持 大模型的Function calling 到`HTTP API`/`json-rpc 2.0 over HTTP`/`Modbus`以及自定义工具的执行
+- 支持 OpenAPI、OpenRPC、OpenTool 和 MCP 工具
+- 支持通过 HTTP、JSON-RPC、MCP 及自定义驱动执行大模型工具调用
+- 支持 OpenAI 兼容接口和 Lite OneAPI 大模型服务
 
 ## 使用
 
-### 准备
+包名为 `liteagent_core_dart`。使用 OpenAI 兼容接口时，在 `example/.env` 中配置 `baseUrl` 和 `apiKey`，然后运行 `dart run example/agent_example/text_agent_openai_provider_example.dart`。Lite OneAPI 的配置可参考 `text_agent_lite_oneapi_provider_example.dart`。
 
-1. 准备OpenSpec的JSON文件，可参照 `/example/json/open*/*.json` 作为样例，并且文件描述的接口真实可调用
-2. 启动你的工具服务，对应的服务描述即为步骤1的JSON文件描述
-3. 如果需要运行example，在 `example` 文件夹增加 `.env` 文件，并且`.env`文件需要增加如下内容：
-     ```properties
-     baseUrl = https://xxx.xxx.com         # 大模型接口的BaseURL
-     apiKey = sk-xxxxxxxxxxxxxxxxxxxx      # 大模型接口的ApiKey
-     ```
-4. 使用下方的方法运行Agent服务
+### AgentService
 
-### 方法1（推荐）: 使用AgentService
-- 例子：`/example/service_example`
-- 支持多Agent会话，通过`session id`区分不同会话
-- 支持同一Agent多任务，通过`taskId`区分不同任务，任务完成后才放到会话上下文供后续任务作为上下文使用
+`initSession` 创建会话，`startSession` 提交任务并通过监听器返回消息。需要工具时，可通过 `CapabilityDto.openSpecList` 或 `initSession(customToolDriverList: ...)` 提供工具描述与驱动。
 
 ```dart
+import 'package:liteagent_core_dart/liteagent_core.dart';
+import 'package:liteagent_core_dart/liteagent_service.dart';
+
 Future<void> main() async {
-  CapabilityDto capabilityDto = CapabilityDto(
-      llmConfig: _buildLLMConfig(),       // 大模型相关配置
-      systemPrompt: _buildSystemPrompt(), // 系统提示词
-      openSpecList: await _buildOpenSpecList()  // OpenSpec的接口描述
+  final service = AgentService();
+  final capability = CapabilityDto(
+    llmConfig: LLMConfigDto(
+      baseUrl: 'https://your-endpoint.example/v1',
+      apiKey: 'your-api-key',
+      model: 'your-model',
+    ),
+    systemPrompt: '你是一名助手。',
   );
-  SessionDto sessionDto = await agentService.initChat(
-      capabilityDto, 
-      listen        // 订阅Agent与用户、客户端、大模型、工具等角色的交互消息 AgentMessage
-  ); // 获得Session Id
-  String prompt = "<用户消息，例如：调用某个工具>";
-  UserTaskDto userTaskDto = UserTaskDto(taskId: "<用于区分不同任务，不超过36个字符>", contentList: [UserMessageDto(type: UserMessageDtoType.text, message: prompt)]);  // 用户指令支持text/imageUrl
-  await agentService.startChat(sessionDto.id, userTaskDto);
+  final session = await service.initSession(capability);
+  await service.startSession(
+    session.sessionId,
+    UserTaskDto(content: [ContentDto(type: ContentType.TEXT, message: '你好')]),
+    (sessionId, taskId, message) => print(message.toJson()),
+  );
 }
 ```
 
@@ -173,53 +170,42 @@ Focus on concise synthesis. Preserve facts, constraints, and open questions.
 <skill 的 markdown 正文>
 ```
 
-- MultiAgent支持
+### MultiAgent
+
+在根 `CapabilityDto` 中设置 `subAgentList` 来创建内联子 Agent。通过 `initSession` 创建根会话，再按上面的方式调用 `startSession`。
 
 ```dart
-Future<void> main() async {
-  CapabilityDto capabilityDto = CapabilityDto(
-    llmConfig: llmConfig,
-    systemPrompt: systemPrompt,
-    subAgentList: [
-      AgentDto(
-        name: 'translator',
-        capability: CapabilityDto(
-          llmConfig: llmConfig,
-          systemPrompt: '你是翻译 Agent。',
-        ),
+final capability = CapabilityDto(
+  llmConfig: llmConfigDto,
+  systemPrompt: '协调子 Agent。',
+  subAgentList: [
+    AgentDto(
+      name: 'translator',
+      capability: CapabilityDto(
+        llmConfig: llmConfigDto,
+        systemPrompt: '你是一名翻译助手。',
       ),
-      AgentDto(
-        name: 'CRUDTools',
-        capability: CapabilityDto(
-          llmConfig: llmConfig,
-          systemPrompt: '你是数据库工具 Agent。',
-        ),
-      ),
-    ],
-  );
-
-  SessionDto sessionDto = await agentService.initChat(capabilityDto, listen);
-
-  UserTaskDto userTaskDto = UserTaskDto(contentList: [UserMessageDto(type: UserMessageDtoType.text, message: prompt)]);
-  await agentService.startChat(sessionDto.id, userTaskDto);
-}
+    ),
+  ],
+);
+final session = await service.initSession(capability);
 ```
 
-### 方法2: 使用ToolAgent
+### 直接使用 ToolAgent
 
-- 例子：`/example/agent_example`
-- 更底层的调用，自由度更大，仅单一会话
-- [方法1的AgentService](#方法1推荐-使用agentservice)是对ToolAgent的较为友好的封装
+直接使用 Agent API 时，传入 `LLMConfig`、`AgentSession` 和可选的工具驱动。`userToAgent` 会生成任务 ID，并接收 `contentList`。
 
 ```dart
-Future<void> main() async {
-  ToolAgent toolAgent = ToolAgent(
-      llmRunner: _buildLLMRunner(),
-      session: _buildSession(),
-      toolRunnerList: await _buildToolRunnerList(),
-      systemPrompt: _buildSystemPrompt()
-  );
-  String prompt = "<用户消息，例如：调用某个工具>";
-  toolAgent.userToAgent(taskId: "<用于区分不同任务，不超过36个字符>", contentList: [Content(type: ContentType.text, message: prompt)]);
-}
+final agent = ToolAgent(
+  sessionId: sessionId,
+  llmConfig: llmConfig,
+  agentSession: AgentSession(sessionId: sessionId),
+  toolDriverList: drivers,
+  systemPrompt: '你是一名工具助手。',
+);
+await agent.userToAgent(
+  contentList: [Content(type: ContentType.TEXT, message: '你好')],
+);
 ```
+
+完整的工具驱动设置见 [`example/agent_example/tool_agent_example.dart`](example/agent_example/tool_agent_example.dart)。

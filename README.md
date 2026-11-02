@@ -7,42 +7,38 @@ LLM `AI Agent` multi sessions service.
 ## Features
 
 - Support pure text agent without JSON Spec.
-- Support  [OpenAPI](https://github.com/djbird2046/openapi_dart)/[OpenRPC](https://github.com/djbird2046/openrpc_dart)/[OpenModbus](https://github.com/LiteVar/openmodbus_dart)/[OpenTool](https://github.com/LiteVar/opentool_dart) JSON Spec.
-- Support LLM Function calling to `HTTP API`/`json-rpc 2.0 over HTTP`/`Modbus` and more custom tools.
+- Support OpenAPI, OpenRPC, OpenTool, and MCP tools.
+- Support LLM function calling to HTTP, JSON-RPC, MCP, and custom tool drivers.
+- Support OpenAI-compatible and Lite OneAPI LLM providers.
 
 ## Usage
 
-### Prepare
+The package name is `liteagent_core_dart`. For an OpenAI-compatible endpoint, put `baseUrl` and `apiKey` in `example/.env`, then run `dart run example/agent_example/text_agent_openai_provider_example.dart`. See `text_agent_lite_oneapi_provider_example.dart` for Lite OneAPI configuration.
 
-1. Some OpenSpec json file, according to `/example/json/open*/*.json`, which is callable.
-2. Run your tool server, which is described in json file.
-3. Add `.env` file in the `example` folder, and add below content in the `.env` file：
-     ```properties
-     baseUrl = https://xxx.xxx.com         # LLM API BaseURL
-     apiKey = sk-xxxxxxxxxxxxxxxxxxxx      # LLM API ApiKey
-     ```
-4. Use below method to run agent service.
+### AgentService
 
-### Method 1(Recommend): AgentService
-- According to `/example/service_example`
-- Support multi agent session via session id.
-- Support multi task in the same agent, identify different tasks by `taskId`. After finishing task, task message could be added to session as new task context.
+`initSession` creates a session. `startSession` submits a task and sends messages to the listener. Tool specifications and drivers are optional; add them through `CapabilityDto.openSpecList` or `initSession(customToolDriverList: ...)` when needed.
 
 ```dart
+import 'package:liteagent_core_dart/liteagent_core.dart';
+import 'package:liteagent_core_dart/liteagent_service.dart';
+
 Future<void> main() async {
-  CapabilityDto capabilityDto = CapabilityDto(
-      llmConfig: _buildLLMConfig(),       // LLM Config
-      systemPrompt: _buildSystemPrompt(), // System Prompt
-      openSpecList: await _buildOpenSpecList()  // OpenSpec Description String List
+  final service = AgentService();
+  final capability = CapabilityDto(
+    llmConfig: LLMConfigDto(
+      baseUrl: 'https://your-endpoint.example/v1',
+      apiKey: 'your-api-key',
+      model: 'your-model',
+    ),
+    systemPrompt: 'You are a helpful assistant.',
   );
-  SessionDto sessionDto = await agentService.initChat(
-      capabilityDto,
-      listen        // Subscribe AgentMessage, Agent chat with User/Client/LLM/Tools Role
-  ); // Get Session Id
-  
-  String prompt = "<USER PROMPT, e.g. call any one tool>";
-  UserTaskDto userTaskDto = UserTaskDto(taskId: "<Identify different tasks, NOT more than 36 chars>", contentList: [UserMessageDto(type: UserMessageDtoType.text, message: prompt)]);  // User Content List, support type text/imageUrl
-  await agentService.startChat(sessionDto.id, userTaskDto);
+  final session = await service.initSession(capability);
+  await service.startSession(
+    session.sessionId,
+    UserTaskDto(content: [ContentDto(type: ContentType.TEXT, message: 'Hello')]),
+    (sessionId, taskId, message) => print(message.toJson()),
+  );
 }
 ```
 
@@ -179,53 +175,42 @@ When provided, skills are appended below `systemPrompt` in this format:
 <skill markdown body>
 ```
 
-- MultiAgent support
+### MultiAgent
+
+Set `subAgentList` on the root capability to build inline child agents. Create the root session with `initSession`, then submit tasks with `startSession` as above.
 
 ```dart
-Future<void> main() async {
-  CapabilityDto capabilityDto = CapabilityDto(
-    llmConfig: llmConfig,
-    systemPrompt: systemPrompt,
-    subAgentList: [
-      AgentDto(
-        name: 'translator',
-        capability: CapabilityDto(
-          llmConfig: llmConfig,
-          systemPrompt: 'You are a translator agent.',
-        ),
+final capability = CapabilityDto(
+  llmConfig: llmConfigDto,
+  systemPrompt: 'Coordinate the child agents.',
+  subAgentList: [
+    AgentDto(
+      name: 'translator',
+      capability: CapabilityDto(
+        llmConfig: llmConfigDto,
+        systemPrompt: 'You are a translator.',
       ),
-      AgentDto(
-        name: 'CRUDTools',
-        capability: CapabilityDto(
-          llmConfig: llmConfig,
-          systemPrompt: 'You are a database tools agent.',
-        ),
-      ),
-    ],
-  );
-
-  SessionDto sessionDto = await agentService.initChat(capabilityDto, listen);
-
-  UserTaskDto userTaskDto = UserTaskDto(contentList: [UserMessageDto(type: UserMessageDtoType.text, message: prompt)]);
-  await agentService.startChat(sessionDto.id, userTaskDto);
-}
+    ),
+  ],
+);
+final session = await service.initSession(capability);
 ```
 
-### Method 2: ToolAgent
+### Direct ToolAgent API
 
-- According to `/example/agent_example`
-- Pure native calling. Support single session.
-- [Method 1 AgentService](#method-1recommend-agentservice) is friendly encapsulation for this.
+For direct agent control, pass an `LLMConfig`, an `AgentSession`, and optional tool drivers. `userToAgent` creates the task ID and accepts `contentList`.
 
 ```dart
-Future<void> main() async {
-  ToolAgent toolAgent = ToolAgent(
-      llmRunner: _buildLLMRunner(),
-      session: _buildSession(),
-      toolRunnerList: await _buildToolRunnerList(),
-      systemPrompt: _buildSystemPrompt()
-  );
-  String prompt = "<USER PROMPT, e.g. call any one tool>";
-  toolAgent.userToAgent(taskId: "<Identify different tasks, NOT more than 36 chars>", [Content(type: ContentType.text, message: prompt)]);
-}
+final agent = ToolAgent(
+  sessionId: sessionId,
+  llmConfig: llmConfig,
+  agentSession: AgentSession(sessionId: sessionId),
+  toolDriverList: drivers,
+  systemPrompt: 'You are a tool assistant.',
+);
+await agent.userToAgent(
+  contentList: [Content(type: ContentType.TEXT, message: 'Hello')],
+);
 ```
+
+See [`example/agent_example/tool_agent_example.dart`](example/agent_example/tool_agent_example.dart) for a complete driver setup.
