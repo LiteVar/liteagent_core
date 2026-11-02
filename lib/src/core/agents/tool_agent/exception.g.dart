@@ -7,8 +7,5 @@ part of 'exception.dart';
 // **************************************************************************
 
 Map<String, dynamic> _$FunctionCallTimeoutExceptionToJson(
-        FunctionCallTimeoutException instance) =>
-    <String, dynamic>{
-      'code': instance.code,
-      'message': instance.message,
-    };
+  FunctionCallTimeoutException instance,
+) => <String, dynamic>{'code': instance.code, 'message': instance.message};

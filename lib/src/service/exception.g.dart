@@ -7,42 +7,24 @@ part of 'exception.dart';
 // **************************************************************************
 
 Map<String, dynamic> _$SessionAgentNotFoundExceptionToJson(
-        SessionAgentNotFoundException instance) =>
-    <String, dynamic>{
-      'code': instance.code,
-      'message': instance.message,
-    };
+  SessionAgentNotFoundException instance,
+) => <String, dynamic>{'code': instance.code, 'message': instance.message};
 
 Map<String, dynamic> _$SessionAlreadyExistsExceptionToJson(
-        SessionAlreadyExistsException instance) =>
-    <String, dynamic>{
-      'code': instance.code,
-      'message': instance.message,
-    };
+  SessionAlreadyExistsException instance,
+) => <String, dynamic>{'code': instance.code, 'message': instance.message};
 
 Map<String, dynamic> _$AgentNotFoundExceptionToJson(
-        AgentNotFoundException instance) =>
-    <String, dynamic>{
-      'code': instance.code,
-      'message': instance.message,
-    };
+  AgentNotFoundException instance,
+) => <String, dynamic>{'code': instance.code, 'message': instance.message};
 
 Map<String, dynamic> _$AgentNameExceptionToJson(AgentNameException instance) =>
-    <String, dynamic>{
-      'code': instance.code,
-      'message': instance.message,
-    };
+    <String, dynamic>{'code': instance.code, 'message': instance.message};
 
 Map<String, dynamic> _$OpenToolIdNotFoundExceptionToJson(
-        OpenToolIdNotFoundException instance) =>
-    <String, dynamic>{
-      'code': instance.code,
-      'message': instance.message,
-    };
+  OpenToolIdNotFoundException instance,
+) => <String, dynamic>{'code': instance.code, 'message': instance.message};
 
 Map<String, dynamic> _$LLMConfigRequiredExceptionToJson(
-        LLMConfigRequiredException instance) =>
-    <String, dynamic>{
-      'code': instance.code,
-      'message': instance.message,
-    };
+  LLMConfigRequiredException instance,
+) => <String, dynamic>{'code': instance.code, 'message': instance.message};

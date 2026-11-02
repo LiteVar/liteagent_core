@@ -7,7 +7,4 @@ part of 'exception.dart';
 // **************************************************************************
 
 Map<String, dynamic> _$LLMExceptionToJson(LLMException instance) =>
-    <String, dynamic>{
-      'code': instance.code,
-      'message': instance.message,
-    };
+    <String, dynamic>{'code': instance.code, 'message': instance.message};

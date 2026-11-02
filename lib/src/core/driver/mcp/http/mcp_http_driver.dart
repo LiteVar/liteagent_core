@@ -1,25 +1,36 @@
 import 'dart:convert';
+
 import 'package:mcp_dart/mcp_dart.dart';
 import 'package:opentool_dart/opentool_client.dart' as ot;
+
 import '../mcp_base_driver.dart';
 import 'mcp_http.dart';
 
 class McpHttpDriver extends McpBaseDriver {
-  late Client client;
+  late McpClient client;
   late StreamableHttpClientTransport transport;
   String? sessionId;
 
-  McpHttpDriver(McpHttp mcpHttp,
-      {OAuthClientProvider? authProvider, void Function()? onTransportClose}) {
+  McpHttpDriver(
+    McpHttp mcpHttp, {
+    OAuthClientProvider? authProvider,
+    void Function()? onTransportClose,
+  }) {
     Uri url = Uri.parse(mcpHttp.url);
     StreamableHttpClientTransportOptions httpOptions =
-        StreamableHttpClientTransportOptions(authProvider: authProvider, sessionId: sessionId);
+        StreamableHttpClientTransportOptions(
+          authProvider: authProvider,
+          sessionId: sessionId,
+        );
 
     transport = StreamableHttpClientTransport(url, opts: httpOptions);
 
-    Implementation clientInfo = Implementation(name: 'McpHttpTool', version: '1.0.0');
+    Implementation clientInfo = Implementation(
+      name: 'McpHttpTool',
+      version: '1.0.0',
+    );
 
-    client = Client(clientInfo);
+    client = McpClient(clientInfo);
 
     transport.onerror = (error) {
       throw error;
@@ -31,8 +42,9 @@ class McpHttpDriver extends McpBaseDriver {
   }
 
   factory McpHttpDriver.fromMcpHttpString(String mcpHttpString) {
-    McpHttp mcpHttp =
-        McpHttp.fromJson((jsonDecode(mcpHttpString).values.first as Map<String, dynamic>));
+    McpHttp mcpHttp = McpHttp.fromJson(
+      (jsonDecode(mcpHttpString).values.first as Map<String, dynamic>),
+    );
     return McpHttpDriver(mcpHttp);
   }
 

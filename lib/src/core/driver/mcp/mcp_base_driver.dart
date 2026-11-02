@@ -1,5 +1,6 @@
 import 'package:mcp_dart/mcp_dart.dart';
 import 'package:opentool_dart/opentool_client.dart' as ot;
+
 import '../tool_driver.dart';
 
 /// Base class for MCP drivers, providing shared schema parsing logic.
@@ -15,7 +16,9 @@ abstract class McpBaseDriver extends ToolDriver {
 
   @override
   bool hasFunction(String functionName) {
-    return functionModelList.any((functionModel) => functionModel.name == functionName);
+    return functionModelList.any(
+      (functionModel) => functionModel.name == functionName,
+    );
   }
 
   @override
@@ -24,7 +27,9 @@ abstract class McpBaseDriver extends ToolDriver {
   }
 
   /// Converts MCP tool definitions to a list of `FunctionModel`.
-  List<ot.FunctionModel> convertToFunctionModelList(ListToolsResult listToolsResult) {
+  List<ot.FunctionModel> convertToFunctionModelList(
+    ListToolsResult listToolsResult,
+  ) {
     try {
       if (listToolsResult.tools.isEmpty) {
         return [];
@@ -34,9 +39,11 @@ abstract class McpBaseDriver extends ToolDriver {
 
       for (final tool in listToolsResult.tools) {
         try {
-          final toolName =
-              tool.name.isNotEmpty ? tool.name : 'unnamed_tool_${functionModels.length}';
-          final toolDescription = tool.description ?? 'Auto-generated description for $toolName';
+          final toolName = tool.name.isNotEmpty
+              ? tool.name
+              : 'unnamed_tool_${functionModels.length}';
+          final toolDescription =
+              tool.description ?? 'Auto-generated description for $toolName';
 
           List<ot.Parameter> parameters;
           try {
@@ -61,11 +68,14 @@ abstract class McpBaseDriver extends ToolDriver {
 
           functionModels.add(functionModel);
         } catch (e) {
-          final toolName = tool.name.isNotEmpty ? tool.name : 'tool_${functionModels.length}';
+          final toolName = tool.name.isNotEmpty
+              ? tool.name
+              : 'tool_${functionModels.length}';
 
           final basicFunctionModel = ot.FunctionModel(
             name: toolName,
-            description: 'Basic function model for compatibility (conversion failed)',
+            description:
+                'Basic function model for compatibility (conversion failed)',
             parameters: [],
             return_: null,
           );
@@ -106,7 +116,8 @@ abstract class McpBaseDriver extends ToolDriver {
           final name = entry.key;
           final value = entry.value;
           final isRequired = required.contains(name);
-          final description = value.description ?? value.title ?? 'Parameter $name';
+          final description =
+              value.description ?? value.title ?? 'Parameter $name';
 
           final parameter = ot.Parameter(
             name: name,
@@ -144,14 +155,18 @@ abstract class McpBaseDriver extends ToolDriver {
 
           return ot.Return(
             name: name,
-            description: schema.description ?? schema.title ?? 'Output field $name',
+            description:
+                schema.description ?? schema.title ?? 'Output field $name',
             schema: convertJsonSchemaToOtSchema(schema),
           );
         }
 
         return ot.Return(
           name: 'result',
-          description: outputSchema.description ?? outputSchema.title ?? 'Tool execution result',
+          description:
+              outputSchema.description ??
+              outputSchema.title ??
+              'Tool execution result',
           schema: convertJsonSchemaToOtSchema(outputSchema),
         );
       } catch (e) {
@@ -164,7 +179,8 @@ abstract class McpBaseDriver extends ToolDriver {
 
   /// Converts MCP's `JsonSchema` to `opentool`'s `Schema`.
   ot.Schema convertJsonSchemaToOtSchema(JsonSchema schema) {
-    final description = schema.description ?? schema.title ?? 'Auto-generated schema';
+    final description =
+        schema.description ?? schema.title ?? 'Auto-generated schema';
 
     switch (schema) {
       case final JsonString s:
@@ -174,30 +190,26 @@ abstract class McpBaseDriver extends ToolDriver {
           enum_: s.enumValues,
         );
       case JsonNumber():
-        return ot.Schema(
-          type: 'number',
-          description: description,
-        );
+        return ot.Schema(type: 'number', description: description);
       case JsonInteger():
-        return ot.Schema(
-          type: 'integer',
-          description: description,
-        );
+        return ot.Schema(type: 'integer', description: description);
       case JsonBoolean():
-        return ot.Schema(
-          type: 'boolean',
-          description: description,
-        );
+        return ot.Schema(type: 'boolean', description: description);
       case JsonNull():
+        return ot.Schema(type: 'null', description: description);
+      case final JsonConst constant:
         return ot.Schema(
-          type: 'null',
+          type: _typeForConst(constant.value),
           description: description,
+          constValue: constant.value,
         );
       case final JsonArray a:
         return ot.Schema(
           type: ot.SchemaType.ARRAY,
           description: description,
-          items: a.items != null ? convertJsonSchemaToOtSchema(a.items!) : createFallbackSchema(),
+          items: a.items != null
+              ? convertJsonSchemaToOtSchema(a.items!)
+              : createFallbackSchema(),
         );
       case final JsonObject o:
         final properties = o.properties?.map(
@@ -221,21 +233,30 @@ abstract class McpBaseDriver extends ToolDriver {
         return convertAllOfToOtSchema(allOf, description);
       case final JsonAnyOf anyOf:
         return convertAnyOfToOtSchema(anyOf, description);
+      case final JsonUnion union:
+        return convertAnyOfToOtSchema(
+          JsonAnyOf(union.schemas, description: description),
+          description,
+        );
       case final JsonOneOf oneOf:
         return convertOneOfToOtSchema(oneOf, description);
       case JsonNot():
         // `opentool` schema does not support `not`; use a generic object schema.
-        return ot.Schema(
-          type: ot.SchemaType.OBJECT,
-          description: description,
-        );
+        return ot.Schema(type: ot.SchemaType.OBJECT, description: description);
       case JsonAny():
         // The most permissive schema; prefer `object` to avoid pushing the LLM to generate scalars.
-        return ot.Schema(
-          type: ot.SchemaType.OBJECT,
-          description: description,
-        );
+        return ot.Schema(type: ot.SchemaType.OBJECT, description: description);
     }
+  }
+
+  String _typeForConst(Object? value) {
+    if (value == null) return ot.SchemaType.NULL;
+    if (value is String) return ot.SchemaType.STRING;
+    if (value is bool) return ot.SchemaType.BOOLEAN;
+    if (value is int) return ot.SchemaType.INTEGER;
+    if (value is num) return ot.SchemaType.NUMBER;
+    if (value is List) return ot.SchemaType.ARRAY;
+    return ot.SchemaType.OBJECT;
   }
 
   ot.Schema convertAllOfToOtSchema(JsonAllOf allOf, String description) {
@@ -250,8 +271,13 @@ abstract class McpBaseDriver extends ToolDriver {
 
       for (final schema in objectSchemas) {
         mergedRequired.addAll(schema.required ?? const <String>[]);
-        for (final entry in schema.properties?.entries ?? const <MapEntry<String, JsonSchema>>[]) {
-          mergedProperties.putIfAbsent(entry.key, () => convertJsonSchemaToOtSchema(entry.value));
+        for (final entry
+            in schema.properties?.entries ??
+                const <MapEntry<String, JsonSchema>>[]) {
+          mergedProperties.putIfAbsent(
+            entry.key,
+            () => convertJsonSchemaToOtSchema(entry.value),
+          );
         }
       }
 
@@ -274,15 +300,21 @@ abstract class McpBaseDriver extends ToolDriver {
 
     // `anyOf`/`oneOf` are not directly representable in `opentool` schema; using `object` is safer.
     final objectSchemas = anyOf.schemas.whereType<JsonObject>().toList();
-    if (objectSchemas.isNotEmpty && objectSchemas.length == anyOf.schemas.length) {
+    if (objectSchemas.isNotEmpty &&
+        objectSchemas.length == anyOf.schemas.length) {
       final mergedProperties = <String, ot.Schema>{};
       final intersectionRequired = <String>{...?(objectSchemas.first.required)};
 
       for (final schema in objectSchemas) {
         final required = schema.required ?? const <String>[];
         intersectionRequired.retainAll(required);
-        for (final entry in schema.properties?.entries ?? const <MapEntry<String, JsonSchema>>[]) {
-          mergedProperties.putIfAbsent(entry.key, () => convertJsonSchemaToOtSchema(entry.value));
+        for (final entry
+            in schema.properties?.entries ??
+                const <MapEntry<String, JsonSchema>>[]) {
+          mergedProperties.putIfAbsent(
+            entry.key,
+            () => convertJsonSchemaToOtSchema(entry.value),
+          );
         }
       }
 
@@ -290,7 +322,9 @@ abstract class McpBaseDriver extends ToolDriver {
         type: ot.SchemaType.OBJECT,
         description: description,
         properties: mergedProperties.isEmpty ? null : mergedProperties,
-        required: intersectionRequired.isEmpty ? null : intersectionRequired.toList(),
+        required: intersectionRequired.isEmpty
+            ? null
+            : intersectionRequired.toList(),
       );
     }
 

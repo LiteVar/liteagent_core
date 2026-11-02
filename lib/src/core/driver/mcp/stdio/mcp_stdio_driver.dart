@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:mcp_dart/mcp_dart.dart';
 import 'package:opentool_dart/opentool_client.dart' as ot;
+
 import '../mcp_base_driver.dart';
 import 'mcp_stdio.dart';
 
 class McpStdioDriver extends McpBaseDriver {
-  late Client client;
+  late McpClient client;
   late StdioClientTransport transport;
 
   McpStdioDriver(McpStdio mcpStdio, {void Function()? onTransportClose}) {
@@ -18,9 +20,12 @@ class McpStdioDriver extends McpBaseDriver {
     );
     transport = StdioClientTransport(serverParams);
 
-    Implementation clientInfo = Implementation(name: 'McpStdioDriver', version: '1.0.0');
+    Implementation clientInfo = Implementation(
+      name: 'McpStdioDriver',
+      version: '1.0.0',
+    );
 
-    client = Client(clientInfo);
+    client = McpClient(clientInfo);
 
     transport.onerror = (error) {
       throw error;
@@ -32,8 +37,9 @@ class McpStdioDriver extends McpBaseDriver {
   }
 
   factory McpStdioDriver.fromMcpStdioString(String mcpStdioString) {
-    McpStdio openMcp =
-        McpStdio.fromJson((jsonDecode(mcpStdioString).values.first as Map<String, dynamic>));
+    McpStdio openMcp = McpStdio.fromJson(
+      (jsonDecode(mcpStdioString).values.first as Map<String, dynamic>),
+    );
     return McpStdioDriver(openMcp);
   }
 

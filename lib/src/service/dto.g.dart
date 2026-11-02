@@ -6,14 +6,11 @@ part of 'dto.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-SessionDto _$SessionDtoFromJson(Map<String, dynamic> json) => SessionDto(
-      sessionId: json['sessionId'] as String,
-    );
+SessionDto _$SessionDtoFromJson(Map<String, dynamic> json) =>
+    SessionDto(sessionId: json['sessionId'] as String);
 
 Map<String, dynamic> _$SessionDtoToJson(SessionDto instance) =>
-    <String, dynamic>{
-      'sessionId': instance.sessionId,
-    };
+    <String, dynamic>{'sessionId': instance.sessionId};
 
 SimpleCapabilityDto _$SimpleCapabilityDtoFromJson(Map<String, dynamic> json) =>
     SimpleCapabilityDto(
@@ -21,136 +18,126 @@ SimpleCapabilityDto _$SimpleCapabilityDtoFromJson(Map<String, dynamic> json) =>
           ? null
           : LLMConfigDto.fromJson(json['llmConfig'] as Map<String, dynamic>),
       systemPrompt: json['systemPrompt'] as String,
-      skills:
-          (json['skills'] as List<dynamic>?)?.map((e) => e as String).toList(),
+      skills: (json['skills'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
     );
 
 Map<String, dynamic> _$SimpleCapabilityDtoToJson(
-        SimpleCapabilityDto instance) =>
-    <String, dynamic>{
-      if (instance.llmConfig?.toJson() case final value?) 'llmConfig': value,
-      'systemPrompt': instance.systemPrompt,
-      if (instance.skills case final value?) 'skills': value,
-    };
+  SimpleCapabilityDto instance,
+) => <String, dynamic>{
+  'llmConfig': ?instance.llmConfig?.toJson(),
+  'systemPrompt': instance.systemPrompt,
+  'skills': ?instance.skills,
+};
 
-CapabilityDto _$CapabilityDtoFromJson(Map<String, dynamic> json) =>
-    CapabilityDto(
-      llmConfig: json['llmConfig'] == null
-          ? null
-          : LLMConfigDto.fromJson(json['llmConfig'] as Map<String, dynamic>),
-      systemPrompt: json['systemPrompt'] as String,
-      skills:
-          (json['skills'] as List<dynamic>?)?.map((e) => e as String).toList(),
-      openSpecList: (json['openSpecList'] as List<dynamic>?)
-          ?.map((e) => OpenSpecDto.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      callbackOpenTool: json['callbackOpenTool'] == null
-          ? null
-          : CallbackOpenToolDto.fromJson(
-              json['callbackOpenTool'] as Map<String, dynamic>),
-      subAgentList: (json['subAgentList'] as List<dynamic>?)
-          ?.map((e) => AgentDto.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      timeoutSeconds: (json['timeoutSeconds'] as num?)?.toInt() ?? 3600,
-      taskPipelineStrategy: json['taskPipelineStrategy'] as String? ??
-          PipelineStrategyType.PARALLEL,
-      toolPipelineStrategy: json['toolPipelineStrategy'] as String?,
-      auto: json['auto'] as bool?,
-      llmConfigList: (json['llmConfigList'] as List<dynamic>?)
-          ?.map((e) => LLMConfigDto.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      enableThinking: json['enableThinking'] as bool?,
-      toolReturnPackMinLength:
-          (json['toolReturnPackMinLength'] as num?)?.toInt(),
-      maxLlmRequests: (json['maxLlmRequests'] as num?)?.toInt(),
-      maxToolRounds: (json['maxToolRounds'] as num?)?.toInt(),
-      maxToolCalls: (json['maxToolCalls'] as num?)?.toInt(),
-      maxConsecutiveIdenticalToolRounds:
-          (json['maxConsecutiveIdenticalToolRounds'] as num?)?.toInt(),
-      maxTaskDurationSeconds: (json['maxTaskDurationSeconds'] as num?)?.toInt(),
-    );
+CapabilityDto _$CapabilityDtoFromJson(
+  Map<String, dynamic> json,
+) => CapabilityDto(
+  llmConfig: json['llmConfig'] == null
+      ? null
+      : LLMConfigDto.fromJson(json['llmConfig'] as Map<String, dynamic>),
+  systemPrompt: json['systemPrompt'] as String,
+  skills: (json['skills'] as List<dynamic>?)?.map((e) => e as String).toList(),
+  openSpecList: (json['openSpecList'] as List<dynamic>?)
+      ?.map((e) => OpenSpecDto.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  callbackOpenTool: json['callbackOpenTool'] == null
+      ? null
+      : CallbackOpenToolDto.fromJson(
+          json['callbackOpenTool'] as Map<String, dynamic>,
+        ),
+  subAgentList: (json['subAgentList'] as List<dynamic>?)
+      ?.map((e) => AgentDto.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  timeoutSeconds: (json['timeoutSeconds'] as num?)?.toInt() ?? 3600,
+  taskPipelineStrategy:
+      json['taskPipelineStrategy'] as String? ?? PipelineStrategyType.PARALLEL,
+  toolPipelineStrategy: json['toolPipelineStrategy'] as String?,
+  auto: json['auto'] as bool?,
+  llmConfigList: (json['llmConfigList'] as List<dynamic>?)
+      ?.map((e) => LLMConfigDto.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  enableThinking: json['enableThinking'] as bool?,
+  toolReturnPackMinLength: (json['toolReturnPackMinLength'] as num?)?.toInt(),
+  maxLlmRequests: (json['maxLlmRequests'] as num?)?.toInt(),
+  maxToolRounds: (json['maxToolRounds'] as num?)?.toInt(),
+  maxToolCalls: (json['maxToolCalls'] as num?)?.toInt(),
+  maxConsecutiveIdenticalToolRounds:
+      (json['maxConsecutiveIdenticalToolRounds'] as num?)?.toInt(),
+  maxTaskDurationSeconds: (json['maxTaskDurationSeconds'] as num?)?.toInt(),
+);
 
 Map<String, dynamic> _$CapabilityDtoToJson(CapabilityDto instance) =>
     <String, dynamic>{
-      if (instance.llmConfig?.toJson() case final value?) 'llmConfig': value,
+      'llmConfig': ?instance.llmConfig?.toJson(),
       'systemPrompt': instance.systemPrompt,
-      if (instance.skills case final value?) 'skills': value,
-      if (instance.openSpecList?.map((e) => e.toJson()).toList()
-          case final value?)
-        'openSpecList': value,
-      if (instance.callbackOpenTool?.toJson() case final value?)
-        'callbackOpenTool': value,
-      if (instance.subAgentList?.map((e) => e.toJson()).toList()
-          case final value?)
-        'subAgentList': value,
+      'skills': ?instance.skills,
+      'openSpecList': ?instance.openSpecList?.map((e) => e.toJson()).toList(),
+      'callbackOpenTool': ?instance.callbackOpenTool?.toJson(),
+      'subAgentList': ?instance.subAgentList?.map((e) => e.toJson()).toList(),
       'timeoutSeconds': instance.timeoutSeconds,
       'taskPipelineStrategy': instance.taskPipelineStrategy,
-      if (instance.toolPipelineStrategy case final value?)
-        'toolPipelineStrategy': value,
-      if (instance.auto case final value?) 'auto': value,
-      if (instance.llmConfigList?.map((e) => e.toJson()).toList()
-          case final value?)
-        'llmConfigList': value,
-      if (instance.enableThinking case final value?) 'enableThinking': value,
-      if (instance.toolReturnPackMinLength case final value?)
-        'toolReturnPackMinLength': value,
-      if (instance.maxLlmRequests case final value?) 'maxLlmRequests': value,
-      if (instance.maxToolRounds case final value?) 'maxToolRounds': value,
-      if (instance.maxToolCalls case final value?) 'maxToolCalls': value,
-      if (instance.maxConsecutiveIdenticalToolRounds case final value?)
-        'maxConsecutiveIdenticalToolRounds': value,
-      if (instance.maxTaskDurationSeconds case final value?)
-        'maxTaskDurationSeconds': value,
+      'toolPipelineStrategy': ?instance.toolPipelineStrategy,
+      'auto': ?instance.auto,
+      'llmConfigList': ?instance.llmConfigList?.map((e) => e.toJson()).toList(),
+      'enableThinking': ?instance.enableThinking,
+      'toolReturnPackMinLength': ?instance.toolReturnPackMinLength,
+      'maxLlmRequests': ?instance.maxLlmRequests,
+      'maxToolRounds': ?instance.maxToolRounds,
+      'maxToolCalls': ?instance.maxToolCalls,
+      'maxConsecutiveIdenticalToolRounds':
+          ?instance.maxConsecutiveIdenticalToolRounds,
+      'maxTaskDurationSeconds': ?instance.maxTaskDurationSeconds,
     };
 
 OpenSpecDto _$OpenSpecDtoFromJson(Map<String, dynamic> json) => OpenSpecDto(
-      openSpec: json['openSpec'] as String,
-      protocol: json['protocol'] as String,
-      apiKey: json['apiKey'] == null
-          ? null
-          : ApiKeyDto.fromJson(json['apiKey'] as Map<String, dynamic>),
-      serverUrl: json['serverUrl'] as String?,
-    );
+  openSpec: json['openSpec'] as String,
+  protocol: json['protocol'] as String,
+  apiKey: json['apiKey'] == null
+      ? null
+      : ApiKeyDto.fromJson(json['apiKey'] as Map<String, dynamic>),
+  serverUrl: json['serverUrl'] as String?,
+);
 
 Map<String, dynamic> _$OpenSpecDtoToJson(OpenSpecDto instance) =>
     <String, dynamic>{
       'openSpec': instance.openSpec,
       'protocol': instance.protocol,
-      if (instance.serverUrl case final value?) 'serverUrl': value,
-      if (instance.apiKey?.toJson() case final value?) 'apiKey': value,
+      'serverUrl': ?instance.serverUrl,
+      'apiKey': ?instance.apiKey?.toJson(),
     };
 
 LLMConfigDto _$LLMConfigDtoFromJson(Map<String, dynamic> json) => LLMConfigDto(
-      provider: json['provider'] as String?,
-      baseUrl: json['baseUrl'] as String? ?? "",
-      apiKey: json['apiKey'] as String?,
-      model: json['model'] as String,
-      adapter: json['adapter'] as String?,
-      headers: (json['headers'] as Map<String, dynamic>?)?.map(
-        (k, e) => MapEntry(k, e as String),
-      ),
-      providerOptions: json['providerOptions'] as Map<String, dynamic>?,
-      temperature: (json['temperature'] as num?)?.toDouble() ?? 0.0,
-      maxTokens: (json['maxTokens'] as num?)?.toInt() ?? 4096,
-      contextWindowSize: (json['contextWindowSize'] as num?)?.toInt(),
-      topP: (json['topP'] as num?)?.toDouble() ?? 1.0,
-      supportsToolCall: json['supportsToolCall'] as bool? ?? true,
-      supportsReasoning: json['supportsReasoning'] as bool? ?? false,
-    );
+  provider: json['provider'] as String?,
+  baseUrl: json['baseUrl'] as String? ?? "",
+  apiKey: json['apiKey'] as String?,
+  model: json['model'] as String,
+  adapter: json['adapter'] as String?,
+  headers: (json['headers'] as Map<String, dynamic>?)?.map(
+    (k, e) => MapEntry(k, e as String),
+  ),
+  providerOptions: json['providerOptions'] as Map<String, dynamic>?,
+  temperature: (json['temperature'] as num?)?.toDouble() ?? 0.0,
+  maxTokens: (json['maxTokens'] as num?)?.toInt() ?? 4096,
+  contextWindowSize: (json['contextWindowSize'] as num?)?.toInt(),
+  topP: (json['topP'] as num?)?.toDouble() ?? 1.0,
+  supportsToolCall: json['supportsToolCall'] as bool? ?? true,
+  supportsReasoning: json['supportsReasoning'] as bool? ?? false,
+);
 
 Map<String, dynamic> _$LLMConfigDtoToJson(LLMConfigDto instance) =>
     <String, dynamic>{
-      if (instance.provider case final value?) 'provider': value,
+      'provider': ?instance.provider,
       'baseUrl': instance.baseUrl,
-      if (instance.apiKey case final value?) 'apiKey': value,
+      'apiKey': ?instance.apiKey,
       'model': instance.model,
-      if (instance.adapter case final value?) 'adapter': value,
-      if (instance.headers case final value?) 'headers': value,
-      if (instance.providerOptions case final value?) 'providerOptions': value,
+      'adapter': ?instance.adapter,
+      'headers': ?instance.headers,
+      'providerOptions': ?instance.providerOptions,
       'temperature': instance.temperature,
       'maxTokens': instance.maxTokens,
-      if (instance.contextWindowSize case final value?)
-        'contextWindowSize': value,
+      'contextWindowSize': ?instance.contextWindowSize,
       'topP': instance.topP,
       'supportsToolCall': instance.supportsToolCall,
       'supportsReasoning': instance.supportsReasoning,
@@ -171,25 +158,24 @@ AgentMessageDto _$AgentMessageDtoFromJson(Map<String, dynamic> json) =>
       completions: json['completions'] == null
           ? null
           : CompletionsDto.fromJson(
-              json['completions'] as Map<String, dynamic>),
+              json['completions'] as Map<String, dynamic>,
+            ),
       createTime: DateTime.parse(json['createTime'] as String),
     );
 
 Map<String, dynamic> _$AgentMessageDtoToJson(AgentMessageDto instance) =>
     <String, dynamic>{
       'sessionId': instance.sessionId,
-      if (instance.agentId case final value?) 'agentId': value,
+      'agentId': ?instance.agentId,
       'originalTaskId': instance.originalTaskId,
-      if (instance.parentTaskId case final value?) 'parentTaskId': value,
+      'parentTaskId': ?instance.parentTaskId,
       'taskId': instance.taskId,
       'role': instance.role,
       'to': instance.to,
       'type': instance.type,
-      if (instance.content case final value?) 'content': value,
-      if (instance.reasoningContent case final value?)
-        'reasoningContent': value,
-      if (instance.completions?.toJson() case final value?)
-        'completions': value,
+      'content': ?instance.content,
+      'reasoningContent': ?instance.reasoningContent,
+      'completions': ?instance.completions?.toJson(),
       'createTime': instance.createTime.toIso8601String(),
     };
 
@@ -201,7 +187,8 @@ CompletionsDto _$CompletionsDtoFromJson(Map<String, dynamic> json) =>
       limits: json['limits'] == null
           ? null
           : CompletionsLimitsDto.fromJson(
-              json['limits'] as Map<String, dynamic>),
+              json['limits'] as Map<String, dynamic>,
+            ),
     );
 
 Map<String, dynamic> _$CompletionsDtoToJson(CompletionsDto instance) =>
@@ -209,23 +196,22 @@ Map<String, dynamic> _$CompletionsDtoToJson(CompletionsDto instance) =>
       'usage': instance.usage.toJson(),
       'id': instance.id,
       'model': instance.model,
-      if (instance.limits?.toJson() case final value?) 'limits': value,
+      'limits': ?instance.limits?.toJson(),
     };
 
 CompletionsLimitsDto _$CompletionsLimitsDtoFromJson(
-        Map<String, dynamic> json) =>
-    CompletionsLimitsDto(
-      maxTokens: (json['maxTokens'] as num).toInt(),
-      contextWindowSize: (json['contextWindowSize'] as num?)?.toInt(),
-    );
+  Map<String, dynamic> json,
+) => CompletionsLimitsDto(
+  maxTokens: (json['maxTokens'] as num).toInt(),
+  contextWindowSize: (json['contextWindowSize'] as num?)?.toInt(),
+);
 
 Map<String, dynamic> _$CompletionsLimitsDtoToJson(
-        CompletionsLimitsDto instance) =>
-    <String, dynamic>{
-      'maxTokens': instance.maxTokens,
-      if (instance.contextWindowSize case final value?)
-        'contextWindowSize': value,
-    };
+  CompletionsLimitsDto instance,
+) => <String, dynamic>{
+  'maxTokens': instance.maxTokens,
+  'contextWindowSize': ?instance.contextWindowSize,
+};
 
 TokenUsageDto _$TokenUsageDtoFromJson(Map<String, dynamic> json) =>
     TokenUsageDto(
@@ -240,19 +226,18 @@ Map<String, dynamic> _$TokenUsageDtoToJson(TokenUsageDto instance) =>
       'promptTokens': instance.promptTokens,
       'completionTokens': instance.completionTokens,
       'totalTokens': instance.totalTokens,
-      if (instance.contextUsageRatio case final value?)
-        'contextUsageRatio': value,
+      'contextUsageRatio': ?instance.contextUsageRatio,
     };
 
 ApiKeyDto _$ApiKeyDtoFromJson(Map<String, dynamic> json) => ApiKeyDto(
-      type: $enumDecode(_$ApiKeyTypeEnumMap, json['type']),
-      apiKey: json['apiKey'] as String,
-    );
+  type: $enumDecode(_$ApiKeyTypeEnumMap, json['type']),
+  apiKey: json['apiKey'] as String,
+);
 
 Map<String, dynamic> _$ApiKeyDtoToJson(ApiKeyDto instance) => <String, dynamic>{
-      'type': _$ApiKeyTypeEnumMap[instance.type]!,
-      'apiKey': instance.apiKey,
-    };
+  'type': _$ApiKeyTypeEnumMap[instance.type]!,
+  'apiKey': instance.apiKey,
+};
 
 const _$ApiKeyTypeEnumMap = {
   ApiKeyType.basic: 'basic',
@@ -261,23 +246,22 @@ const _$ApiKeyTypeEnumMap = {
 };
 
 UserTaskDto _$UserTaskDtoFromJson(Map<String, dynamic> json) => UserTaskDto(
-      content: (json['content'] as List<dynamic>)
-          .map((e) => ContentDto.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      isChunk: json['isChunk'] as bool?,
-      extraSystemPrompt: json['extraSystemPrompt'] as String?,
-      llmConfig: json['llmConfig'] == null
-          ? null
-          : LLMConfigDto.fromJson(json['llmConfig'] as Map<String, dynamic>),
-    );
+  content: (json['content'] as List<dynamic>)
+      .map((e) => ContentDto.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  isChunk: json['isChunk'] as bool?,
+  extraSystemPrompt: json['extraSystemPrompt'] as String?,
+  llmConfig: json['llmConfig'] == null
+      ? null
+      : LLMConfigDto.fromJson(json['llmConfig'] as Map<String, dynamic>),
+);
 
 Map<String, dynamic> _$UserTaskDtoToJson(UserTaskDto instance) =>
     <String, dynamic>{
       'content': instance.content.map((e) => e.toJson()).toList(),
-      if (instance.isChunk case final value?) 'isChunk': value,
-      if (instance.extraSystemPrompt case final value?)
-        'extraSystemPrompt': value,
-      if (instance.llmConfig?.toJson() case final value?) 'llmConfig': value,
+      'isChunk': ?instance.isChunk,
+      'extraSystemPrompt': ?instance.extraSystemPrompt,
+      'llmConfig': ?instance.llmConfig?.toJson(),
     };
 
 SessionTaskDto _$SessionTaskDtoFromJson(Map<String, dynamic> json) =>
@@ -289,7 +273,7 @@ SessionTaskDto _$SessionTaskDtoFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$SessionTaskDtoToJson(SessionTaskDto instance) =>
     <String, dynamic>{
       'sessionId': instance.sessionId,
-      if (instance.taskId case final value?) 'taskId': value,
+      'taskId': ?instance.taskId,
     };
 
 TaskStatusDto _$TaskStatusDtoFromJson(Map<String, dynamic> json) =>
@@ -303,73 +287,72 @@ Map<String, dynamic> _$TaskStatusDtoToJson(TaskStatusDto instance) =>
     <String, dynamic>{
       'status': instance.status,
       'taskId': instance.taskId,
-      if (instance.description case final value?) 'description': value,
+      'description': ?instance.description,
     };
 
 ContentDto _$ContentDtoFromJson(Map<String, dynamic> json) => ContentDto(
-      type: json['type'] as String,
-      message: json['message'] as String,
-    );
+  type: json['type'] as String,
+  message: json['message'] as String,
+);
 
 Map<String, dynamic> _$ContentDtoToJson(ContentDto instance) =>
-    <String, dynamic>{
-      'type': instance.type,
-      'message': instance.message,
-    };
+    <String, dynamic>{'type': instance.type, 'message': instance.message};
 
 AgentMessageChunkDto _$AgentMessageChunkDtoFromJson(
-        Map<String, dynamic> json) =>
-    AgentMessageChunkDto(
-      sessionId: json['sessionId'] as String,
-      agentId: json['agentId'] as String?,
-      parentTaskId: json['parentTaskId'] as String?,
-      taskId: json['taskId'] as String,
-      role: json['role'] as String,
-      to: json['to'] as String,
-      type: json['type'] as String,
-      part: json['part'],
-      createTime: DateTime.parse(json['createTime'] as String),
-    );
+  Map<String, dynamic> json,
+) => AgentMessageChunkDto(
+  sessionId: json['sessionId'] as String,
+  agentId: json['agentId'] as String?,
+  parentTaskId: json['parentTaskId'] as String?,
+  taskId: json['taskId'] as String,
+  role: json['role'] as String,
+  to: json['to'] as String,
+  type: json['type'] as String,
+  part: json['part'],
+  createTime: DateTime.parse(json['createTime'] as String),
+);
 
 Map<String, dynamic> _$AgentMessageChunkDtoToJson(
-        AgentMessageChunkDto instance) =>
-    <String, dynamic>{
-      'sessionId': instance.sessionId,
-      if (instance.agentId case final value?) 'agentId': value,
-      if (instance.parentTaskId case final value?) 'parentTaskId': value,
-      'taskId': instance.taskId,
-      'role': instance.role,
-      'to': instance.to,
-      'type': instance.type,
-      if (instance.part case final value?) 'part': value,
-      'createTime': instance.createTime.toIso8601String(),
-    };
+  AgentMessageChunkDto instance,
+) => <String, dynamic>{
+  'sessionId': instance.sessionId,
+  'agentId': ?instance.agentId,
+  'parentTaskId': ?instance.parentTaskId,
+  'taskId': instance.taskId,
+  'role': instance.role,
+  'to': instance.to,
+  'type': instance.type,
+  'part': ?instance.part,
+  'createTime': instance.createTime.toIso8601String(),
+};
 
 AgentDto _$AgentDtoFromJson(Map<String, dynamic> json) => AgentDto(
-      name: json['name'] as String,
-      capability:
-          CapabilityDto.fromJson(json['capability'] as Map<String, dynamic>),
-    );
+  name: json['name'] as String,
+  capability: CapabilityDto.fromJson(
+    json['capability'] as Map<String, dynamic>,
+  ),
+);
 
 Map<String, dynamic> _$AgentDtoToJson(AgentDto instance) => <String, dynamic>{
-      'name': instance.name,
-      'capability': instance.capability.toJson(),
-    };
+  'name': instance.name,
+  'capability': instance.capability.toJson(),
+};
 
 SessionAgentMessageDto _$SessionAgentMessageDtoFromJson(
-        Map<String, dynamic> json) =>
-    SessionAgentMessageDto(
-      sessionId: json['sessionId'] as String,
-      agentMessageDto: AgentMessageDto.fromJson(
-          json['agentMessageDto'] as Map<String, dynamic>),
-    );
+  Map<String, dynamic> json,
+) => SessionAgentMessageDto(
+  sessionId: json['sessionId'] as String,
+  agentMessageDto: AgentMessageDto.fromJson(
+    json['agentMessageDto'] as Map<String, dynamic>,
+  ),
+);
 
 Map<String, dynamic> _$SessionAgentMessageDtoToJson(
-        SessionAgentMessageDto instance) =>
-    <String, dynamic>{
-      'sessionId': instance.sessionId,
-      'agentMessageDto': instance.agentMessageDto.toJson(),
-    };
+  SessionAgentMessageDto instance,
+) => <String, dynamic>{
+  'sessionId': instance.sessionId,
+  'agentMessageDto': instance.agentMessageDto.toJson(),
+};
 
 CallbackOpenToolDto _$CallbackOpenToolDtoFromJson(Map<String, dynamic> json) =>
     CallbackOpenToolDto(
@@ -378,11 +361,11 @@ CallbackOpenToolDto _$CallbackOpenToolDtoFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$CallbackOpenToolDtoToJson(
-        CallbackOpenToolDto instance) =>
-    <String, dynamic>{
-      'opentool': instance.opentool,
-      if (instance.timeout case final value?) 'timeout': value,
-    };
+  CallbackOpenToolDto instance,
+) => <String, dynamic>{
+  'opentool': instance.opentool,
+  'timeout': ?instance.timeout,
+};
 
 PresetOpenSpecDto _$PresetOpenSpecDtoFromJson(Map<String, dynamic> json) =>
     PresetOpenSpecDto(
@@ -395,7 +378,7 @@ PresetOpenSpecDto _$PresetOpenSpecDtoFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$PresetOpenSpecDtoToJson(PresetOpenSpecDto instance) =>
     <String, dynamic>{
       'systemPrompt': instance.systemPrompt,
-      if (instance.openSpec?.toJson() case final value?) 'openSpec': value,
+      'openSpec': ?instance.openSpec?.toJson(),
     };
 
 SessionInfoDto _$SessionInfoDtoFromJson(Map<String, dynamic> json) =>
@@ -409,7 +392,7 @@ SessionInfoDto _$SessionInfoDtoFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$SessionInfoDtoToJson(SessionInfoDto instance) =>
     <String, dynamic>{
       'sessionId': instance.sessionId,
-      if (instance.agentId case final value?) 'agentId': value,
+      'agentId': ?instance.agentId,
       'createTime': instance.createTime.toIso8601String(),
-      if (instance.topic case final value?) 'topic': value,
+      'topic': ?instance.topic,
     };

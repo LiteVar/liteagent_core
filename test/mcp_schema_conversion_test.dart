@@ -6,7 +6,10 @@ import 'package:test/test.dart';
 class _TestDriver extends McpBaseDriver {
   @override
   Future<ot.ToolReturn> call(ot.FunctionCall functionCall) async {
-    return ot.ToolReturn(id: functionCall.id, result: const <String, dynamic>{});
+    return ot.ToolReturn(
+      id: functionCall.id,
+      result: const <String, dynamic>{},
+    );
   }
 }
 
@@ -28,7 +31,10 @@ void main() {
 
       final params = driver.convertToolInputSchemaToParameters(schema);
 
-      expect(params.map((p) => p.name), containsAll(<String>['q', 'limit', 'tags']));
+      expect(
+        params.map((p) => p.name),
+        containsAll(<String>['q', 'limit', 'tags']),
+      );
 
       final q = params.firstWhere((p) => p.name == 'q');
       expect(q.required, isTrue);
@@ -51,6 +57,16 @@ void main() {
       final otSchema = driver.convertJsonSchemaToOtSchema(schema);
       expect(otSchema.type, ot.SchemaType.STRING);
       expect(otSchema.enum_, const ['a', 'b']);
+    });
+
+    test('converts const schema values', () {
+      final driver = _TestDriver();
+      final schema = JsonConst('fixed', description: 'fixed value');
+
+      final otSchema = driver.convertJsonSchemaToOtSchema(schema);
+      expect(otSchema.type, ot.SchemaType.STRING);
+      expect((otSchema.toJson() as Map)['const'], 'fixed');
+      expect(otSchema.description, 'fixed value');
     });
 
     test('falls back to single input parameter for non-object tool input', () {
