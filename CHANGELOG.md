@@ -1,3 +1,8 @@
+## 3.0.0
+
+- remove built-in Llamadart local inference provider and its provider aliases
+- update dependency versions, including MCP and Lite OneAPI
+
 ## 2.0.0
 
 - replace sessionId-referenced sub-agents with recursive inline subAgentList
