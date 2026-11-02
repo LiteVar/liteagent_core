@@ -13,15 +13,15 @@
 
 ## 使用
 
-包名为 `liteagent_core_dart`。使用 OpenAI 兼容接口时，在 `example/.env` 中配置 `baseUrl` 和 `apiKey`，然后运行 `dart run example/agent_example/text_agent_openai_provider_example.dart`。Lite OneAPI 的配置可参考 `text_agent_lite_oneapi_provider_example.dart`。
+包名为 `liteagent_core`。使用 OpenAI 兼容接口时，在 `example/.env` 中配置 `baseUrl` 和 `apiKey`，然后运行 `dart run example/agent_example/text_agent_openai_provider_example.dart`。Lite OneAPI 的配置可参考 `text_agent_lite_oneapi_provider_example.dart`。
 
 ### AgentService
 
 `initSession` 创建会话，`startSession` 提交任务并通过监听器返回消息。需要工具时，可通过 `CapabilityDto.openSpecList` 或 `initSession(customToolDriverList: ...)` 提供工具描述与驱动。
 
 ```dart
-import 'package:liteagent_core_dart/liteagent_core.dart';
-import 'package:liteagent_core_dart/liteagent_service.dart';
+import 'package:liteagent_core/liteagent_core.dart';
+import 'package:liteagent_core/liteagent_service.dart';
 
 Future<void> main() async {
   final service = AgentService();

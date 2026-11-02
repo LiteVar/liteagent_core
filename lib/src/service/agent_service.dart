@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:liteagent_core_dart/liteagent_core.dart';
+import 'package:liteagent_core/liteagent_core.dart';
 import 'package:opentool_dart/opentool_client.dart' as ot;
 import 'package:openapi_dart/openapi_dart.dart';
 import 'package:openrpc_dart/openrpc_dart.dart';

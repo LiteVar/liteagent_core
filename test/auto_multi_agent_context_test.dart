@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:liteagent_core_dart/liteagent_core.dart';
-import 'package:liteagent_core_dart/src/core/agents/auto/wrappers/function.dart';
-import 'package:liteagent_core_dart/src/core/agents/auto/wrappers/llm.dart';
+import 'package:liteagent_core/liteagent_core.dart';
+import 'package:liteagent_core/src/core/agents/auto/wrappers/function.dart';
+import 'package:liteagent_core/src/core/agents/auto/wrappers/llm.dart';
 import 'package:test/test.dart';
 
 void main() {

@@ -13,15 +13,15 @@ LLM `AI Agent` multi sessions service.
 
 ## Usage
 
-The package name is `liteagent_core_dart`. For an OpenAI-compatible endpoint, put `baseUrl` and `apiKey` in `example/.env`, then run `dart run example/agent_example/text_agent_openai_provider_example.dart`. See `text_agent_lite_oneapi_provider_example.dart` for Lite OneAPI configuration.
+The package name is `liteagent_core`. For an OpenAI-compatible endpoint, put `baseUrl` and `apiKey` in `example/.env`, then run `dart run example/agent_example/text_agent_openai_provider_example.dart`. See `text_agent_lite_oneapi_provider_example.dart` for Lite OneAPI configuration.
 
 ### AgentService
 
 `initSession` creates a session. `startSession` submits a task and sends messages to the listener. Tool specifications and drivers are optional; add them through `CapabilityDto.openSpecList` or `initSession(customToolDriverList: ...)` when needed.
 
 ```dart
-import 'package:liteagent_core_dart/liteagent_core.dart';
-import 'package:liteagent_core_dart/liteagent_service.dart';
+import 'package:liteagent_core/liteagent_core.dart';
+import 'package:liteagent_core/liteagent_service.dart';
 
 Future<void> main() async {
   final service = AgentService();

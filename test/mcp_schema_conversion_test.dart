@@ -1,4 +1,4 @@
-import 'package:liteagent_core_dart/src/core/driver/mcp/mcp_base_driver.dart';
+import 'package:liteagent_core/src/core/driver/mcp/mcp_base_driver.dart';
 import 'package:mcp_dart/mcp_dart.dart';
 import 'package:opentool_dart/opentool_client.dart' as ot;
 import 'package:test/test.dart';

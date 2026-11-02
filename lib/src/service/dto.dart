@@ -1,5 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:liteagent_core_dart/liteagent_core.dart';
+import 'package:liteagent_core/liteagent_core.dart';
 import 'package:opentool_dart/opentool_client.dart';
 
 part 'dto.g.dart';

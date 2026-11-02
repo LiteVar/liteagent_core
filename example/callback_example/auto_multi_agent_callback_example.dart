@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:dotenv/dotenv.dart';
-import 'package:liteagent_core_dart/liteagent_core.dart';
-import 'package:liteagent_core_dart/liteagent_service.dart';
+import 'package:liteagent_core/liteagent_core.dart';
+import 'package:liteagent_core/liteagent_service.dart';
 import 'package:opentool_dart/opentool_client.dart';
 import 'package:unique_id_dart/unique_id_dart.dart';
 import '../custom_driver/mock_driver.dart';

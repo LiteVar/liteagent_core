@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:liteagent_core_dart/liteagent_core.dart';
-import 'package:liteagent_core_dart/liteagent_service.dart';
+import 'package:liteagent_core/liteagent_core.dart';
+import 'package:liteagent_core/liteagent_service.dart';
 import 'package:opentool_dart/opentool_client.dart';
 import 'package:test/test.dart';
 

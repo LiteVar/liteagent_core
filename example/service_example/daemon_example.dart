@@ -1,4 +1,4 @@
-import 'package:liteagent_core_dart/liteagent_service.dart';
+import 'package:liteagent_core/liteagent_service.dart';
 import 'package:opentool_daemon/opentool_daemon_client.dart';
 import 'package:opentool_dart/opentool_client.dart';
 

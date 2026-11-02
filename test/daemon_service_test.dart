@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:liteagent_core_dart/liteagent_service.dart';
+import 'package:liteagent_core/liteagent_service.dart';
 import 'package:opentool_daemon/opentool_daemon_client.dart';
 import 'package:test/test.dart';
 

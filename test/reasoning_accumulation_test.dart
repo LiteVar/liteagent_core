@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:dart_openai_sdk/dart_openai_sdk.dart';
-import 'package:liteagent_core_dart/src/core/agents/llm/openai_executor.dart';
-import 'package:liteagent_core_dart/src/core/agents/llm/model.dart';
-import 'package:liteagent_core_dart/src/core/agents/model.dart';
-import 'package:liteagent_core_dart/src/core/agents/session_agent/session.dart';
-import 'package:liteagent_core_dart/src/core/agents/session_agent/session_restore_state.dart';
-import 'package:liteagent_core_dart/src/core/agents/text_agent/text_agent.dart';
-import 'package:liteagent_core_dart/src/core/llm/model.dart';
+import 'package:liteagent_core/src/core/agents/llm/openai_executor.dart';
+import 'package:liteagent_core/src/core/agents/llm/model.dart';
+import 'package:liteagent_core/src/core/agents/model.dart';
+import 'package:liteagent_core/src/core/agents/session_agent/session.dart';
+import 'package:liteagent_core/src/core/agents/session_agent/session_restore_state.dart';
+import 'package:liteagent_core/src/core/agents/text_agent/text_agent.dart';
+import 'package:liteagent_core/src/core/llm/model.dart';
 import 'package:opentool_dart/opentool_client.dart';
 import 'package:test/test.dart';
 

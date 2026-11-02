@@ -7,6 +7,7 @@
 # https://dart.dev/guides/libraries/private-files#pubspeclock.
 pubspec.lock
 lite_agent_core_dart.iml
+liteagent_core.iml
 example/.env
 .cursor/
 AGENTS.md

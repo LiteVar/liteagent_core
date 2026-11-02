@@ -1,8 +1,8 @@
-import 'package:liteagent_core_dart/src/core/llm/client/adapters/dart_openai_chat_client_adapter.dart';
-import 'package:liteagent_core_dart/src/core/llm/client/adapters/lite_oneapi_chat_client_adapter.dart';
-import 'package:liteagent_core_dart/src/core/llm/client/llm_client_factory.dart';
-import 'package:liteagent_core_dart/src/core/llm/client/llm_provider_type.dart';
-import 'package:liteagent_core_dart/src/core/llm/model.dart';
+import 'package:liteagent_core/src/core/llm/client/adapters/dart_openai_chat_client_adapter.dart';
+import 'package:liteagent_core/src/core/llm/client/adapters/lite_oneapi_chat_client_adapter.dart';
+import 'package:liteagent_core/src/core/llm/client/llm_client_factory.dart';
+import 'package:liteagent_core/src/core/llm/client/llm_provider_type.dart';
+import 'package:liteagent_core/src/core/llm/model.dart';
 import 'package:test/test.dart';
 
 void main() {

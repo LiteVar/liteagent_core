@@ -1,6 +1,6 @@
 import 'package:dotenv/dotenv.dart';
-import 'package:liteagent_core_dart/liteagent_core.dart';
-import 'package:liteagent_core_dart/liteagent_service.dart';
+import 'package:liteagent_core/liteagent_core.dart';
+import 'package:liteagent_core/liteagent_service.dart';
 import '../listener.dart';
 
 /// [IMPORTANT] Prepare:

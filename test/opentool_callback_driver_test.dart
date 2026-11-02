@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:liteagent_core_dart/liteagent_core.dart';
-import 'package:liteagent_core_dart/liteagent_service.dart';
+import 'package:liteagent_core/liteagent_core.dart';
+import 'package:liteagent_core/liteagent_service.dart';
 import 'package:opentool_dart/opentool_client.dart' as ot;
 import 'package:opentool_dart/opentool_schema.dart' as schema;
 import 'package:test/test.dart';

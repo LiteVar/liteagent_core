@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:liteagent_core_dart/liteagent_core.dart';
-import 'package:liteagent_core_dart/liteagent_service.dart';
+import 'package:liteagent_core/liteagent_core.dart';
+import 'package:liteagent_core/liteagent_service.dart';
 
 /// Demonstrates restoring completed session context without a database, LLM,
 /// tool server, API key, listener replay, or stream events.
