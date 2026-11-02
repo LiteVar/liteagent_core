@@ -1,3 +1,7 @@
+## 3.0.2
+
+- upgrade lite_oneapi to 0.3.2
+
 ## 3.0.1
 
 - upgrade dart_openai_sdk to 6.2.0
