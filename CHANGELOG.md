@@ -1,6 +1,6 @@
 ## 3.0.2
 
-- upgrade lite_oneapi to 0.3.2
+- upgrade lite_oneapi to 0.3.3, which ignores thinking-off controls for OpenAI-compatible models without a reasoning switch
 
 ## 3.0.1
 

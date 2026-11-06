@@ -15,7 +15,7 @@ dependencies:
 
   # OpenAI style api support
   dart_openai_sdk: ^6.2.0
-  lite_oneapi: ^0.3.2
+  lite_oneapi: ^0.3.3
 
   # OpenSpec support
   opentool_dart: ^3.0.0
